@@ -278,11 +278,13 @@ a { color: inherit; text-decoration: none; }
 
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
 .brand h1 {
+  white-space: nowrap;
   margin: 0;
   font-size: var(--font-title);
   font-weight: 700;
@@ -3456,10 +3458,10 @@ th[data-sort]:hover { background: var(--accent-soft); }
   }
 }
 /* The update dialog uses the same typography and colors as settings. */
-.updateDialog { width: min(520px, calc(100vw - 32px)); padding: 0; }
-.updateDialogBody { padding: 20px; }
-.updateDialogBody h2 { font-size: var(--font-size-lg, 16px); margin: 0 0 12px; }
-.updateReleaseNotes { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; }
+.updateDialog { width: min(540px, calc(100vw - 32px)); padding: 0; }
+.updateDialogBody { padding: 28px; }
+.updateDialogBody h2 { font-size: 21px; line-height: 1.5; margin: 0 0 8px; }
+.updateReleaseNotes { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; line-height: 1.9; }
 .updateDialog progress { width: 100%; accent-color: var(--accent); }
 .updateVersionRow, .updatePreferenceRow label { display: flex; align-items: center; gap: 10px; }
 .updateVersionRow { margin: 0; }
@@ -3471,5 +3473,17 @@ th[data-sort]:hover { background: var(--accent-soft); }
 .updateActions .btn { min-height: 30px; padding: 4px 10px; }
 .updatePreferenceRow { margin: 0; }
 .updatePreferenceRow input { flex: 0 0 auto; margin: 0; }
+
+.headerUpdateButton { color: var(--accent-strong); background: var(--accent-soft); border-color: rgba(var(--accent-rgb), .35); white-space: nowrap; font-weight: 700; border-radius: var(--radius-pill); }
+.updateNoticeIcon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 16px; border-radius: 14px; background: var(--accent-soft); color: var(--accent-strong); font-size: 28px; font-weight: 700; }
+.updateIntro { margin: 0 0 20px; color: var(--muted); }
+.updateVersionComparison { display: flex; gap: 18px; align-items: center; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); }
+.updateVersionComparison strong { margin-left: 8px; }
+.updateLatestVersion { color: var(--accent-strong); }
+.updateNotesHeading { font-size: var(--font-body); margin: 20px 0 10px; }
+.updateSafetyNote { margin-top: 20px; line-height: 1.7; }
+.headerNavigation { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
+.headerNavigation > .nav { width: 300px; flex: 0 1 300px; }
+.headerNavigation > .headerUpdateButton { flex: 0 0 auto; }
 .settingsProjectLink { margin: 0; }
 .settingsProjectLink a { color: var(--accent-strong); text-underline-offset: 3px; }

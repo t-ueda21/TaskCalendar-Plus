@@ -707,7 +707,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   let savingSettings = false;
   let dialogSession = 0;
   const saveSettings = async () => {
-    if (savingSettings) return;
+    if (savingSettings) return false;
     const savingSession = dialogSession;
     const onAfterSave = getConfig().onAfterSave;
     const current = Store.getSettings();
@@ -722,7 +722,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
 
 よろしいですか？`,
       );
-      if (!ok) return;
+      if (!ok) return false;
     }
     const patch = {
       workStart: settingsDialog.querySelector("[name='workStart']")?.value || current.workStart,
@@ -748,8 +748,10 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
       await Store.updateSettings(patch);
       if (dialogSession === savingSession) settingsDialog.close();
       onAfterSave?.(patch);
+      return dialogSession === savingSession;
     } catch (error) {
       alert(`設定を保存できませんでした。もう一度お試しください。\n${String(error?.message ?? error)}`);
+      return false;
     } finally {
       savingSettings = false;
       if (saveBtn) saveBtn.disabled = false;
@@ -845,6 +847,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
 
   settingsDialog.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
+    if (e.target.closest("button")) return;
     if (e.target instanceof HTMLTextAreaElement) return;
     if (e.target.closest("[data-tag-list]")) {
       e.preventDefault();
@@ -860,7 +863,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     saveSettings();
   });
 
-  return { state, openDialog, tabControl };
+  return { state, openDialog, tabControl, saveSettings };
 }
 
 /**

@@ -15,12 +15,15 @@
         <nav class="externalLinks" aria-label="クイックリンク" data-quick-links hidden></nav>
       </div>
 
-      <nav class="nav hasIndicator" aria-label="ページ切替">
-        <span class="navIndicator" aria-hidden="true"></span>
-        <a href="#" data-nav-target="calendar" aria-current="page">カレンダー</a>
-        <a href="#" data-nav-target="tasks">タスク一覧</a>
-        <a href="#" data-nav-target="ai">AIモード</a>
-      </nav>
+      <div class="headerNavigation">
+        <nav class="nav hasIndicator" aria-label="ページ切替">
+          <span class="navIndicator" aria-hidden="true"></span>
+          <a href="#" data-nav-target="calendar" aria-current="page">カレンダー</a>
+          <a href="#" data-nav-target="tasks">タスク一覧</a>
+          <a href="#" data-nav-target="ai">AIモード</a>
+        </nav>
+        <button class="btn headerUpdateButton" type="button" data-update-open hidden>↑ アップデート</button>
+      </div>
 
       <div class="clock" aria-label="時刻表示">
         <div>
@@ -69,7 +72,6 @@
 
           <div class="right">
             <button class="btn" type="button" data-sidebar-toggle title="サイドバーを折りたたむ">◀ サイド</button>
-            <button class="btn" type="button" data-update-open hidden>更新する</button>
             <button class="btn" type="button" aria-label="設定" data-settings-btn>⚙ 設定</button>
           </div>
         </section>
@@ -273,7 +275,6 @@
 
           <div class="right">
             <button class="btn" type="button" data-sidebar-toggle title="サイドバーを折りたたむ">◀ サイド</button>
-            <button class="btn" type="button" data-update-open hidden>更新する</button>
             <button class="btn" type="button" aria-label="設定" data-settings-btn>⚙ 設定</button>
           </div>
         </section>
@@ -448,7 +449,6 @@
           </div>
           <div class="right">
             <button class="btn" type="button" data-sidebar-toggle title="サイドバーを折りたたむ">◀ サイド</button>
-            <button class="btn" type="button" data-update-open hidden>更新する</button>
             <button class="btn" type="button" aria-label="設定" data-settings-btn>⚙ 設定</button>
           </div>
         </section>
@@ -906,15 +906,18 @@
 
   <dialog class="dialog updateDialog" data-update-dialog aria-labelledby="update-title">
     <div class="updateDialogBody">
-      <h2 id="update-title">アプリの更新</h2>
-      <p>現在のバージョン <span data-update-current></span></p>
+      <div class="updateNoticeIcon" aria-hidden="true">↑</div>
+      <h2 id="update-title">新しいアップデートがあります</h2>
+      <p class="updateIntro">TaskCalendar+ を最新のバージョンに更新できます。</p>
+      <div class="updateVersionComparison"><span>現在 <strong data-update-current></strong></span><span aria-hidden="true">→</span><span class="updateLatestVersion">最新 <strong data-update-latest></strong></span></div>
       <p data-update-status role="status"></p>
+      <h3 class="updateNotesHeading">今回の更新内容</h3>
       <div class="updateReleaseNotes" data-update-notes></div>
-      <p class="settingsSectionSub">更新前に保存済みデータを自動バックアップし、アプリを再起動します。編集中の予定や設定は保存して閉じてください。</p>
+      <p class="settingsSectionSub updateSafetyNote">保存済みの予定・設定は、更新前に自動バックアップされます。更新が終わるとアプリが再起動します。</p>
       <progress max="100" hidden aria-label="更新ファイルのダウンロード"></progress>
     </div>
     <footer class="settingsFooter">
-      <button class="btn" type="button" data-update-close>閉じる</button>
+      <button class="btn" type="button" data-update-close>あとで</button>
       <button class="btn primary" type="button" data-update-install>更新して再起動</button>
     </footer>
   </dialog>

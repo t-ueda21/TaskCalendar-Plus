@@ -57,7 +57,7 @@ try {
   const send = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })); });
   const evaluate = async (expression) => {
     const r = await send('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: true });
-    if (r.result?.exceptionDetails) throw new Error(r.result.exceptionDetails.exception?.description ?? 'evaluate failed');
+    if (r.result?.exceptionDetails) throw new Error(r.result.exceptionDetails.exception?.description ?? r.result.exceptionDetails.exception?.value ?? r.result.exceptionDetails.text ?? 'evaluate failed');
     return r.result?.result?.value;
   };
   await new Promise((r) => (ws.onopen = r));
@@ -542,6 +542,81 @@ try {
   check('更新用のネイティブコマンドと設定の既定ON・OFF保存が動作する',Boolean(updaterUi.nativeInfo.currentVersion)&&updaterUi.defaultOn&&updaterUi.persistedOff,JSON.stringify(updaterUi));
   check('更新UIは通信失敗・新版・安全なリリースノートを表示する',updaterUi.failure&&updaterUi.available&&updaterUi.escaped,JSON.stringify(updaterUi));
   check('更新UIは編集中のインストールを防ぎ、検証失敗後に再試行できる',updaterUi.guarded&&updaterUi.retry,JSON.stringify(updaterUi));
+
+  const updateHandoff = await evaluate(`(async () => {
+    const Store = await import('/src/store.js');
+    const pause = () => new Promise(r => setTimeout(r, 250));
+    // Replace only updater controls to remove the original native bridge listeners.
+    for (const node of document.querySelectorAll('[data-update-dialog], [data-update-open], [data-update-check]')) node.replaceWith(node.cloneNode(true));
+    const settings = document.querySelector('[data-settings-dialog]');
+    const notice = document.querySelector('[data-update-dialog]');
+    const openSettings = () => document.querySelector('[data-view="calendar"] [data-settings-btn]').click();
+    let installs = 0;
+    const bridge = {core:{Channel:class {},async invoke(command) {
+      if(command==='get_update_info') return {currentVersion:'0.1.1',installSupported:true};
+      if(command==='check_app_update') return {version:'0.1.2',notes:'更新内容'};
+      if(command==='install_app_update') {installs++; throw new Error('test download failure');}
+    }}};
+    openSettings();
+    await (await import('/src/app-updater.js')).initAppUpdater({...Store,getSettings:()=>({...Store.getSettings(),checkUpdatesOnStartup:true})},document,bridge);
+    const deferred = settings.open && !notice.open;
+    const secondEditor = document.createElement('dialog');
+    document.body.append(secondEditor); secondEditor.showModal();
+    settings.querySelector('[data-settings-cancel]').click(); await pause();
+    const waitsForLastEditor = !notice.open;
+    secondEditor.close(); await pause(); secondEditor.remove();
+    const startupOpened = notice.open;
+    notice.querySelector('[data-update-close]').click(); await pause();
+    const dismissed = !notice.open;
+    openSettings();
+    settings.querySelector('[name="workEnd"]').value='17:30';
+    const originalFetch = window.fetch;
+    let failedSaveKeepsEditor;
+    try {
+      window.fetch=(url,init)=>String(url)==='/api/settings'&&init?.method==='PUT'
+        ?Promise.resolve(new Response(JSON.stringify({error:'test save failure'}),{status:503})) :originalFetch(url,init);
+      settings.querySelector('[data-update-open]').click(); await pause();
+      failedSaveKeepsEditor=settings.open&&!notice.open&&installs===0;
+    } finally {window.fetch=originalFetch;}
+    settings.querySelector('[data-update-open]').click(); await pause();
+    const saved=Store.getSettings().workEnd==='17:30'&&(await(await fetch('/api/settings')).json()).workEnd==='17:30';
+    const handoff=!settings.open&&notice.open;
+    notice.querySelector('[data-update-install]').click(); await pause();
+    const reachedInstaller=installs===1&&notice.querySelector('[data-update-status]').textContent==='test download failure';
+    notice.querySelector('[data-update-close]').click();
+    await Store.updateSettings({quickLinks:[]});
+    return {deferred,waitsForLastEditor,startupOpened,dismissed,failedSaveKeepsEditor,saved,handoff,reachedInstaller};
+  })()`);
+  check('起動時の更新通知は最後の編集画面を閉じるまで待機し、あとでを選べる',updateHandoff.deferred&&updateHandoff.waitsForLastEditor&&updateHandoff.startupOpened&&updateHandoff.dismissed,JSON.stringify(updateHandoff));
+  check('設定から更新: 保存失敗では設定を保持し、保存成功後だけ更新処理へ進む',updateHandoff.failedSaveKeepsEditor&&updateHandoff.saved&&updateHandoff.handoff&&updateHandoff.reachedInstaller,JSON.stringify(updateHandoff));
+
+  await evaluate(`(()=>{
+    window.updateKeyboardSaves=0;window.updateOriginalFetch=window.fetch;
+    window.fetch=(url,init)=>{if(String(url)==='/api/settings'&&init?.method==='PUT')window.updateKeyboardSaves++;return window.updateOriginalFetch(url,init);};
+    document.querySelector('[data-view="calendar"] [data-settings-btn]').click();
+    document.querySelector('[data-settings-tab="about"]').click();
+  })()`);
+  await sleep(100);
+  await evaluate(`document.querySelector('[data-settings-dialog] [data-update-open]').focus()`);
+  await send('Emulation.setFocusEmulationEnabled',{enabled:true});
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
+  await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+  await sleep(350);
+  const updateKeyboard=await evaluate(`(()=>{window.fetch=window.updateOriginalFetch;const result={saves:window.updateKeyboardSaves,opened:document.querySelector('[data-update-dialog]').open,settingsClosed:!document.querySelector('[data-settings-dialog]').open};document.querySelector('[data-update-close]').click();return result;})()`);
+  check('設定から更新はEnterキーでも1回だけ保存し、更新画面へ進む',updateKeyboard.saves===1&&updateKeyboard.opened&&updateKeyboard.settingsClosed,JSON.stringify(updateKeyboard));
+
+  for (const width of [1280, 1100, 1024]) {
+    await send('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:false});
+    const layout=await evaluate(`(()=>{
+      const header=document.querySelector('.header'),button=header.querySelector('[data-update-open]');
+      const height=header.getBoundingClientRect().height;
+      button.hidden=true;const without=header.getBoundingClientRect().height;button.hidden=false;
+      const rects=['.brand','.nav','.headerUpdateButton','.clock'].map(s=>{const r=header.querySelector(s).getBoundingClientRect();return {left:r.left,right:r.right,mid:r.y+r.height/2};});
+      return {height,without,sameRow:Math.max(...rects.map(r=>r.mid))-Math.min(...rects.map(r=>r.mid))<2,rightOfTabs:rects[2].left>=rects[1].right,clock:document.querySelector('.clock').innerText};
+    })()`);
+    check('更新ボタンはタブの右、時計と同じ段で高さを増やさない ('+width+'px)',layout.height===layout.without&&layout.sameRow&&layout.rightOfTabs&&layout.clock.includes('定時まで'),JSON.stringify(layout));
+  }
+  await send('Emulation.clearDeviceMetricsOverride');
 
   // 実CLIの認証状態に依存するため明示指定時のみ。会話や推論は行わない。
   if (process.env.TCPLUS_E2E_LIVE_MODELS === '1') {
