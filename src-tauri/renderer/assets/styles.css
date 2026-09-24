@@ -3461,3 +3461,7 @@ th[data-sort]:hover { background: var(--accent-soft); }
 .updateDialogBody h2 { font-size: var(--font-size-lg, 16px); margin: 0 0 12px; }
 .updateReleaseNotes { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; }
 .updateDialog progress { width: 100%; accent-color: var(--accent); }
+.updateVersionRow, .updatePreferenceRow label { display: flex; align-items: center; gap: 10px; }
+.updateVersionRow { margin: 10px 0; }
+.updateVersionRow span, .updatePreferenceRow label { white-space: nowrap; }
+.updatePreferenceRow { margin: 12px 0; }
