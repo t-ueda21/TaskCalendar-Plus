@@ -1,0 +1,24 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "外部リンクのOSブラウザ起動(shell)、Windowsログイン自動起動(autostart)、アプリ独自コマンド(組み込みAPIの合言葉の取得を含む)を許可する",
+  "windows": [
+    "main"
+  ],
+  "remote": {
+    "urls": [
+      "http://127.0.0.1:*"
+    ]
+  },
+  "permissions": [
+    "allow-get-api-token",
+    "shell:allow-open",
+    "autostart:default",
+    "allow-set-ui-zoom",
+    "allow-get-autostart-enabled",
+    "allow-set-autostart-enabled",
+    "allow-get-update-info",
+    "allow-check-app-update",
+    "allow-install-app-update"
+  ]
+}

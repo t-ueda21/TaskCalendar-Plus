@@ -1,0 +1,3463 @@
+/* 日本語の書体を保ち、数字だけは太字でも同じ幅になるローカル書体を使う。 */
+@font-face {
+  font-family: "TaskCalendar Digits";
+  src: local("Arial");
+  font-weight: 400;
+  font-feature-settings: "tnum" 1, "kern" 0;
+  unicode-range: U+0030-0039;
+}
+
+@font-face {
+  font-family: "TaskCalendar Digits";
+  src: local("Arial Bold");
+  font-weight: 600;
+  font-feature-settings: "tnum" 1, "kern" 0;
+  unicode-range: U+0030-0039;
+}
+
+@font-face {
+  font-family: "TaskCalendar Digits";
+  src: local("Arial Bold");
+  font-weight: 700;
+  font-feature-settings: "tnum" 1, "kern" 0;
+  unicode-range: U+0030-0039;
+}
+
+:root {
+  /* 全画面共通: 補足12 / 本文13 / 小見出し14 / 日付・画面見出し16。 */
+  --font-ui: "TaskCalendar Digits", "Yu Gothic UI", "Meiryo", "Segoe UI", system-ui, sans-serif;
+  --font-code: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --font-caption: 12px;
+  --font-body: 13px;
+  --font-section: 14px;
+  --font-title: 16px;
+  --bg: #f3f4f9;
+  --panel: #ffffff;
+  --panel2: #f8f9fc;
+  --text: #1c2333;
+  --muted: #667085;
+  --border: rgba(28, 35, 51, 0.09);
+  --border-strong: rgba(28, 35, 51, 0.18);
+  --accent: #0072bc;
+  --accent-soft: rgba(var(--accent-rgb), 0.10);
+  --accent-strong: #00538a;
+  --accent-rgb: 0, 114, 188;
+  --accent-hover: #00538a;
+  --on-accent: #ffffff;
+  --on-accent-hover: #ffffff;
+  --task-day-tag-row-height: 38px;
+
+  --tag-1: #0072bc; /* 案件1 */
+  --tag-2: #1f9d6b; /* 案件2 */
+  --tag-3: #7c5cd6; /* 研修 */
+  --tag-4: #c8860d; /* その他 */
+
+  --danger: #c4354a;
+  --success: #147a52;
+  --warn: #946200;
+  --weekend-sat: #0072bc;
+  --warn-soft: rgba(200, 134, 13, 0.14);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(28, 35, 51, 0.05), 0 1px 1px rgba(28, 35, 51, 0.04);
+  --shadow-md: 0 6px 20px rgba(28, 35, 51, 0.08);
+  --shadow-lg: 0 16px 40px rgba(28, 35, 51, 0.14);
+
+  /* 半透明サーフェス(ヘッダー/ツールバー等のbackdrop-blur背景、
+     チップ/コントロール等の--panel2系背景)。ダークモードで差し替えられるよう
+     変数にしている。 */
+  --surface-1: rgba(255, 255, 255, 0.94);
+  --surface-2: rgba(255, 255, 255, 0.6);
+  --surface-3: rgba(248, 249, 252, 0.9);
+  --surface-4: rgba(248, 249, 252, 0.45);
+
+  --today-bg: rgba(200, 134, 13, 0.16);
+  --today-border: rgba(184, 116, 6, 0.55);
+  --today-text: #8a5a06;
+
+  --nav-track: rgba(28, 35, 51, 0.045);
+
+  /* カレンダー時間グリッドの罫線・非稼働時間帯シェーディング・ホバー背景。
+     ダークモードでは反転(白系の低アルファ)しないと見えなくなる。 */
+  --grid-line-soft: rgba(28, 35, 51, 0.07);
+  --grid-line: rgba(28, 35, 51, 0.16);
+  --grid-line-hour: rgba(28, 35, 51, 0.24);
+  --offhours-tint: rgba(28, 35, 51, 0.028);
+  --break-tint: rgba(28, 35, 51, 0.08);
+  --hover-tint: rgba(28, 35, 51, 0.05);
+  --hover-tint-soft: rgba(28, 35, 51, 0.02);
+}
+
+/* ── ダークモード(設定ダイアログ右上のトグルで切替) ────────── */
+:root[data-theme="dark"] {
+  /* 視認性のため、境界線・補足文字(border/muted)は明るめにしている。 */
+  --bg: #10141d;
+  --panel: #1a2130;
+  --panel2: #232c40;
+  --text: #e6e9f0;
+  --muted: #a3aec4;
+  --border: rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.28);
+  --accent: #3b9eff;
+  --accent-soft: rgba(59, 158, 255, 0.16);
+  --accent-strong: #7cc0ff;
+  --accent-rgb: 59, 158, 255;
+  --accent-hover: #7cc0ff;
+  --on-accent: #000000;
+  --on-accent-hover: #000000;
+
+  /* タグ色(--tag-1〜4)はライトモードと同じ配色を維持する
+     (タグ色との親和性を保つため、ダークモード専用の色は割り当てない)。 */
+
+  --danger: #f27085;
+  --weekend-sat: #7cc0ff;
+  --success: #34c98d;
+  --warn: #e0a53e;
+  --warn-soft: rgba(224, 165, 62, 0.16);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.30), 0 1px 1px rgba(0, 0, 0, 0.24);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.48);
+
+  --surface-1: rgba(26, 33, 48, 0.94);
+  --surface-2: rgba(26, 33, 48, 0.6);
+  --surface-3: rgba(35, 44, 64, 0.9);
+  --surface-4: rgba(35, 44, 64, 0.45);
+
+  --today-bg: rgba(224, 165, 62, 0.18);
+  --today-border: rgba(224, 165, 62, 0.5);
+  --today-text: #f0c419;
+
+  /* タブ切替のスライドピル(.navIndicator)の背景を目立たせるための
+     トラック色(どのタブが選択中か見分けられるようにする)。 */
+  --nav-track: rgba(255, 255, 255, 0.08);
+
+  --grid-line-soft: rgba(255, 255, 255, 0.08);
+  --grid-line: rgba(255, 255, 255, 0.18);
+  --grid-line-hour: rgba(255, 255, 255, 0.28);
+  --offhours-tint: rgba(255, 255, 255, 0.05);
+  --break-tint: rgba(255, 255, 255, 0.10);
+  --hover-tint: rgba(255, 255, 255, 0.07);
+  --hover-tint-soft: rgba(255, 255, 255, 0.04);
+}
+
+* { box-sizing: border-box; }
+
+[hidden] { display: none !important; }
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-variant-numeric: inherit;
+  font-size: var(--font-body);
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+textarea {
+  line-height: 1.5;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+code, pre, kbd, samp {
+  font-family: var(--font-code);
+}
+
+/* タスクダイアログの#title/#memo等、クラス無しの素の<input>/<textarea>/<select>は
+   ブラウザ既定の白背景のままだとダークモードで浮いて見えるため、
+   低詳細度のベーススタイルとして明示し、
+   .control系等より詳細度の高い既存ルールはそのまま優先される。 */
+input, textarea, select {
+  color: var(--text);
+  background: var(--panel);
+  border-color: var(--border);
+}
+
+.panelHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 14px 9px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panelHeaderRow .title {
+  margin: 0;
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.2px;
+}
+
+.panelHeaderRow [data-mini-month-label] {
+  font-size: var(--font-title);
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* 初期化完了までbodyをopacity:0で隠す間、素の白背景が透けて見えるのを防ぐ */
+html {
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-variant-numeric: lining-nums tabular-nums;
+  font-size: var(--font-body);
+  line-height: 1.5;
+  background: radial-gradient(circle at top left, rgba(var(--accent-rgb), 0.05), transparent 46%), var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.container {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 16px 8px 0;
+}
+
+/* ── SPAシェル(app.html)のタブ切替 ──────────────
+   #viewRoot/.view はdisplay:contentsでレイアウトに一切影響しない
+   透過ラッパーとし、.toolbar/.layout等の高さ計算(container基準の
+   height:100%やcalc())をそのまま維持する。表示切替は.view[hidden]で行う。 */
+#viewRoot,
+.view {
+  display: contents;
+}
+
+.view[hidden] {
+  display: none;
+}
+
+/* タブ切替ボタン(nav.nav)の下でアクティブタブに追従してスライドする
+   ピル型インジケータ。位置決めはJS(main.js)側で行う。 */
+.navIndicator {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 0;
+  border-radius: var(--radius-pill);
+  background: var(--panel);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-sm);
+  transform: translateX(0);
+  transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-sm);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: var(--font-title);
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  color: var(--text);
+}
+
+.externalLinks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.externalLinks a {
+  font-size: var(--font-caption);
+  color: var(--muted);
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-1);
+  white-space: nowrap;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.externalLinks a:hover {
+  color: var(--accent-strong);
+  border-color: rgba(var(--accent-rgb), 0.35);
+  background: var(--accent-soft);
+}
+
+.nav {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  width: 330px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--nav-track);
+}
+
+.nav a {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 8px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--muted);
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.nav a[aria-current="page"] {
+  color: var(--accent-strong);
+  font-weight: 700;
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
+}
+
+/* SPAシェル(app.html、nav.hasIndicator)では.navIndicatorがスライドする
+   ピル背景を担うため、各リンク自身の背景/影は消してテキストだけ表示する。 */
+.nav.hasIndicator a[aria-current="page"] {
+  background: transparent;
+  box-shadow: none;
+}
+
+.clock {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock .k {
+  color: var(--muted);
+  font-size: var(--font-caption);
+}
+
+.clock .v {
+  font-size: var(--font-section);
+  font-weight: 600;
+}
+
+.toolbar {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-sm);
+  /* AIモードのように.leftの中身が.aiModelChipだけの場合でも、
+     カレンダー/タスク一覧のtoolbarと高さを揃える。
+     .leftが折り返って2行になるタブとならないタブで高さがズレないよう、
+     min-heightではなくheight固定にし、折り返しはnowrap+横スクロールで防ぐ。 */
+  height: 62px;
+  box-sizing: border-box;
+}
+
+.toolbar .left,
+.toolbar .right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.toolbar .left {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: var(--font-body);
+}
+
+/* タスク作成/編集ダイアログのチェックボックス(終日・編集範囲)。
+   .controlの枠付きピル型スタイルは日付入力欄と紛らわしいため使わず、
+   .settingsCheckと同じ枠なしのチェックボックス表現に揃える。 */
+.formCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--text);
+  font-size: var(--font-body);
+}
+
+.formCheck input[type="checkbox"] {
+  transform: translateY(1px);
+  accent-color: var(--accent);
+}
+
+.control select,
+.control input[type="date"],
+.control input[type="time"],
+.control input[type="text"],
+.control textarea {
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  outline: none;
+}
+
+.control input[type="checkbox"] {
+  transform: translateY(1px);
+  accent-color: var(--accent);
+}
+
+.btn {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: var(--font-body);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s, transform 0.06s;
+}
+
+.btn:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn.primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent-hover);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+/* ── ボタングループ（タグ・繰り返し選択） ─────────────── */
+.btnGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.btnGroupItem {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 5px 12px;
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: var(--font-body);
+  font-weight: 600;
+  line-height: 1.5;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.btnGroupItem:hover {
+  background: var(--accent-soft);
+  border-color: rgba(var(--accent-rgb), 0.35);
+}
+
+.btnGroupItem.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.formRow.top {
+  align-items: flex-start;
+  padding-top: 2px;
+}
+
+.layout {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 6px 8px;
+  height: calc(100% - 146px);
+  transition: grid-template-columns 0.25s ease;
+}
+
+.layout.sidebar-collapsed {
+  grid-template-columns: 0px 1fr;
+}
+
+.layout > aside {
+  min-width: 0;
+  transition: opacity 0.2s ease;
+}
+
+.layout.sidebar-collapsed > aside {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.layout > .panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.panelBody {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+aside .panelBody {
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+}
+aside .panelBody::-webkit-scrollbar {
+  display: none; /* Chrome / Safari / Edge */
+}
+
+/* サイドバーを月次/日次集計までスクロールしても、ミニカレンダー(月移動ヘッダー+
+   カレンダー本体)は画面上部に固定表示する。カレンダー/タスク一覧/AIモードの
+   3画面共通(app.html内3箇所)。 */
+.miniCalSticky {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-1);
+}
+
+/* calendar panel uses fixed header areas + scrolling gridWrap */
+.panel[aria-label="カレンダー本体"] .panelBody {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: var(--font-section);
+  font-weight: 600;
+  padding: 11px 14px 9px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  letter-spacing: 0.2px;
+}
+
+.miniCalHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.miniCalHeader > h2 {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border-bottom: 0;
+}
+
+.miniCalMonthLabel {
+  display: block;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.miniCalMonthLabel:focus-visible,
+.miniMonth:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.mini.monthPicker {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  height: var(--mini-calendar-grid-height, 212px);
+  gap: 12px 6px;
+  padding: 4px 0;
+}
+
+.miniMonth {
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.miniMonth:hover {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.miniMonth[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.miniCalToggle {
+  width: 48px;
+  height: 28px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--font-caption);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.miniCalToggle:hover,
+.miniCalMonthLabel:hover {
+  background: var(--hover-tint);
+  color: var(--text);
+}
+
+.miniCalToggle:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.miniCalHeaderArrows {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.calendarTitleBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.panelHeaderRow,
+.panel .calendarTitleBar {
+  height: 56px;
+  flex-shrink: 0;
+  padding: 8px 14px;
+}
+
+@media (max-width: 700px) {
+  .panelHeaderRow,
+  .panel .calendarTitleBar {
+    height: 88px;
+  }
+}
+
+.calendarWeatherTitleBar {
+  justify-content: space-between;
+}
+
+.calendarWeatherTitleBar .calendarTitleLeft {
+  flex: 1;
+}
+
+.calendarTitleLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.titleNavBtn {
+  min-width: 32px;
+  height: 28px;
+  padding: 0;
+  line-height: 1;
+  border-radius: var(--radius-pill);
+}
+
+.aiModelChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: var(--font-caption);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.titleShiftLabel {
+  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
+}
+
+.titleShiftLabel strong {
+  color: var(--muted);
+  font-size: var(--font-title);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.weatherChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: var(--font-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.weatherChip.loading {
+  color: var(--muted);
+}
+
+.panel .content {
+  padding: 6px;
+}
+
+.mini {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini .d {
+  padding: 6px 0;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: var(--font-caption);
+}
+
+.mini .d.dow {
+  background: var(--hover-tint);
+  border-color: var(--border);
+  font-weight: 700;
+}
+
+.mini .d.day {
+  background: var(--surface-1);
+}
+
+.mini .d.sat {
+  color: var(--weekend-sat);
+}
+
+.mini .d.sun {
+  color: var(--danger);
+}
+
+.mini .d.holiday {
+  border-color: rgba(214, 69, 90, 0.32);
+  background: rgba(214, 69, 90, 0.08);
+  color: var(--text);
+}
+
+.mini .d.today {
+  background: var(--today-bg);
+  border-color: var(--today-border);
+  color: var(--today-text);
+  font-weight: 700;
+}
+
+.mini .d.selected {
+  background: var(--accent-soft);
+  border-color: rgba(var(--accent-rgb), 0.65);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.taglist {
+  display: grid;
+  gap: 4px; /* 月次/日次集計のタグ行間隔は詰め気味にする */
+}
+
+.tag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 11px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+}
+
+/* サイドバーの月次/日次集計のタグ行はクリックすると設定のタグ管理
+   タブを開く。data-tag-idを持つ行(サイドバー集計のみ)にクリック可能な見た目を付ける。 */
+.tag[data-tag-id] {
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.tag[data-tag-id]:hover {
+  border-color: var(--border-strong);
+  background: var(--hover-tint);
+}
+
+/* 月間予定工数(budgetMinutes)が設定されたタグの進捗バー付き行。
+   .tagに乗せる形(横並び行→縦積みに変える)ため、.tag自体の配置プロパティを上書きする。 */
+.tagBudgetRow {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 6px 11px;
+}
+
+/* タグ名と実績/上限を同じ行に表示する。
+   justify-content:space-betweenで両端揃えにすると、長いタグ名+実績表記の
+   合計幅がサイドバー幅を超えたときにはみ出て崩れるため、
+   flex-wrap:wrapで幅が足りなければ自然に2行へ折り返す形にしている。 */
+.tagBudgetHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.tagBudgetHead .name {
+  min-width: 0;
+}
+
+.tagBudgetUsed {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.tagBudgetTrack {
+  position: relative;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.tagBudgetFill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.tagBudgetFill.warn { background: var(--warn); }
+.tagBudgetFill.over { background: var(--danger); }
+
+/* 下限位置を示す縦線。トラック中央に重ねるためtransformで自身の幅の
+   半分だけ左へずらす(left:0%/100%でも枠内に収まるように)。 */
+.tagBudgetMinLine {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--text);
+  opacity: 0.55;
+  transform: translateX(-1px);
+}
+
+.tagBudgetFooter {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+}
+
+.tagBudgetRemain {
+  font-size: var(--font-caption);
+  color: var(--accent-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.tagBudgetRemain.warn { color: var(--warn); }
+.tagBudgetRemain.over { color: var(--danger); }
+
+.tagBudgetRange {
+  font-size: var(--font-caption);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tag .name {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--text);
+  font-size: var(--font-body);
+  overflow-wrap: anywhere;
+}
+
+.tagTaskTitles {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 4px;
+  color: var(--muted);
+  font-size: var(--font-caption);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tag > .small {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+
+.small {
+  color: var(--muted);
+  font-size: var(--font-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 工数表示の数値部分: 桁数(2〜4桁)が変わっても右揃えの位置がずれないようにする */
+.durationNum {
+  display: inline-block;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.durationNumHours { min-width: 4ch; }
+.durationNumMins { min-width: 3ch; }
+
+.gridWrap {
+  position: relative;
+  top: 0;
+  padding: 0px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: var(--radius-md);
+  flex: 1;
+  min-height: 0;
+}
+
+/* カレンダー右端のスクロールバーをオーバーレイ風の細い半透明表示にする。
+   トラックは透明にし、コンテンツ幅を圧迫しない見た目にする。
+   ::-webkit-scrollbar系の疑似要素はvar()によるカスタムプロパティ参照を
+   解決できない(Chromiumの既知の制限。background-colorが空になり
+   スクロールバーが透明化=非表示になってしまう)ため、ここだけ
+   ライト/ダーク双方の色をリテラル値で指定する。 */
+.gridWrap::-webkit-scrollbar {
+  width: 8px;
+}
+
+.gridWrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gridWrap::-webkit-scrollbar-thumb {
+  background: rgba(28, 35, 51, 0.22);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.gridWrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(28, 35, 51, 0.38);
+  background-clip: padding-box;
+}
+
+:root[data-theme="dark"] .gridWrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+:root[data-theme="dark"] .gridWrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+/* All-day lane (day view) */
+.allDayLane {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 0;
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.allDayTitle {
+  color: var(--muted);
+  font-size: var(--font-caption);
+  text-align: right;
+  padding-right: 8px;
+}
+
+.allDayItems {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  padding: 2px 4px;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  flex-wrap: nowrap;
+  height: 36px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.allDayPill {
+  display: flex;
+  width: 100%;
+  flex: 0 0 100%;
+  align-items: center;
+  align-self: stretch;
+  min-width: 0;
+  max-width: 100%;
+  padding: 2px 10px 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  font-size: var(--font-body);
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Week view (in-page) */
+.weekView {
+  display: grid;
+  gap: 8px;
+  overflow-x: hidden;
+}
+
+.weekSticky {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--surface-1);
+  padding-bottom: 4px;
+}
+
+.weekHeader {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 72px repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  background: var(--surface-1);
+  padding-top: 3px;
+  backdrop-filter: blur(6px);
+}
+
+.weekCorner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  color: var(--muted);
+  font-size: var(--font-caption);
+}
+
+.weekDay {
+  /* 終日欄(.weekAllDayCell)と同じ枠付きボックスだと見分けが付きにくいため、
+     見出しラベル(.weekCorner同様)として枠・背景を持たせない。 */
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.weekDayMain {
+  font-size: var(--font-body);
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.weekDayWeather {
+  font-size: var(--font-caption);
+  color: var(--muted);
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+
+.weekDay.sun { color: var(--danger); }
+.weekDay.sat { color: var(--weekend-sat); }
+
+.weekAllDay {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 72px repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+  background: var(--surface-1);
+  /* 日付ヘッダー行(.weekDay、枠なしの見出し)との間に、
+     アプリ全体で使っている8pxの余白単位を揃えて間隔を空ける。 */
+  margin-top: 8px;
+  padding-bottom: 4px;
+  backdrop-filter: blur(6px);
+}
+
+.weekAllDayCell {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-3);
+  padding: 2px 4px;
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  height: 36px;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.weekBody {
+  display: grid;
+  grid-template-columns: 72px repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  align-items: start;
+  width: 100%;
+}
+
+.weekCol {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-3);
+  min-width: 0;
+}
+
+.weekCol .slots { position: relative; }
+
+.weekCol .selection { left: 0; right: 0; }
+
+.weekCol .taskBlock { left: 0; right: 10px; }
+
+.calendarGrid {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+}
+
+.times {
+  display: grid;
+  gap: 0;
+}
+
+.timeRow {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 8px;
+  color: var(--muted);
+  font-size: var(--font-caption);
+  border-right: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+  border-top: 1px solid var(--grid-line-soft);
+}
+
+.dayCol {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--surface-3);
+}
+
+/* 日表示の weekSticky・calendarGrid を週表示と同様に余白調整 */
+[data-view='day'] .weekSticky {
+  padding-top: 6px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+[data-view='day'] .allDayLane {
+  padding-bottom: 6px;
+}
+
+[data-view='day'] .calendarGrid {
+  padding: 0 8px 8px;
+}
+
+.slots {
+  display: grid;
+}
+
+.slot {
+  height: 34px;
+  border-top: 1px dotted var(--grid-line);
+}
+
+.slot.hour {
+  border-top-style: solid;
+  border-top-color: var(--grid-line-hour);
+}
+
+.slot.workoff {
+  background: var(--offhours-tint);
+}
+
+.slot.workoff-partial-before {
+  background: linear-gradient(
+    to bottom,
+    var(--offhours-tint) 0%,
+    var(--offhours-tint) var(--workoff-boundary, 50%),
+    transparent var(--workoff-boundary, 50%),
+    transparent 100%
+  );
+}
+
+.slot.workoff-partial-after {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent var(--workoff-boundary, 50%),
+    var(--offhours-tint) var(--workoff-boundary, 50%),
+    var(--offhours-tint) 100%
+  );
+}
+
+.slot.break {
+  background: var(--break-tint);
+}
+
+.slot.break-partial-start {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent var(--break-start-boundary, 50%),
+    var(--break-tint) var(--break-start-boundary, 50%),
+    var(--break-tint) 100%
+  );
+}
+
+.slot.break-partial-end {
+  background: linear-gradient(
+    to bottom,
+    var(--break-tint) 0%,
+    var(--break-tint) var(--break-end-boundary, 50%),
+    transparent var(--break-end-boundary, 50%),
+    transparent 100%
+  );
+}
+
+.slot.break-partial-middle {
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent var(--break-start-boundary, 33%),
+    var(--break-tint) var(--break-start-boundary, 33%),
+    var(--break-tint) var(--break-end-boundary, 66%),
+    transparent var(--break-end-boundary, 66%),
+    transparent 100%
+  );
+}
+
+.slot.focused {
+  position: relative;
+  z-index: 1;
+  background: var(--accent-soft) !important;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.9);
+}
+
+.taskBlock {
+  position: absolute;
+  left: 3px;
+  /* 右端に余白を残し、同じ時間帯にD&Dで別の予定を入れやすくする(Outlookと同様) */
+  right: 14px;
+  border-radius: var(--radius-sm);
+  padding: 3px 8px 3px 10px;
+  border: none;
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  cursor: grab;
+  overflow: hidden;
+}
+
+.taskTeamsJoinBtn {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  background: var(--surface-2);
+  border-radius: 3px;
+  font-size: var(--font-caption);
+  line-height: 14px;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+/* 繰り返しアイコン(右上)と同時に表示される場合は、その左に並べて重なりを防ぐ */
+.taskBlock[data-recurring="1"] .taskTeamsJoinBtn {
+  right: 20px;
+}
+
+.taskTeamsJoinBtn:hover {
+  opacity: 1;
+  background: var(--surface-1);
+}
+
+.taskMain {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-caption);
+  font-weight: 600;
+}
+
+.taskBlock small {
+  display: block;
+  font-size: var(--font-caption);
+  margin-top: 1px;
+  opacity: 0.65;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskBlock.compact small {
+  display: none;
+}
+
+.taskBlock[data-recurring="1"] {
+  padding-right: 20px;
+}
+
+/* 繰り返しアイコン+Teams参加ボタンが両方付く場合は、テキストの侵食を避けるため
+   さらに余白を広げる */
+.taskBlock[data-recurring="1"]:has(.taskTeamsJoinBtn) {
+  padding-right: 36px;
+}
+
+.taskBlock[data-recurring="1"]::after {
+  content: "↻";
+  position: absolute;
+  right: 5px;
+  top: 4px;
+  font-size: var(--font-caption);
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.allDayPill[data-recurring="1"] {
+  padding-right: 20px;
+  position: relative;
+}
+
+.allDayPill[data-recurring="1"]::after {
+  content: "↻";
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--font-caption);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent-strong);
+  pointer-events: none;
+}
+
+.selection {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  border: 1px dashed rgba(var(--accent-rgb), 0.55);
+  pointer-events: none;
+}
+
+.taskDragPreview {
+  position: fixed;
+  z-index: 1200;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
+  font-size: var(--font-body);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+
+.taskTagContextMenu {
+  position: fixed;
+  z-index: 1300;
+  min-width: 180px;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-lg);
+  display: grid;
+  gap: 4px;
+}
+
+.taskTagContextTitle {
+  font-size: var(--font-caption);
+  color: var(--muted);
+  padding: 4px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskTagContextSeparator {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 4px;
+}
+
+.taskTagContextItem {
+  text-align: left;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  color: var(--text);
+  cursor: pointer;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskTagContextItem:hover {
+  background: var(--accent-soft);
+}
+
+.taskTagContextItem.active {
+  background: rgba(var(--accent-rgb), 0.15);
+  font-weight: 700;
+}
+
+.taskTagContextItem.danger {
+  color: var(--danger);
+}
+
+.taskTagContextItem.danger:hover {
+  background: rgba(214, 69, 90, 0.10);
+}
+
+.taskTagContextEmpty {
+  font-size: var(--font-caption);
+  color: var(--muted);
+  padding: 8px;
+  overflow-wrap: anywhere;
+}
+
+.nowLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #d6455a;
+  box-shadow: 0 0 6px rgba(214, 69, 90, 0.5);
+  border-radius: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.dialog {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
+  display: none;
+  width: min(560px, calc(100vw - 32px));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
+  padding: 0;
+}
+
+dialog.dialog[open] {
+  display: block;
+}
+
+dialog.settingsDialog[open] {
+  display: flex;
+}
+
+.dialog::backdrop {
+  background: rgba(20, 24, 36, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.dialog header {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: var(--font-title);
+  font-weight: 600;
+}
+
+.dialog form {
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.settingsDialogBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.settingsDialog form {
+  padding: 0;
+  gap: 0;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.formRow label { color: var(--muted); font-size: var(--font-caption); }
+
+.dialog footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.panel[aria-label="タスク一覧テーブル"] .content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.panel[aria-label="タスク一覧テーブル"] .content > .tasksContentLayout {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.tasksContentLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 6px 8px;
+  align-items: stretch;
+}
+
+.tasksMainColumn {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.tasksMainColumn .tableWrap {
+  /* taskEmptyStateがhidden(display:none)の間はgridアイテムとして
+     カウントされず、後続の子(tableWrap/taskDayTotalsSection)が繰り上がって
+     1・2行目に配置されてしまう。するとtableWrapがauto行(コンテンツ量に応じて肥大化)
+     に入って日次集計を画面外へ押し出すため、行番号を明示固定する。 */
+  grid-row: 2;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.taskDayTotalsSection {
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 0;
+  width: 100%;
+  margin-top: auto;
+}
+
+.taskDayTotalsSection > .dayTotalCard {
+  width: 100%;
+  min-height: var(--task-day-tag-row-height);
+  max-height: var(--task-day-tag-row-height);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.taskDayTotalsSection > .dayTotalCard .name {
+  flex-wrap: nowrap;
+  align-items: center;
+  min-height: 0;
+  line-height: 1.1;
+}
+
+.taskDayTotalsSection > .dayTotalCard .name strong {
+  line-height: 1.1;
+}
+
+.taskDayTotalsSection > .dayTotalCard .dayTotalValue {
+  align-self: center;
+  line-height: 1.1;
+}
+
+.taskDayTotalsSection > [data-day-tag-summary-dynamic] {
+  width: 100%;
+  max-height: clamp(120px, 24vh, 250px);
+  min-height: 0;
+  grid-auto-rows: var(--task-day-tag-row-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.taskDayTotalsSection > [data-day-tag-summary-dynamic]::-webkit-scrollbar {
+  display: none;
+}
+
+.taskDayTotalsSection > [data-day-tag-summary-dynamic] .tag {
+  width: 100%;
+  min-height: var(--task-day-tag-row-height);
+  max-height: var(--task-day-tag-row-height);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  overflow: hidden;
+}
+
+.taskDayTotalsSection > [data-day-tag-summary-dynamic] .name {
+  flex-wrap: nowrap;
+  align-items: center;
+  line-height: 1.1;
+  min-width: 0;
+}
+
+/* タグ名は常に全文表示し、縮まないようにする(縦軸を固定)。 */
+.taskDayTotalsSection > [data-day-tag-summary-dynamic] .tagNameLabel {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* タスク内容(（〜）+コピーボタン)のラッパー自体は伸縮するが、
+   overflow/ellipsisはテキスト側(.tagTaskTitlesText)だけに掛け、
+   コピーボタンは.copySummaryBtnにflex-shrink:0を設定して常に表示する。 */
+.taskDayTotalsSection > [data-day-tag-summary-dynamic] .tagTaskTitles {
+  flex-wrap: nowrap;
+  align-items: center;
+  line-height: 1.1;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.taskDayTotalsSection > [data-day-tag-summary-dynamic] .tagTaskTitlesText {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.taskDayTotalsSection > [data-day-tag-summary-dynamic] .tagTaskTitles .copySummaryBtn {
+  flex-shrink: 0;
+}
+
+.taskDayTotalsSection > [data-day-tag-summary-dynamic] .small {
+  align-self: center;
+  line-height: 1.1;
+}
+
+/* 工数+コピーボタン側の列。grid-template-columnsのautoトラックが
+   常に同じ内容幅(formatDurationは固定幅パディング済み)で確定するため、
+   どの行でも縦の境界線(1fr列とautoトラックの境目)が同じx座標になる。 */
+.taskDayTotalsSection > [data-day-tag-summary-dynamic] .tagRowRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tasksRightColumn {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+  align-content: start;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tasksRightColumn::-webkit-scrollbar {
+  display: none;
+}
+
+.tasksRightColumn .daySummaryBubble,
+.tasksRightColumn .dayInsightCard {
+  margin: 0;
+}
+
+.taskEmptyState {
+  grid-row: 1;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: var(--font-caption);
+}
+
+.daySummaryBubble {
+  margin: 0 0 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.22);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.07), var(--surface-1));
+  padding: 9px 11px;
+}
+
+.daySummaryHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.daySummaryText {
+  font-size: var(--font-body);
+  line-height: 1.45;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.daySummaryComment {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: var(--font-body);
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.daySummaryComment[hidden] {
+  display: none;
+}
+
+.daySummaryHighlights {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  color: var(--muted);
+  display: grid;
+  gap: 2px;
+  font-size: var(--font-caption);
+}
+
+.dayInsightCard {
+  margin: 0 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  padding: 9px 11px;
+  display: grid;
+  grid-template-rows: auto auto auto auto;
+  align-content: start;
+  gap: 6px;
+  min-height: 0;
+  align-self: start;
+}
+
+.dayInsightHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.daySummaryHead > strong,
+.dayInsightHead > strong {
+  font-size: var(--font-section);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dayInsightInput {
+  width: 100%;
+  resize: vertical;
+  min-height: 92px;
+  max-height: 210px;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  padding: 7px 9px;
+  font-size: var(--font-body);
+  color: var(--text);
+}
+
+.dayInsightActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dayInsightReply {
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  border-radius: var(--radius-sm);
+  background: rgba(var(--accent-rgb), 0.05);
+  padding: 7px 9px;
+  font-size: var(--font-body);
+  line-height: 1.45;
+  color: var(--text);
+  white-space: pre-wrap;
+  max-height: 220px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.dayInsightReply::-webkit-scrollbar {
+  display: none;
+}
+
+/* 見出しを横書きで保ち、狭い画面ではtableWrap内で横スクロールする。 */
+.table[aria-label="タスク一覧"] th,
+.table[aria-label="タスク一覧"] td:nth-child(5) {
+  white-space: nowrap;
+}
+
+.table[aria-label="タスク一覧"] th[data-sort="title"] {
+  min-width: 10em;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 10px;
+  text-align: left;
+  font-size: var(--font-body);
+}
+
+.panel[aria-label="タスク一覧テーブル"] .table th,
+.panel[aria-label="タスク一覧テーブル"] .table td {
+  padding: 7px 8px;
+  line-height: 1.35;
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 600;
+  background: var(--surface-3);
+}
+
+.table td input,
+.table td select {
+  width: 100%;
+}
+
+.table tbody tr {
+  transition: background 0.1s;
+}
+
+.table tbody tr:hover {
+  background: var(--hover-tint-soft);
+}
+
+.table tbody tr.focused {
+  background: var(--accent-soft);
+  outline: 1px solid rgba(var(--accent-rgb), 0.35);
+  outline-offset: -1px;
+}
+
+@media (max-width: 1080px) {
+  .layout { grid-template-columns: 1fr; }
+  .tasksContentLayout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 1200px) {
+  .header {
+    flex-wrap: wrap;
+  }
+
+  .nav {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .nav {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 本実装追加スタイル ── */
+
+/* 削除ボタン */
+.btn.danger {
+  border-color: rgba(214, 69, 90, 0.4);
+  background: rgba(214, 69, 90, 0.06);
+  color: var(--danger);
+}
+
+/* テーブル: タグバッジ */
+.taskTagBadge {
+  display: inline-flex;
+  align-items: center;
+  max-width: min(100%, 180px);
+  min-width: 0;
+  padding: 1px 10px;
+  border: 1px solid;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-caption);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* テーブル: タスクタイトルセル */
+.taskTitleCell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taskTitleCell[data-recurring="1"] {
+  position: relative;
+  padding-right: 24px;
+}
+
+.taskTitleCell[data-recurring="1"]::after {
+  content: "↻";
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--font-caption);
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+/* テーブル: 操作列ボタン */
+.taskActions {
+  white-space: nowrap;
+  display: flex;
+  gap: 6px;
+}
+.taskActions .btn {
+  padding: 3px 9px;
+  font-size: var(--font-caption);
+  border-radius: var(--radius-pill);
+}
+
+/* ソート列 cursor */
+th[data-sort] { cursor: pointer; user-select: none; }
+th[data-sort]:hover { background: var(--accent-soft); }
+
+/* ドラッグ中のタスクブロック */
+.taskBlock.dragging { opacity: 0.45; }
+
+/* 時刻ピッカー */
+.timePicker {
+  position: absolute;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  max-height: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+.timePickerItem {
+  flex-shrink: 0;
+  width: 100%;
+  text-align: left;
+  padding: 7px 12px;
+  border: none;
+  background: none;
+  font-size: var(--font-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 0;
+}
+
+.timePickerItem:hover {
+  background: var(--accent-soft);
+}
+
+.timePickerItem.active {
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent-strong);
+  font-weight: 600;
+}
+
+/* 開始/終了時刻を1分単位で微調整する上下ボタン。
+   キーボードのArrowUp/ArrowDownも同じ1分ステップで動く(ui-utils.js側)。 */
+.timeStepperWrap {
+  display: flex;
+  align-items: stretch;
+}
+
+.timeStepperWrap input {
+  flex: 1;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.timeStepperBtns {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-left: none;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  overflow: hidden;
+}
+
+.timeStepperBtn {
+  flex: 1;
+  width: 20px;
+  min-height: 0;
+  padding: 0;
+  font-size: 8px;
+  line-height: 1;
+  border: none;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.timeStepperBtn:hover {
+  background: var(--surface-4);
+}
+
+.timeStepperBtn:active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* フォーカスされたタスクブロック */
+.taskBlock.focused {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.dayTotalCard {
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.08), var(--surface-3));
+  padding: 8px 10px;
+}
+
+.dayTotalValue {
+  font-size: var(--font-section);
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+/* ── AIモード ─────────────────────────── */
+
+.aiLayout {
+  margin-top: 6px;
+  height: calc(100% - 146px);
+}
+
+.aiModePanel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.aiModeContent {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 1fr;
+  gap: 10px;
+}
+
+.aiChatArea {
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-4);
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+}
+
+.aiChatLog {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+}
+
+.aiMsg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+}
+
+.aiMsg.user {
+  justify-items: end;
+}
+
+.aiMsg.assistant {
+  justify-items: start;
+}
+
+.aiLoadingMsg {
+  justify-items: start;
+}
+
+.aiBubble {
+  max-width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
+  font-size: var(--font-body);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* AIの回答(Markdown表示) */
+.aiBubble.markdown {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.aiBubble.markdown > :first-child {
+  margin-top: 0;
+}
+
+.aiBubble.markdown > :last-child {
+  margin-bottom: 0;
+}
+
+.aiBubble.markdown p,
+.aiBubble.markdown ul,
+.aiBubble.markdown ol,
+.aiBubble.markdown pre,
+.aiBubble.markdown table,
+.aiBubble.markdown blockquote {
+  margin: 0 0 6px;
+}
+
+.aiBubble.markdown ul,
+.aiBubble.markdown ol {
+  padding-left: 1.4em;
+}
+
+.aiBubble.markdown ul ul,
+.aiBubble.markdown ol ol,
+.aiBubble.markdown ul ol,
+.aiBubble.markdown ol ul {
+  margin: 2px 0 0;
+}
+
+.aiBubble.markdown .mdHeading {
+  margin: 4px 0 4px;
+  font-weight: 700;
+}
+
+.aiBubble.markdown code {
+  padding: 0 4px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  font-family: var(--font-code);
+  font-size: var(--font-caption);
+}
+
+.aiBubble.markdown pre {
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.aiBubble.markdown pre code {
+  padding: 0;
+  background: none;
+}
+
+.aiBubble.markdown table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+}
+
+.aiBubble.markdown th,
+.aiBubble.markdown td {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.aiBubble.markdown th {
+  background: var(--surface-3);
+}
+
+.aiBubble.markdown blockquote {
+  padding-left: 8px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.aiBubble.markdown hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 6px 0;
+}
+
+.aiBubble.markdown a {
+  color: var(--accent-strong);
+  text-decoration: underline;
+}
+
+/* AIの提案(確認カード) */
+.aiProposal {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  white-space: normal;
+}
+
+.aiProposal-delete {
+  border-left-color: var(--danger);
+}
+
+.aiProposalTitle {
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.aiProposalRows {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 0 0 8px;
+}
+
+.aiProposalRows dt {
+  color: var(--muted);
+}
+
+.aiProposalRows dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.aiProposalActions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.aiProposalStatus {
+  font-size: var(--font-caption);
+  color: var(--muted);
+}
+
+.aiProposalStatus.applied {
+  color: var(--success);
+}
+
+.aiProposalStatus.failed {
+  color: var(--danger);
+}
+
+.aiMsg.user .aiBubble {
+  margin-left: auto;
+  background: var(--accent-soft);
+  border-color: rgba(var(--accent-rgb), 0.28);
+}
+
+.aiMsg.assistant .aiBubble {
+  margin-right: auto;
+}
+
+.aiLoadingBubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-style: dashed;
+  background: var(--surface-3);
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+
+.aiLoadingElapsed {
+  font-size: var(--font-caption);
+}
+
+.aiLoadingDots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aiLoadingDots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #8a94a6;
+  opacity: 0.35;
+  animation: aiLoadingPulse 1.1s infinite ease-in-out;
+}
+
+.aiLoadingDots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.aiLoadingDots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes aiLoadingPulse {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.35;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.aiInputArea {
+  border-top: 1px solid var(--border);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  background: linear-gradient(180deg, var(--surface-3), var(--panel));
+}
+
+.aiComposer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--panel);
+  padding: 8px;
+}
+
+.aiInputArea textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 44px;
+  max-height: 180px;
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  padding: 6px 8px;
+  font-size: var(--font-body);
+  outline: none;
+}
+
+.aiComposer .btn[data-ai-ask] {
+  min-height: 38px;
+  min-width: 74px;
+}
+
+.aiInputHint {
+  font-size: var(--font-caption);
+  color: var(--muted);
+}
+
+/* ダイアログ footer の削除ボタン */
+.dialog footer .btn.danger { margin-right: auto; }
+
+/* ── 設定ダイアログ ─────────────────────────── */
+.settingsDialog {
+  /* 横に間延びしない範囲で、2カラム段組みを維持できる幅にする。 */
+  width: min(720px, calc(100vw - 20px));
+  /* タブによってダイアログのサイズが変わらないよう高さを固定し、本文側だけをスクロールさせる。
+     詳細タブ(休憩時間複数行)がスクロールなしで収まる高さを確保する */
+  height: min(820px, 94vh);
+  max-height: 94vh;
+  flex-direction: column;
+}
+
+.settingsDialog header {
+  position: relative;
+  padding: 16px 18px 10px;
+  display: grid;
+  gap: 2px;
+  flex-shrink: 0;
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.05), transparent);
+}
+
+.settingsDialogTitle {
+  font-size: var(--font-title);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.1px;
+}
+
+.settingsDialogSub {
+  font-size: var(--font-caption);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.aiComposerOptions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.aiEnterToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  min-height: 28px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--font-caption);
+  cursor: pointer;
+}
+
+.aiEnterToggle:hover {
+  background: var(--hover-tint);
+  color: var(--text);
+}
+
+.aiEnterToggle:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+
+.aiEnterToggle:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* ダーク/ライト切替トグル(設定ダイアログ右上に配置) */
+.themeToggle {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.themeToggleLabel {
+  font-size: var(--font-caption);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.themeToggleTrack {
+  position: relative;
+  width: 38px;
+  height: 21px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.themeToggleThumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s;
+}
+
+.themeToggle[aria-pressed="true"] .themeToggleTrack,
+.aiEnterToggle[aria-checked="true"] .themeToggleTrack {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.themeToggle[aria-pressed="true"] .themeToggleThumb,
+.aiEnterToggle[aria-checked="true"] .themeToggleThumb {
+  transform: translateX(17px);
+}
+
+.settingsTabBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--panel2);
+  flex-shrink: 0;
+}
+
+.settingsTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.uiColorPicker,
+.uiColorPresets {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.uiColorPicker {
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.uiColorSwatch,
+.uiColorCustom {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  padding: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.uiColorSwatch {
+  background: var(--swatch-color);
+  color: var(--swatch-text);
+}
+
+.uiColorSwatch[aria-pressed="true"]::after {
+  content: "✓";
+  font-size: var(--font-title);
+  font-weight: 700;
+}
+
+.uiColorCustom {
+  background: conic-gradient(#f97316, #facc15, #22c55e, #38bdf8, #7c3aed, #ec4899, #f97316);
+}
+
+.uiColorCustom > span {
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+  text-align: center;
+  font-size: var(--font-body);
+}
+
+.uiColorCustom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.uiColorSwatch[aria-pressed="true"],
+.uiColorCustom[data-selected="true"],
+.uiColorSwatch:focus-visible,
+.uiColorCustom:focus-within {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.settingsTabBtn {
+  appearance: none;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--font-body);
+  font-weight: 600;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.settingsTabBtn:hover {
+  color: var(--text);
+  background: var(--hover-tint);
+}
+
+.settingsTabBtn.isActive {
+  color: var(--on-accent);
+  background: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.settingsTabPanel {
+  display: none;
+}
+
+.settingsTabPanel.isActive {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  background: var(--bg);
+}
+
+/* タグタブのみ、タグリストが残り高さを最大限使えるようにする。
+   他タブ(詳細/Outlook等)は内容量に応じた高さのまま。 */
+.settingsTabPanel[data-settings-tab-panel="tags"].isActive {
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* 詳細タブはセクション数が多く、縦一列だと「起動設定」までスクロールしないと
+   見えない。一方、CSS columnsのカードウォールなどでは列間の高さが揃わず、
+   読み順も崩れる。そこで、可変長になりやすい「休憩時間」だけをDOM順で最後に
+   置いて全幅の下段に独立させ、内容量が近い残り4セクション(勤務時間/表示設定/
+   URL自動オープン/起動設定)を上段2×2グリッドに固定する。 */
+.settingsTabPanel[data-settings-tab-panel="advanced"].isActive {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.settingsTabPanel[data-settings-tab-panel="advanced"] > .settingsSection:last-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .settingsTabPanel[data-settings-tab-panel="advanced"].isActive {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settingsSection {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  display: grid;
+  gap: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
+}
+
+/* .settingsSectionがgridのため、直下のbutton(「＋ 休憩時間を追加」等)が既定の
+   justify-items:stretchでセクション幅いっぱいに間延びしていた。ボタンは
+   コンテンツ幅のまま左寄せにする。 */
+.settingsSection > .btn {
+  justify-self: start;
+}
+
+.settingsSectionLabel {
+  font-size: var(--font-section);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--text);
+
+}
+
+.settingsSectionSub {
+  color: var(--muted);
+  font-size: var(--font-caption);
+  line-height: 1.45;
+}
+
+.settingsTimeRange {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: end;
+}
+
+.settingsBreaksList {
+  display: grid;
+  gap: 8px;
+}
+
+.settingsBreakRow {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+}
+
+.settingsBreakCountAsWork {
+  white-space: nowrap;
+  font-size: var(--font-caption);
+}
+
+.settingsBreakRemoveBtn {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+}
+
+.settingsTimeField {
+  display: grid;
+  gap: 4px;
+}
+
+.settingsTimeField label {
+  color: var(--muted);
+  font-size: var(--font-caption);
+}
+
+.settingsTimeSelect,
+.settingsInlineRow select,
+.settingsInlineRow input[type="text"],
+.settingsInlineRow input[type="url"],
+.settingsInlineRow input[type="number"],
+.settingsInlineRow input[type="file"] {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+  font-size: var(--font-body);
+  min-width: 0;
+}
+
+.settingsDeleteBtn {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.settingsInlineRow {
+  display: grid;
+  grid-template-columns: 80px minmax(120px, 160px);
+  gap: 8px;
+  align-items: center;
+}
+
+.settingsInlineRowWide {
+  grid-template-columns: 80px minmax(180px, 1fr);
+}
+
+.settingsInlineRow.settingsModelRow {
+  grid-template-columns: 80px minmax(0, 1fr) auto;
+}
+
+[data-ai-model-manual] {
+  grid-column: 2 / -1;
+  width: 100%;
+}
+
+.settingsInlineRowWideTop {
+  grid-template-columns: 80px minmax(180px, 1fr);
+  align-items: start;
+}
+
+.settingsInlineRow textarea {
+  min-height: 86px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--text);
+  font-size: var(--font-body);
+  resize: vertical;
+  line-height: 1.4;
+  font-family: inherit;
+}
+
+.settingsFileImport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.settingsFileInput {
+  display: none;
+}
+
+.settingsFileImportName {
+  font-size: var(--font-caption);
+  color: var(--muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  align-self: center;
+}
+
+/* ── About Tab Styles ─────────────────────────────────────── */
+
+.settingsAboutSection {
+  /* スクロールは外側(.settingsDialogBody)に任せ、二重スクロールを防ぐ */
+  padding-right: 8px;
+}
+
+.settingsAboutContent {
+  font-size: var(--font-body);
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.settingsAboutContent > p {
+  margin: 0 0 16px 0;
+  color: var(--muted);
+}
+
+.settingsAboutNote {
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: var(--font-caption);
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* 説明タブ(機能グリッド+バージョン+リンク集)。 */
+.settingsAboutHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.settingsVersionChip {
+  font-size: var(--font-caption);
+  font-weight: 700;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.settingsFeatureGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+
+.settingsFeatureCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--surface-3);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.settingsFeatureIcon {
+  font-size: 18px;
+}
+
+.settingsFeatureTitle {
+  font-size: var(--font-body);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.settingsFeatureDesc {
+  font-size: var(--font-caption);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 480px) {
+  .settingsFeatureGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.settingsFileImport .btn {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 30px;
+  white-space: nowrap;
+  padding: 0 10px;
+}
+
+.settingsInlineLabel {
+  color: var(--muted);
+  font-size: var(--font-caption);
+}
+
+.settingsCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--text);
+  font-size: var(--font-body);
+}
+
+.settingsCheck input[type="checkbox"] {
+  transform: translateY(1px);
+  accent-color: var(--accent);
+}
+
+.settingsTagSection {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--panel);
+  box-shadow: var(--shadow-sm);
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.settingsTagHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
+  border-bottom: 1px dashed rgba(102, 112, 133, 0.4);
+}
+
+.settingsTagHint {
+  font-size: var(--font-caption);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.settingsTagNav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.settingsTagMonthLabel {
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--text);
+  min-width: 74px;
+  text-align: center;
+}
+
+.settingsOrderBtn {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 4px;
+  font-size: var(--font-caption);
+  line-height: 1;
+  border-radius: var(--radius-sm);
+}
+
+.settingsTagDragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: var(--font-title);
+  color: var(--muted);
+  cursor: grab;
+  user-select: none;
+}
+
+.settingsTagRow.isDragging {
+  opacity: 0.4;
+}
+
+.settingsCopyBtn {
+  font-size: var(--font-caption);
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+}
+
+.settingsTagList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-height: 120px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  background: var(--surface-4);
+  border-radius: var(--radius-md);
+  padding: 8px;
+}
+
+/* タグ管理: タグ名/上限/下限を列として揃えたテーブル形式。
+   列見出しは.settingsTagTableHead(app.html側に静的配置)で固定表示する。 */
+.settingsTagTableHead {
+  display: grid;
+  grid-template-columns: 28px 28px minmax(0, 1fr) 62px 62px 28px;
+  gap: 6px;
+  padding: 0 4px;
+  font-size: var(--font-caption);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.settingsTagTableHead span:nth-child(4),
+.settingsTagTableHead span:nth-child(5) {
+  text-align: right;
+  padding-right: 6px;
+}
+
+.settingsTagRow {
+  display: grid;
+  grid-template-columns: 28px 28px minmax(0, 1fr) 62px 62px auto;
+  gap: 6px;
+  align-items: center;
+  padding: 4px;
+  border: 1px solid rgba(102, 112, 133, 0.28);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  transition: border-color 0.12s;
+}
+
+.settingsTagRow:hover {
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+.settingsTagBudgetInput {
+  width: 100%;
+  min-width: 0;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: var(--font-body);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  -moz-appearance: textfield;
+}
+
+.settingsTagBudgetInput:disabled {
+  background: var(--surface-4);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* number型のスピナー矢印は既存デザインと合わないため非表示にするが、
+   フォーカス中の↑/↓キーでの増減操作(ブラウザ標準)自体は残る。 */
+.settingsTagBudgetInput::-webkit-inner-spin-button,
+.settingsTagBudgetInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.settingsTagAdd {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  padding-top: 6px;
+  border-top: 1px solid rgba(102, 112, 133, 0.28);
+}
+
+/* HSL カラーピッカー（ポップアップ式） */
+.hslPicker {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.hslTrigger {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+  display: block;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  transition: box-shadow 0.12s;
+}
+
+.hslTrigger:hover {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5), 0 0 0 2px var(--accent);
+}
+
+.hslPopup {
+  position: fixed;
+  z-index: 9999;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  padding: 5px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  width: 115px; /* 5列 × (20px + 3px) - 3px + 10px padding */
+}
+
+.hslSwatch {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  border: 2px solid transparent;
+  background: var(--swatch-color);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  position: relative;
+  transition: transform 0.08s;
+}
+
+.hslSwatch:hover {
+  transform: scale(1.25);
+  z-index: 1;
+}
+
+.hslSwatch.selected {
+  border-color: #1c2333;
+}
+
+.hslSwatch.selected::after {
+  content: "";
+  display: block;
+  position: absolute;
+  inset: 2px;
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  border-radius: 1px;
+}
+
+.settingsTagAdd .settingsTagInput {
+  width: 100%;
+  min-width: 0;
+}
+
+.settingsTagInput {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-body);
+  color: var(--text);
+  background: var(--panel);
+  outline: none;
+}
+
+.settingsTagEmpty {
+  font-size: var(--font-caption);
+  color: var(--muted);
+  padding: 8px 4px;
+  line-height: 1.5;
+}
+
+.settingsFooter {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--panel2);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.settingsOutlookOptions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settingsOutlookInput {
+  width: 80px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-body);
+}
+
+.settingsOutlookUnit {
+  font-size: var(--font-caption);
+  color: var(--muted);
+}
+
+.settingsOutlookSelect,
+.settingsOutlookText {
+  flex: 1;
+  min-width: 100px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-body);
+}
+
+/* 「自動同期」の間隔セレクト等、選択肢の文字幅に対してmin-width:100pxだと
+   やや窮屈なため、少しだけ広げる(約4mm=16px分) */
+.settingsOutlookSelect {
+  min-width: 116px;
+}
+
+/* 自動同期の間隔セレクトは行の3番目の子要素のため、gridの1列目(80px)へ
+   暗黙的に折り返されて窮屈になっていた。2列目(可変幅)へ明示配置する */
+#cfg-outlook-auto-sync-interval {
+  grid-column: 2;
+  justify-self: start;
+}
+
+.settingsOutlookStatus {
+  margin-left: 8px;
+  font-size: var(--font-caption);
+  color: var(--muted);
+}
+
+.settingsOutlookStatus.success {
+  color: var(--success);
+}
+
+.settingsOutlookStatus.error {
+  color: var(--danger);
+}
+
+/* ── コピーボタン（日次集計用） ─────────────────────────────────── */
+
+.copySummaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 4px;
+  padding: 2px 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-body);
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.copySummaryBtn:hover {
+  opacity: 1;
+}
+
+.copySummaryBtn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 700px) {
+  .settingsTimeRange {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .settingsInlineRow {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .settingsInlineRow select {
+    width: 100%;
+  }
+
+  .settingsFileImport {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settingsTagRow {
+    grid-template-columns: 28px 28px minmax(0, 1fr);
+  }
+
+  .settingsTagRow .settingsTagInput {
+    grid-column: 1 / -1;
+  }
+
+  .settingsTagTableHead {
+    display: none;
+  }
+
+  .settingsTagAdd {
+    grid-template-columns: 1fr;
+  }
+}
+/* The update dialog uses the same typography and colors as settings. */
+.updateDialog { width: min(520px, calc(100vw - 32px)); padding: 0; }
+.updateDialogBody { padding: 20px; }
+.updateDialogBody h2 { font-size: var(--font-size-lg, 16px); margin: 0 0 12px; }
+.updateReleaseNotes { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; }
+.updateDialog progress { width: 100%; accent-color: var(--accent); }

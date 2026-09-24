@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    # Outlook連携(COM)やテスト用の偽CLI(.cmd)がWindows前提のため、Windowsで実行する。
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: cargo test
+        run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: cargo clippy
+        run: cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+
+      - name: JavaScript syntax check (ES modules)
+        shell: bash
+        run: |
+          for f in src-tauri/renderer/src/*.js; do
+            if [ "$(basename "$f")" = "tauri-shell-bridge.js" ]; then
+              node --check "$f"
+            else
+              node --input-type=module --check < "$f"
+            fi
+          done
+
+      - name: node tests
+        run: |
+          node scripts/test-holidays.mjs
+          node scripts/test-recurrence.js
+          node scripts/test-settings-transfer.mjs
+          node scripts/test-markdown.mjs
+          node scripts/test-ui-colors.mjs
+          node scripts/test-app-updater.mjs

@@ -1,0 +1,1826 @@
+{
+  "aiMemory": {
+    "chat": {},
+    "notes": {
+      "2026-09-16": [
+        {
+          "createdAt": "2026-09-24T14:44:38.837Z",
+          "date": "2026-09-16",
+          "id": "78375af8-e70c-4994-8e81-c2fb5117c14f",
+          "source": "tasks-user-note",
+          "text": "検索条件を先に整理したことで、結合テストを予定どおり終えられた。明日は問い合わせ内容を確認し、優先度の高い修正から進める。"
+        }
+      ]
+    },
+    "summary": {}
+  },
+  "appVersion": "0.1.0",
+  "exportedAt": "2026-09-24T14:44:41.182990200+00:00",
+  "format": "taskcalendar-plus-backup",
+  "settings": {
+    "aiClaudeEffort": "low",
+    "aiClaudeModel": "",
+    "aiCliEnabled": false,
+    "aiCodexEffort": "low",
+    "aiCodexModel": "",
+    "aiProvider": "none",
+    "appIconSize": 24,
+    "appIconUrl": "",
+    "breaks": [
+      {
+        "countAsWork": false,
+        "end": "13:00",
+        "start": "12:00"
+      }
+    ],
+    "companyHolidayEntries": [],
+    "companyHolidays": [],
+    "granularity": 30,
+    "monthTagOrders": {
+      "2026-09": [
+        "f96c0912-b8b4-42af-8729-48b566a9a507",
+        "e2a0791b-e117-4004-8194-028f9eba8868",
+        "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+        "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+        "09aa00c6-022a-434d-97a9-91f5d4e881c7"
+      ]
+    },
+    "outlookAutoSync": false,
+    "outlookAutoSyncIntervalMin": 10,
+    "outlookSyncCalendarName": "Calendar",
+    "outlookSyncDaysAhead": 90,
+    "outlookSyncTagId": "",
+    "quickLinks": [
+      {
+        "label": "社内ポータル",
+        "url": "https://example.com/portal"
+      },
+      {
+        "label": "勤怠",
+        "url": "https://example.com/attendance"
+      }
+    ],
+    "showBusinessDaysOnly": true,
+    "startMinimizedToTray": false,
+    "trayEnabled": false,
+    "uiAccentColor": "#0072bc",
+    "urlAutoOpenEnabled": false,
+    "urlAutoOpenTimes": [],
+    "urlAutoOpenUrl": "",
+    "weatherLocationKey": "tokyo",
+    "workEnd": "18:00",
+    "workStart": "09:00",
+    "workWeekDays": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ]
+  },
+  "tags": [
+    {
+      "budgetMaxMinutes": 3600,
+      "color": "#0072bc",
+      "id": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "name": "顧客ポータル改善"
+    },
+    {
+      "budgetMaxMinutes": 1440,
+      "color": "#7c3aed",
+      "id": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "name": "社内業務の改善"
+    },
+    {
+      "budgetMaxMinutes": 1440,
+      "color": "#d97706",
+      "id": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "name": "打ち合わせ"
+    },
+    {
+      "budgetMaxMinutes": 1920,
+      "color": "#0d9488",
+      "id": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "name": "運用・サポート"
+    },
+    {
+      "budgetMaxMinutes": 960,
+      "color": "#64748b",
+      "id": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "name": "調査・学習"
+    }
+  ],
+  "tasks": [
+    {
+      "createdAt": "2026-09-24T14:44:34.514Z",
+      "date": "2026-09-01",
+      "endTime": "09:30",
+      "id": "c05cf082-0180-41ef-ba8d-0630cd4c392a",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "メールと依頼の確認",
+      "updatedAt": "2026-09-24T14:44:34.514Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.518Z",
+      "date": "2026-09-01",
+      "endTime": "12:00",
+      "id": "ba15b186-1e9f-4aaf-a9e6-44fe28fa10e9",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "データ項目の整理",
+      "updatedAt": "2026-09-24T14:44:34.518Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.522Z",
+      "date": "2026-09-01",
+      "endTime": "14:30",
+      "id": "472d0381-e6f7-4dac-81b0-f383a3b7769a",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "画面の試作",
+      "updatedAt": "2026-09-24T14:44:34.522Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.533Z",
+      "date": "2026-09-01",
+      "endTime": "15:00",
+      "id": "bbe19e76-7bda-4b75-8b7d-747d7ff3f0d5",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:30",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "問い合わせへの回答",
+      "updatedAt": "2026-09-24T14:44:34.533Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.537Z",
+      "date": "2026-09-01",
+      "endTime": "16:30",
+      "id": "4d8744ef-e80f-4847-b6e4-b31217e2f78a",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "15:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "集計処理の改善",
+      "updatedAt": "2026-09-24T14:44:34.537Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.544Z",
+      "date": "2026-09-01",
+      "endTime": "17:00",
+      "id": "2b443ccf-e2e3-42aa-93c6-2fb51d4a18cf",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "進捗と課題の共有",
+      "updatedAt": "2026-09-24T14:44:34.544Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.547Z",
+      "date": "2026-09-01",
+      "endTime": "17:30",
+      "id": "1637738e-d6f2-48b6-b9e1-d3e150463576",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "テスト観点の整理",
+      "updatedAt": "2026-09-24T14:44:34.547Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.550Z",
+      "date": "2026-09-02",
+      "endTime": "09:30",
+      "id": "5d0224fe-b068-434d-b0cf-ae897ebbd236",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "問い合わせと予定の確認",
+      "updatedAt": "2026-09-24T14:44:34.550Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.561Z",
+      "date": "2026-09-02",
+      "endTime": "11:30",
+      "id": "3390dba0-5d51-411c-9841-ba1677253e2b",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "画面の試作",
+      "updatedAt": "2026-09-24T14:44:34.561Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.563Z",
+      "date": "2026-09-02",
+      "endTime": "12:00",
+      "id": "e214722f-e126-4092-998e-ee92f930fe24",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "11:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "画面レビュー",
+      "updatedAt": "2026-09-24T14:44:34.563Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.567Z",
+      "date": "2026-09-02",
+      "endTime": "14:00",
+      "id": "e519e4a7-b8f2-4622-83c7-e0d78c17c461",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "利用部門へのヒアリング",
+      "updatedAt": "2026-09-24T14:44:34.567Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.570Z",
+      "date": "2026-09-02",
+      "endTime": "16:00",
+      "id": "a85ef960-4fca-48bf-b444-c5ecc610100c",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "画面構成の検討",
+      "updatedAt": "2026-09-24T14:44:34.570Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.573Z",
+      "date": "2026-09-02",
+      "endTime": "17:00",
+      "id": "ebdcd230-53a7-4330-bd74-ba47bf8e41ee",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "よくある質問の整備",
+      "updatedAt": "2026-09-24T14:44:34.573Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.576Z",
+      "date": "2026-09-02",
+      "endTime": "17:30",
+      "id": "682d487e-ec05-4f87-88f8-dfa35bed2ccc",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "振り返りと翌日の準備",
+      "updatedAt": "2026-09-24T14:44:34.576Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.581Z",
+      "date": "2026-09-03",
+      "endTime": "10:30",
+      "id": "9edbb7e1-c8c3-48b1-9987-cf45875d45fc",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "定期監視と運用対応",
+      "updatedAt": "2026-09-24T14:44:34.581Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.584Z",
+      "date": "2026-09-03",
+      "endTime": "12:00",
+      "id": "ab18a13b-3a79-4668-8ec1-8a188b3916b4",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "10:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "試作結果の確認",
+      "updatedAt": "2026-09-24T14:44:34.584Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.587Z",
+      "date": "2026-09-03",
+      "endTime": "15:00",
+      "id": "53ca2ce6-e2eb-43e7-8f4a-3134da42429d",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "要望の整理と仕様確認",
+      "updatedAt": "2026-09-24T14:44:34.587Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.591Z",
+      "date": "2026-09-03",
+      "endTime": "16:00",
+      "id": "b0695956-cbfd-49c8-9609-228d98ddb46c",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "15:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "新機能の操作説明",
+      "updatedAt": "2026-09-24T14:44:34.591Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.594Z",
+      "date": "2026-09-03",
+      "endTime": "17:00",
+      "id": "0b9f91fc-d4f5-4b28-af56-72f7ed0add44",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "運用手順の自動化",
+      "updatedAt": "2026-09-24T14:44:34.594Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.597Z",
+      "date": "2026-09-03",
+      "endTime": "17:30",
+      "id": "55269392-612a-452e-8ae2-78624ebe6f6a",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "調査メモの整理",
+      "updatedAt": "2026-09-24T14:44:34.597Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.600Z",
+      "date": "2026-09-04",
+      "endTime": "09:30",
+      "id": "9c9c030a-d875-4d36-a358-8f461b526ae8",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "問い合わせの確認",
+      "updatedAt": "2026-09-24T14:44:34.600Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.603Z",
+      "date": "2026-09-04",
+      "endTime": "11:30",
+      "id": "f15134f4-c066-4714-b87d-a1ab60e6a928",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "要望の整理と仕様確認",
+      "updatedAt": "2026-09-24T14:44:34.603Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.606Z",
+      "date": "2026-09-04",
+      "endTime": "12:00",
+      "id": "d8240a0f-8634-4e4f-9ec1-1a6f0a0dfd81",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "11:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "成果物レビュー",
+      "updatedAt": "2026-09-24T14:44:34.606Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.610Z",
+      "date": "2026-09-04",
+      "endTime": "14:00",
+      "id": "89647403-9248-4399-bd7a-233eee986d7f",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "週次の振り返り",
+      "updatedAt": "2026-09-24T14:44:34.610Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.613Z",
+      "date": "2026-09-04",
+      "endTime": "15:30",
+      "id": "3423840f-ecb0-47cc-8f7a-9c31d08d4b79",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "バッチ集計の改善",
+      "updatedAt": "2026-09-24T14:44:34.613Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.617Z",
+      "date": "2026-09-04",
+      "endTime": "16:30",
+      "id": "894bdf3f-7db8-49e5-a287-daaf26a9b5ee",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "15:30",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "来週の課題を技術調査",
+      "updatedAt": "2026-09-24T14:44:34.617Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.620Z",
+      "date": "2026-09-04",
+      "endTime": "17:30",
+      "id": "a6d24cb3-f1db-4121-8e4c-7a2cd2d7f691",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:30",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "週報と引き継ぎの整理",
+      "updatedAt": "2026-09-24T14:44:34.620Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.624Z",
+      "date": "2026-09-07",
+      "endTime": "09:30",
+      "id": "4fff6d18-cfda-4dcf-89b7-ae7da6f0fc55",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "週の予定と問い合わせ確認",
+      "updatedAt": "2026-09-24T14:44:34.624Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.627Z",
+      "date": "2026-09-07",
+      "endTime": "11:30",
+      "id": "542dd191-1b9d-409c-b6de-295ab05f0a39",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "画面仕様の整理",
+      "updatedAt": "2026-09-24T14:44:34.627Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.630Z",
+      "date": "2026-09-07",
+      "endTime": "12:00",
+      "id": "e0878da6-76a1-441d-9edf-76ec981fde40",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "11:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "設計レビュー",
+      "updatedAt": "2026-09-24T14:44:34.630Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.634Z",
+      "date": "2026-09-07",
+      "endTime": "14:00",
+      "id": "88bcaa03-d01b-470a-a22f-db5ec19685aa",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "チーム週次定例",
+      "updatedAt": "2026-09-24T14:44:34.634Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.643Z",
+      "date": "2026-09-07",
+      "endTime": "16:00",
+      "id": "828dc5b6-448d-42f9-9ac5-da62a3b72727",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "検索APIの実装",
+      "updatedAt": "2026-09-24T14:44:34.643Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.647Z",
+      "date": "2026-09-07",
+      "endTime": "17:00",
+      "id": "01a12501-5b0f-4a30-ab3b-c0144c3b461d",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "帳票集計の自動化",
+      "updatedAt": "2026-09-24T14:44:34.647Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.651Z",
+      "date": "2026-09-07",
+      "endTime": "17:30",
+      "id": "619f8b6d-0825-4ddd-a27f-5813c032aa9e",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "対応記録と日報整理",
+      "updatedAt": "2026-09-24T14:44:34.651Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.654Z",
+      "date": "2026-09-08",
+      "endTime": "09:30",
+      "id": "6fba3dbc-89f8-4cec-8cbb-3e0b3de1e618",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "メールと依頼の確認",
+      "updatedAt": "2026-09-24T14:44:34.654Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.657Z",
+      "date": "2026-09-08",
+      "endTime": "12:00",
+      "id": "02671c46-ffd5-41bc-a150-c68deaa6336f",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "入力チェックの実装",
+      "updatedAt": "2026-09-24T14:44:34.657Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.668Z",
+      "date": "2026-09-08",
+      "endTime": "14:30",
+      "id": "f81f68d3-db01-499c-9d37-9500065eb647",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "レビュー指摘の修正",
+      "updatedAt": "2026-09-24T14:44:34.668Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.675Z",
+      "date": "2026-09-08",
+      "endTime": "15:00",
+      "id": "9c99fc6e-9e61-4abf-9fc9-c281d6f18f61",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:30",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "問い合わせへの回答",
+      "updatedAt": "2026-09-24T14:44:34.675Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.678Z",
+      "date": "2026-09-08",
+      "endTime": "16:30",
+      "id": "2c7f7db2-4b23-43c7-aa0b-c1420a66aab6",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "15:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "集計処理の改善",
+      "updatedAt": "2026-09-24T14:44:34.678Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.681Z",
+      "date": "2026-09-08",
+      "endTime": "17:00",
+      "id": "daedcb7f-d300-4a34-ba53-55330a8ee85c",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "進捗と課題の共有",
+      "updatedAt": "2026-09-24T14:44:34.681Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.685Z",
+      "date": "2026-09-08",
+      "endTime": "17:30",
+      "id": "96dbe1bf-2e34-4442-b9e1-7a658c9643dc",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "テスト観点の整理",
+      "updatedAt": "2026-09-24T14:44:34.685Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.689Z",
+      "date": "2026-09-09",
+      "endTime": "09:30",
+      "id": "6671efeb-f751-49c3-b270-fabf674682f7",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "問い合わせと予定の確認",
+      "updatedAt": "2026-09-24T14:44:34.689Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.693Z",
+      "date": "2026-09-09",
+      "endTime": "11:30",
+      "id": "712601a4-d998-4539-9354-4d588b99e2fd",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "検索画面の実装",
+      "updatedAt": "2026-09-24T14:44:34.693Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.696Z",
+      "date": "2026-09-09",
+      "endTime": "12:00",
+      "id": "9e3fdd93-f546-4b50-9eab-600a1805ad16",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "11:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "画面レビュー",
+      "updatedAt": "2026-09-24T14:44:34.696Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.699Z",
+      "date": "2026-09-09",
+      "endTime": "14:00",
+      "id": "2e4dcc74-d75a-4c77-9032-57d33fc14e93",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "利用部門へのヒアリング",
+      "updatedAt": "2026-09-24T14:44:34.699Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.702Z",
+      "date": "2026-09-09",
+      "endTime": "16:00",
+      "id": "95fae5d6-6bc8-47b4-bf35-36324f38f191",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "検索APIの結合テスト",
+      "updatedAt": "2026-09-24T14:44:34.702Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.705Z",
+      "date": "2026-09-09",
+      "endTime": "17:00",
+      "id": "720641df-d429-418a-9777-a890b4d725b7",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "よくある質問の整備",
+      "updatedAt": "2026-09-24T14:44:34.705Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.708Z",
+      "date": "2026-09-09",
+      "endTime": "17:30",
+      "id": "55554086-34e2-4d63-a698-d673f95f2114",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "振り返りと翌日の準備",
+      "updatedAt": "2026-09-24T14:44:34.708Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.711Z",
+      "date": "2026-09-10",
+      "endTime": "10:30",
+      "id": "b3751de6-a83c-4376-b051-98e49772f0e4",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "定期監視と運用対応",
+      "updatedAt": "2026-09-24T14:44:34.711Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.715Z",
+      "date": "2026-09-10",
+      "endTime": "12:00",
+      "id": "eded9181-f64d-4e50-94c2-076cd7c1a56b",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "10:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "検索結果の不具合調査",
+      "updatedAt": "2026-09-24T14:44:34.715Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.718Z",
+      "date": "2026-09-10",
+      "endTime": "15:00",
+      "id": "a35aa86f-778d-46fe-89de-edb35dd0417e",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "不具合修正と再テスト",
+      "updatedAt": "2026-09-24T14:44:34.718Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.721Z",
+      "date": "2026-09-10",
+      "endTime": "16:00",
+      "id": "d7e3f921-30cf-4904-86a8-7d4b2e0429a8",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "15:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "新機能の操作説明",
+      "updatedAt": "2026-09-24T14:44:34.721Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.724Z",
+      "date": "2026-09-10",
+      "endTime": "17:00",
+      "id": "d11f7a85-601f-4342-bd6a-ca75bf502ccd",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "運用手順の自動化",
+      "updatedAt": "2026-09-24T14:44:34.724Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.727Z",
+      "date": "2026-09-10",
+      "endTime": "17:30",
+      "id": "c0a2c585-8d10-4ad5-981f-ff7c432c6e8e",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "調査メモの整理",
+      "updatedAt": "2026-09-24T14:44:34.727Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.730Z",
+      "date": "2026-09-11",
+      "endTime": "09:30",
+      "id": "a99ae7cc-5d3f-403c-b117-bded04c778fc",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "問い合わせの確認",
+      "updatedAt": "2026-09-24T14:44:34.730Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.733Z",
+      "date": "2026-09-11",
+      "endTime": "11:30",
+      "id": "86a45481-f7fd-4d33-a29e-cf925504bfad",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "リリース前の動作確認",
+      "updatedAt": "2026-09-24T14:44:34.733Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.736Z",
+      "date": "2026-09-11",
+      "endTime": "12:00",
+      "id": "beca95ae-4fe3-4e20-b495-d4933b599fb2",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "11:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "成果物レビュー",
+      "updatedAt": "2026-09-24T14:44:34.736Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.739Z",
+      "date": "2026-09-11",
+      "endTime": "14:00",
+      "id": "453c90b3-176f-425d-857c-d4bd7ca099d5",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "週次の振り返り",
+      "updatedAt": "2026-09-24T14:44:34.739Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.742Z",
+      "date": "2026-09-11",
+      "endTime": "15:30",
+      "id": "4822dae4-b54b-4fa4-b96b-8ed9f226548e",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "バッチ集計の改善",
+      "updatedAt": "2026-09-24T14:44:34.742Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.747Z",
+      "date": "2026-09-11",
+      "endTime": "16:30",
+      "id": "5ef93a22-f4ce-4d2f-aea2-8c3806ad13a9",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "15:30",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "来週の課題を技術調査",
+      "updatedAt": "2026-09-24T14:44:34.747Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.757Z",
+      "date": "2026-09-11",
+      "endTime": "17:30",
+      "id": "ae22bbc6-73e4-4338-b37f-be9761c8fea9",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:30",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "週報と引き継ぎの整理",
+      "updatedAt": "2026-09-24T14:44:34.757Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.761Z",
+      "date": "2026-09-14",
+      "endTime": "09:30",
+      "id": "0b6d1d43-6efb-49d4-83ed-fbb242cd919f",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "週の予定と問い合わせ確認",
+      "updatedAt": "2026-09-24T14:44:34.761Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.764Z",
+      "date": "2026-09-14",
+      "endTime": "11:30",
+      "id": "ff872a97-0b32-4286-b4e6-e6a727142409",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "画面仕様の整理",
+      "updatedAt": "2026-09-24T14:44:34.764Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.767Z",
+      "date": "2026-09-14",
+      "endTime": "12:00",
+      "id": "5b0aadd1-ff20-4bf9-a0bf-f2005aa9222b",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "11:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "設計レビュー",
+      "updatedAt": "2026-09-24T14:44:34.767Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.770Z",
+      "date": "2026-09-14",
+      "endTime": "14:00",
+      "id": "a4d8a134-1e95-45fe-b276-14bb620bc400",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "チーム週次定例",
+      "updatedAt": "2026-09-24T14:44:34.770Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.781Z",
+      "date": "2026-09-14",
+      "endTime": "16:00",
+      "id": "bbff104a-a318-4902-9a50-2f9938b694ba",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "検索APIの実装",
+      "updatedAt": "2026-09-24T14:44:34.781Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.785Z",
+      "date": "2026-09-14",
+      "endTime": "17:00",
+      "id": "ce906a39-9db6-4310-9971-0dff87a91b96",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "帳票集計の自動化",
+      "updatedAt": "2026-09-24T14:44:34.785Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.788Z",
+      "date": "2026-09-14",
+      "endTime": "17:30",
+      "id": "3f4c8f4e-9a3a-4618-832f-618dae6d2a17",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "対応記録と日報整理",
+      "updatedAt": "2026-09-24T14:44:34.788Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.791Z",
+      "date": "2026-09-15",
+      "endTime": "09:30",
+      "id": "393a760c-71f4-4f44-9dcb-4c79b548e08d",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "メールと依頼の確認",
+      "updatedAt": "2026-09-24T14:44:34.791Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.794Z",
+      "date": "2026-09-15",
+      "endTime": "12:00",
+      "id": "0fe27530-a713-42e5-8e5f-58435bef408c",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "入力チェックの実装",
+      "updatedAt": "2026-09-24T14:44:34.794Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.797Z",
+      "date": "2026-09-15",
+      "endTime": "14:30",
+      "id": "7b262835-5ac1-4f26-825d-1bc2e199be52",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "レビュー指摘の修正",
+      "updatedAt": "2026-09-24T14:44:34.797Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.800Z",
+      "date": "2026-09-15",
+      "endTime": "15:00",
+      "id": "2f9d9885-4e5a-4fd1-9356-7f646c7ec8ec",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:30",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "問い合わせへの回答",
+      "updatedAt": "2026-09-24T14:44:34.800Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.803Z",
+      "date": "2026-09-15",
+      "endTime": "16:30",
+      "id": "0b0d57c9-842b-4d30-b98a-e14cee08c270",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "15:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "集計処理の改善",
+      "updatedAt": "2026-09-24T14:44:34.803Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.807Z",
+      "date": "2026-09-15",
+      "endTime": "17:00",
+      "id": "5df2feaf-6e62-402b-8a1b-eea496ecce8b",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "進捗と課題の共有",
+      "updatedAt": "2026-09-24T14:44:34.807Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.812Z",
+      "date": "2026-09-15",
+      "endTime": "17:30",
+      "id": "1e711f67-70a1-42e9-8946-812da6266960",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "テスト観点の整理",
+      "updatedAt": "2026-09-24T14:44:34.812Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.814Z",
+      "date": "2026-09-16",
+      "endTime": "09:30",
+      "id": "59a416c3-9fd2-44e1-9e7c-40da7b1cf1f7",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "問い合わせと予定の確認",
+      "updatedAt": "2026-09-24T14:44:34.814Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.817Z",
+      "date": "2026-09-16",
+      "endTime": "11:30",
+      "id": "a02656db-c980-48ab-a752-f56afe380713",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "検索画面の実装",
+      "updatedAt": "2026-09-24T14:44:34.817Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.820Z",
+      "date": "2026-09-16",
+      "endTime": "12:00",
+      "id": "40a2f195-273e-4c06-a996-7ba5a3314085",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "11:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "画面レビュー",
+      "updatedAt": "2026-09-24T14:44:34.820Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.823Z",
+      "date": "2026-09-16",
+      "endTime": "14:00",
+      "id": "1e2a5847-72db-4892-9cb1-d09f65ec0f5e",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "利用部門へのヒアリング",
+      "updatedAt": "2026-09-24T14:44:34.823Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.827Z",
+      "date": "2026-09-16",
+      "endTime": "16:00",
+      "id": "3415d0e5-70b8-40dc-bf9c-17f310e15cca",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "検索条件の組み合わせ、該当データなし、ページ切り替えを確認。修正した項目は再テストまで実施する。",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "検索APIの結合テスト",
+      "updatedAt": "2026-09-24T14:44:34.827Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.831Z",
+      "date": "2026-09-16",
+      "endTime": "17:00",
+      "id": "985ccadd-e92c-407c-b9d8-64721e4e6b17",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "よくある質問の整備",
+      "updatedAt": "2026-09-24T14:44:34.831Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.835Z",
+      "date": "2026-09-16",
+      "endTime": "17:30",
+      "id": "f6255b6c-2d60-49d4-8f62-71b2f4f56b25",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "振り返りと翌日の準備",
+      "updatedAt": "2026-09-24T14:44:34.835Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.838Z",
+      "date": "2026-09-17",
+      "endTime": "10:30",
+      "id": "6bbe14a6-6475-430a-a8e4-9c398e24e878",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "定期監視と運用対応",
+      "updatedAt": "2026-09-24T14:44:34.838Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.841Z",
+      "date": "2026-09-17",
+      "endTime": "12:00",
+      "id": "b1c8c4b9-ee43-4625-b175-9b833f8db114",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "10:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "検索結果の不具合調査",
+      "updatedAt": "2026-09-24T14:44:34.841Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.844Z",
+      "date": "2026-09-17",
+      "endTime": "15:00",
+      "id": "aaaf34d6-3016-4272-a5a5-f78730302333",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "不具合修正と再テスト",
+      "updatedAt": "2026-09-24T14:44:34.844Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.847Z",
+      "date": "2026-09-17",
+      "endTime": "16:00",
+      "id": "e6e700ca-cb8d-4e1a-a183-912b5bb13711",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "15:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "新機能の操作説明",
+      "updatedAt": "2026-09-24T14:44:34.847Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.850Z",
+      "date": "2026-09-17",
+      "endTime": "17:00",
+      "id": "d17c94ae-08e5-4366-a89a-a1dcc196c97e",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "運用手順の自動化",
+      "updatedAt": "2026-09-24T14:44:34.850Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.853Z",
+      "date": "2026-09-17",
+      "endTime": "17:30",
+      "id": "09a9ed74-9c2d-4f0b-b7d0-1a19186661f7",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "17:00",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "調査メモの整理",
+      "updatedAt": "2026-09-24T14:44:34.853Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.856Z",
+      "date": "2026-09-18",
+      "endTime": "09:30",
+      "id": "81f28ad0-19e0-4ee0-8de0-f6e22c408894",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:00",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "問い合わせの確認",
+      "updatedAt": "2026-09-24T14:44:34.856Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.859Z",
+      "date": "2026-09-18",
+      "endTime": "11:30",
+      "id": "34ae882e-590e-42f5-94e8-bbbe0f562443",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "09:30",
+      "tagId": "f96c0912-b8b4-42af-8729-48b566a9a507",
+      "title": "リリース前の動作確認",
+      "updatedAt": "2026-09-24T14:44:34.859Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.863Z",
+      "date": "2026-09-18",
+      "endTime": "12:00",
+      "id": "82b2b05b-4f12-42d2-a3ef-8bbbbc01a484",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "11:30",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "成果物レビュー",
+      "updatedAt": "2026-09-24T14:44:34.863Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.866Z",
+      "date": "2026-09-18",
+      "endTime": "14:00",
+      "id": "21c740d5-851e-4b03-b3ca-fca58218b5a3",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "13:00",
+      "tagId": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
+      "title": "週次の振り返り",
+      "updatedAt": "2026-09-24T14:44:34.866Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.869Z",
+      "date": "2026-09-18",
+      "endTime": "15:30",
+      "id": "02f0f0fd-1af4-44e0-a5ee-fa8767b0a97b",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "14:00",
+      "tagId": "e2a0791b-e117-4004-8194-028f9eba8868",
+      "title": "バッチ集計の改善",
+      "updatedAt": "2026-09-24T14:44:34.869Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.872Z",
+      "date": "2026-09-18",
+      "endTime": "16:30",
+      "id": "410a3e5c-098b-4a3b-864b-810818eacaa3",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "15:30",
+      "tagId": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
+      "title": "来週の課題を技術調査",
+      "updatedAt": "2026-09-24T14:44:34.872Z"
+    },
+    {
+      "createdAt": "2026-09-24T14:44:34.884Z",
+      "date": "2026-09-18",
+      "endTime": "17:30",
+      "id": "d26cddae-a694-42f4-8d58-af38e990ebca",
+      "isAllDay": false,
+      "meetingUrl": null,
+      "memo": "",
+      "outlookOccurrenceKey": null,
+      "outlookSeriesId": null,
+      "recurrence": {
+        "type": "none"
+      },
+      "startTime": "16:30",
+      "tagId": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
+      "title": "週報と引き継ぎの整理",
+      "updatedAt": "2026-09-24T14:44:34.884Z"
+    }
+  ],
+  "version": 1
+}

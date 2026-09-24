@@ -1,0 +1,29 @@
+[package]
+name = "taskcalendar-plus"
+version = "0.1.0"
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+axum = "0.8.9"
+chrono = "0.4.45"
+rand = "0.10.2"
+reqwest = { version = "0.13.4", features = ["json"] }
+rusqlite = { version = "0.40.1", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tauri = { version = "2.11.5", features = ["image-ico", "image-png", "tray-icon"] }
+tauri-plugin-autostart = "2.5.1"
+tauri-plugin-shell = "2.3.5"
+tauri-plugin-updater = "2"
+tokio = { version = "1.53.1", features = ["fs", "io-util", "macros", "net", "process", "rt-multi-thread", "sync", "time"] }
+windows = { version = "0.61.3", features = ["Win32_System_Com", "Win32_System_Ole", "Win32_Foundation"] }
+winsafe = { version = "0.0.28", features = ["ole", "oleaut"] }
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dev-dependencies]
+http-body-util = "0.1.4"
+tempfile = "3.27.0"
+tower = { version = "0.5.3", features = ["util"] }
