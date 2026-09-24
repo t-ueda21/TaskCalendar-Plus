@@ -72,6 +72,9 @@ jobs:
             gh release create $env:RELEASE_TAG --verify-tag --draft --title "TaskCalendar+ $env:RELEASE_TAG" --notes-file $notesPath
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          $assets = @(Get-ChildItem src-tauri/target/release/bundle/nsis -File | Where-Object { $_.Extension -in '.exe', '.sig', '.json' } | ForEach-Object FullName)
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $installer = @(Get-ChildItem src-tauri/target/release/bundle/nsis -File -Filter "*_${version}_x64-setup.exe")
+          if ($installer.Count -ne 1) { throw 'Expected one installer for the current version' }
+          $assets = @($installer[0].FullName, ($installer[0].FullName + '.sig'), 'src-tauri/target/release/bundle/nsis/latest.json')
           gh release upload $env:RELEASE_TAG @assets --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

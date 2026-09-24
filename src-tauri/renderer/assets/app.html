@@ -825,15 +825,16 @@
         </section>
 
         <section class="settingsTabPanel" data-settings-tab-panel="about" hidden>
-          <section class="settingsSection">
-            <div class="settingsSectionLabel">アップデート</div>
-            <div class="updateVersionRow"><span>現在のバージョン</span><span data-update-current></span></div>
+          <section class="settingsSection settingsUpdateSection">
+            <div class="updateHeaderRow">
+              <div class="updateVersionRow"><span class="settingsSectionLabel">アップデート</span><span class="settingsVersionChip" data-update-current aria-label="現在のバージョン"></span></div>
+              <div class="updateActions">
+                <button class="btn" type="button" data-update-check>更新を確認</button>
+                <button class="btn primary" type="button" data-update-open hidden>更新する</button>
+              </div>
+            </div>
             <p class="settingsSectionSub" data-update-status role="status">更新を確認できます。</p>
             <div class="updatePreferenceRow"><label><input type="checkbox" name="checkUpdatesOnStartup" checked /> 起動時に更新を確認する</label></div>
-            <div class="settingsFileImport">
-              <button class="btn" type="button" data-update-check>更新を確認</button>
-              <button class="btn primary" type="button" data-update-open hidden>更新する</button>
-            </div>
           </section>
           <section class="settingsSection settingsAboutSection">
             <div class="settingsAboutHead">
@@ -843,6 +844,7 @@
 
             <div class="settingsAboutContent">
               <p>TaskCalendar+ は、日々の作業をカレンダーに記録し、タグ別の工数を<strong>日報・工数報告</strong>へそのまま転記するためのアプリです。</p>
+              <p class="settingsProjectLink"><a href="https://github.com/t-ueda21/TaskCalendar-Plus" data-project-github>GitHubでアプリの情報・更新履歴を見る ↗</a></p>
               <div class="settingsFeatureGrid">
                 <div class="settingsFeatureCard">
                   <div class="settingsFeatureIcon" aria-hidden="true">🖱️</div>

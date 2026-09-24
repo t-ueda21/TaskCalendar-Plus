@@ -3462,6 +3462,14 @@ th[data-sort]:hover { background: var(--accent-soft); }
 .updateReleaseNotes { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; }
 .updateDialog progress { width: 100%; accent-color: var(--accent); }
 .updateVersionRow, .updatePreferenceRow label { display: flex; align-items: center; gap: 10px; }
-.updateVersionRow { margin: 10px 0; }
-.updateVersionRow span, .updatePreferenceRow label { white-space: nowrap; }
-.updatePreferenceRow { margin: 12px 0; }
+.updateVersionRow { margin: 0; }
+.updateVersionRow span { white-space: nowrap; }
+.settingsUpdateSection { gap: 6px; padding: 12px 16px; }
+.settingsUpdateSection .settingsSectionSub { margin: 0; }
+.updateHeaderRow, .updateActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.updateHeaderRow { justify-content: space-between; }
+.updateActions .btn { min-height: 30px; padding: 4px 10px; }
+.updatePreferenceRow { margin: 0; }
+.updatePreferenceRow input { flex: 0 0 auto; margin: 0; }
+.settingsProjectLink { margin: 0; }
+.settingsProjectLink a { color: var(--accent-strong); text-underline-offset: 3px; }
