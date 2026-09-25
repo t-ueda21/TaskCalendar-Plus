@@ -42,10 +42,9 @@ jobs:
           done
 
       - name: node tests
+        shell: pwsh
         run: |
-          node scripts/test-holidays.mjs
-          node scripts/test-recurrence.js
-          node scripts/test-settings-transfer.mjs
-          node scripts/test-markdown.mjs
-          node scripts/test-ui-colors.mjs
-          node scripts/test-app-updater.mjs
+          Get-ChildItem scripts/test-* -File | ForEach-Object {
+            node $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Test failed: $($_.Name)" }
+          }

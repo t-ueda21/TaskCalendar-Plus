@@ -707,7 +707,7 @@ function _render() {
       </td>
     `;
 
-    tr.querySelector("[data-edit]")?.addEventListener("click", () => openEditDialog($dialog, task, tags));
+    tr.querySelector("[data-edit]")?.addEventListener("click", () => openEditDialog($dialog, task, _getDialogTagsForDateKey(task.date, task.tagId)));
     tr.querySelector("[data-del]")?.addEventListener("click", () => {
       void _deleteTaskByChoice(task.id);
     });
@@ -717,7 +717,7 @@ function _render() {
     });
 
     tr.addEventListener("dblclick", () => {
-      openEditDialog($dialog, task, tags);
+      openEditDialog($dialog, task, _getDialogTagsForDateKey(task.date, task.tagId));
     });
 
     tr.addEventListener("contextmenu", (e) => {

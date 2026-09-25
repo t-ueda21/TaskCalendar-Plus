@@ -83,10 +83,10 @@
     true
   );
 
-  // Ctrl+/Ctrl-/Ctrl+0によるUI拡大縮小(再起動後も維持)。
-  // WebView2ネイティブのズームホットキーは現在値を取得するAPIが無く永続化できない
-  // ため使わず、JS側で倍率を管理してRust側コマンド(set_ui_zoom)へ渡す方式にする。
+  // Native preference file is shared across localhost ports. Legacy localStorage
+  // values are imported once when that file does not exist yet.
   var ZOOM_STORAGE_KEY = 'tcplus_ui_zoom';
+  var THEME_STORAGE_KEY = 'tcplus_theme';
   var ZOOM_MIN = 0.5;
   var ZOOM_MAX = 3.0;
   var ZOOM_STEP = 0.1;
@@ -97,33 +97,74 @@
       var n = parseFloat(raw);
       if (Number.isFinite(n) && n >= ZOOM_MIN && n <= ZOOM_MAX) return n;
     } catch (e) {}
-    return 1.0;
+    return null;
   }
 
-  function applyZoom(level) {
-    var core = window.__TAURI__ && window.__TAURI__.core;
-    if (!core || typeof core.invoke !== 'function') return;
-    core.invoke('set_ui_zoom', { level: level }).catch(function (err) {
-      console.error('[ui-zoom] set_ui_zoom の呼び出しに失敗しました:', err);
-    });
+  function readStoredTheme() {
     try {
-      window.localStorage.setItem(ZOOM_STORAGE_KEY, String(level));
-    } catch (e) {}
+      var value = window.localStorage.getItem(THEME_STORAGE_KEY);
+      return value === 'light' || value === 'dark' ? value : null;
+    } catch (e) { return null; }
   }
 
-  var _zoomLevel = readStoredZoom();
-  applyZoom(_zoomLevel);
+  var _zoomLevel = 1.0;
+  var _zoomOperations = Promise.resolve();
+  var _preferenceWrite = Promise.resolve();
+  function invokePreference(command, args) {
+    if (!tauriCore || typeof tauriCore.invoke !== 'function') return Promise.resolve();
+    var result = _preferenceWrite.then(function () { return tauriCore.invoke(command, args); });
+    // A failed write must not block the next user retry.
+    _preferenceWrite = result.catch(function () {});
+    return result;
+  }
+
+  var preferencesReady = (tauriCore && typeof tauriCore.invoke === 'function')
+    ? tauriCore.invoke('get_ui_preferences').then(async function (saved) {
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved.theme);
+        _zoomLevel = saved.zoom;
+        return;
+      }
+      var oldTheme = readStoredTheme();
+      var oldZoom = readStoredZoom();
+      document.documentElement.setAttribute('data-theme', oldTheme || 'light');
+      if (oldZoom !== null) _zoomLevel = oldZoom;
+      if (oldTheme) await invokePreference('set_ui_theme', { theme: oldTheme });
+      if (oldZoom !== null) await invokePreference('set_ui_zoom', { level: oldZoom });
+    }).catch(function (err) {
+      console.error('[ui-preferences] 読み込みに失敗しました:', err);
+      document.documentElement.setAttribute('data-theme', readStoredTheme() || 'light');
+      _zoomLevel = readStoredZoom() || 1.0;
+    })
+    : Promise.resolve();
+
+  window.tcplusUiPreferences = {
+    ready: preferencesReady,
+    setTheme: function (theme) {
+      return preferencesReady.then(function () {
+        return invokePreference('set_ui_theme', { theme: theme });
+      });
+    }
+  };
 
   document.addEventListener('keydown', function (event) {
     if (!event.ctrlKey || event.altKey || event.metaKey) return;
-    var next = null;
+    var key = event.key;
     // JIS配列では「+」がShift+;側にあり押しにくいため、Shift不要な「;」でも拡大できるようにする。
-    if (event.key === '+' || event.key === '=' || event.key === ';') next = Math.min(ZOOM_MAX, _zoomLevel + ZOOM_STEP);
-    else if (event.key === '-') next = Math.max(ZOOM_MIN, _zoomLevel - ZOOM_STEP);
-    else if (event.key === '0') next = 1.0;
-    if (next === null) return;
+    if (key !== '+' && key !== '=' && key !== ';' && key !== '-' && key !== '0') return;
     event.preventDefault();
-    _zoomLevel = Math.round(next * 100) / 100;
-    applyZoom(_zoomLevel);
+    var operation = _zoomOperations.then(function () { return preferencesReady; }).then(function () {
+      var next = key === '0' ? 1.0
+        : key === '-' ? Math.max(ZOOM_MIN, _zoomLevel - ZOOM_STEP)
+          : Math.min(ZOOM_MAX, _zoomLevel + ZOOM_STEP);
+      next = Math.round(next * 100) / 100;
+      return invokePreference('set_ui_zoom', { level: next }).then(function () {
+        _zoomLevel = next;
+      });
+    });
+    _zoomOperations = operation.catch(function () {});
+    void operation.catch(function (err) {
+      console.error('[ui-zoom] set_ui_zoom の呼び出しに失敗しました:', err);
+    });
   });
 })();

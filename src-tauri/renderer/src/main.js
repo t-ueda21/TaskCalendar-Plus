@@ -137,13 +137,14 @@ function _renderQuickLinks() {
 
 async function bootstrap() {
   try {
+    await window.tcplusUiPreferences?.ready;
     await Store.init();
     applyUiColor(Store.getSettings().uiAccentColor);
     Store.subscribe("settings", () => {
       if (!document.querySelector('[data-settings-dialog]')?.open) applyUiColor(Store.getSettings().uiAccentColor);
     });
 
-    startHeaderClock({ workEnd: Store.getSettings().workEnd });
+    startHeaderClock({ getWorkEnd: () => Store.getSettings().workEnd });
     _renderQuickLinks();
     Store.subscribe("settings", _renderQuickLinks);
     _wireShellNav();

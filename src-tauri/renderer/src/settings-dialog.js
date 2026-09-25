@@ -575,8 +575,6 @@ function wireOutlookSync(settingsDialog, Store, { getTagMgrMonth } = {}) {
   Store.subscribe("tags", () => updateTagOptions());
 }
 
-const THEME_STORAGE_KEY = "tcplus_theme";
-
 function _applyTheme(theme) {
   const isDark = theme === "dark";
   document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
@@ -587,8 +585,7 @@ function _applyTheme(theme) {
  * 設定ダイアログ右上のダーク/ライト切替トグルを配線する。
  * ダイアログ自体はカレンダー/タスク一覧/AIモードの3画面から共有される
  * 単一インスタンスのため、複数回呼ばれても二重に配線しないよう
- * dataset フラグでガードする。テーマはlocalStorageへ永続化し、
- * 次回起動時はHTML先頭のインラインスクリプトで再読込前に適用する。
+ * dataset フラグでガードする。テーマはアプリのデータフォルダへ保存する。
  */
 function _wireThemeToggle(settingsDialog) {
   const toggle = settingsDialog.querySelector("[data-theme-toggle]");
@@ -602,15 +599,20 @@ function _wireThemeToggle(settingsDialog) {
   };
   syncPressedState();
 
-  toggle.addEventListener("click", () => {
+  toggle.addEventListener("click", async () => {
+    if (toggle.disabled) return;
     const nextIsDark = document.documentElement.getAttribute("data-theme") !== "dark";
     _applyTheme(nextIsDark ? "dark" : "light");
+    toggle.disabled = true;
     try {
-      window.localStorage?.setItem(THEME_STORAGE_KEY, nextIsDark ? "dark" : "light");
-    } catch {
-      // ignore storage errors (private browsing 等)
+      await window.tcplusUiPreferences?.setTheme(nextIsDark ? "dark" : "light");
+    } catch (error) {
+      _applyTheme(nextIsDark ? "light" : "dark");
+      console.error("[ui-theme] 設定を保存できませんでした:", error);
+    } finally {
+      toggle.disabled = false;
+      syncPressedState();
     }
-    syncPressedState();
   });
 }
 
@@ -746,6 +748,11 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     if (saveBtn) saveBtn.disabled = true;
     try {
       await Store.updateSettings(patch);
+      try {
+        await window.__TAURI__?.core?.invoke("set_tray_enabled", { enabled: patch.trayEnabled });
+      } catch (error) {
+        console.error("[tray] アイコン表示の切り替えに失敗しました:", error);
+      }
       if (dialogSession === savingSession) settingsDialog.close();
       onAfterSave?.(patch);
       return dialogSession === savingSession;

@@ -6,10 +6,11 @@ mod ai_cli;
 mod ai_models;
 mod api;
 mod calendar;
-mod mcp;
 mod db;
+mod mcp;
 mod outlook;
 mod repositories;
+mod ui_preferences;
 mod updater;
 
 use std::sync::{Arc, Mutex};
@@ -29,21 +30,41 @@ fn get_api_token(token: tauri::State<'_, ApiToken>) -> String {
     token.0.clone()
 }
 
-// Ctrl+/Ctrl-でのUI拡大縮小(再起動後も維持)。
-// TauriのWebviewEventにはズーム変更通知が無く、現在のズーム値を取得するAPIも
-// 無いため、WebView2ネイティブのCtrl+/Ctrl-ホットキー(zoom_hotkeys_enabled)は
-// 使わず、JS側(tauri-shell-bridge.js)でCtrl+/Ctrl-/Ctrl+0を捕捉し、
-// このコマンドへ倍率を渡して適用する。倍率はJS側でlocalStorageへ保存し、
-// 起動時に読み直して同じ倍率を再適用することで永続化する。
+// UI preference storage lives beside tasks.db, outside the localhost origin.
 #[tauri::command]
-fn set_ui_zoom(window: tauri::WebviewWindow, level: f64) -> Result<(), String> {
+fn get_ui_preferences(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, ui_preferences::UiPreferencesState>,
+) -> Result<Option<ui_preferences::UiPreferences>, String> {
+    let preferences = state.get()?;
+    if let Some(ref preferences) = preferences {
+        window
+            .set_zoom(preferences.zoom)
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(preferences)
+}
+
+#[tauri::command]
+fn set_ui_theme(
+    state: tauri::State<'_, ui_preferences::UiPreferencesState>,
+    theme: String,
+) -> Result<(), String> {
+    state.set_theme(theme)
+}
+
+#[tauri::command]
+fn set_ui_zoom(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, ui_preferences::UiPreferencesState>,
+    level: f64,
+) -> Result<(), String> {
+    state.set_zoom(level)?;
     window.set_zoom(level).map_err(|e| e.to_string())
 }
 
 // PCログイン時の自動起動を設定画面から切り替えられるようにする。
-// 起動時は#[cfg(not(debug_assertions))]でパッケージ済みビルドのみ既定ONに
-// しているが、以降のON/OFF切り替えはユーザーの明示操作(dev/release問わず)
-// として扱う。
+// 起動時にOSの登録状態は変更しない。ユーザーのON/OFF操作だけを反映する。
 #[tauri::command]
 fn get_autostart_enabled(app: tauri::AppHandle) -> Result<bool, String> {
     app.autolaunch().is_enabled().map_err(|e| e.to_string())
@@ -52,13 +73,17 @@ fn get_autostart_enabled(app: tauri::AppHandle) -> Result<bool, String> {
 #[tauri::command]
 fn set_autostart_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     let manager = app.autolaunch();
-    let result = if enabled { manager.enable() } else { manager.disable() };
+    let result = if enabled {
+        manager.enable()
+    } else {
+        manager.disable()
+    };
     result.map_err(|e| e.to_string())
 }
 
 // 「✕」ボタンでタスクトレイへ格納する機能。設定はDB(settingsテーブル)の
 // trayEnabled/startMinimizedToTrayに保存される(store.js DEFAULT_SETTINGS参照)。
-// 実行中の設定変更は次回の「✕」押下時または次回起動時に反映される(即時反映はしない)。
+// 実行中の設定変更でもアイコン表示を同期する。
 //
 // トレイアイコンの左クリックは常にウィンドウを表示+最前面化する
 // (非表示中はshow、表示中でも他ウィンドウの裏に隠れていれば前面に出す)。
@@ -78,6 +103,67 @@ fn bool_setting(conn: &rusqlite::Connection, key: &str, default: bool) -> bool {
         .and_then(|v| v.get(key).and_then(|b| b.as_bool()))
         .unwrap_or(default)
 }
+
+fn ensure_tray(app: &tauri::AppHandle, static_root: &std::path::Path) -> Result<(), String> {
+    if let Some(tray) = app.tray_by_id(TRAY_ICON_ID) {
+        return tray.set_visible(true).map_err(|e| e.to_string());
+    }
+    let icon_path = api::list_app_icon_candidates(static_root)
+        .into_iter()
+        .find(|p| p.extension().and_then(|e| e.to_str()) != Some("svg"))
+        .ok_or("tray icon is unavailable")?;
+    let icon = tauri::image::Image::from_path(&icon_path).map_err(|e| e.to_string())?;
+    let menu = MenuBuilder::new(app)
+        .text(TRAY_MENU_RELOAD, "リロード")
+        .text(TRAY_MENU_RESTART, "再起動")
+        .text(TRAY_MENU_QUIT, "閉じる")
+        .build()
+        .map_err(|e| e.to_string())?;
+    TrayIconBuilder::with_id(TRAY_ICON_ID)
+        .icon(icon)
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            TRAY_MENU_RELOAD => {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.reload();
+                }
+            }
+            TRAY_MENU_RESTART => app.restart(),
+            TRAY_MENU_QUIT => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+                && let Some(window) = tray.app_handle().get_webview_window("main")
+            {
+                let _ = window.show();
+                let _ = window.unminimize();
+                let _ = window.set_focus();
+            }
+        })
+        .build(app)
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+fn set_tray_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    if enabled {
+        let root = app.state::<StaticRoot>();
+        ensure_tray(&app, &root.0)
+    } else if let Some(tray) = app.tray_by_id(TRAY_ICON_ID) {
+        tray.set_visible(false).map_err(|e| e.to_string())
+    } else {
+        Ok(())
+    }
+}
+
+struct StaticRoot(std::path::PathBuf);
 
 // Outlook自動同期ループ。設定のoutlookAutoSync/outlookAutoSyncIntervalMinを
 // ポーリングし、有効時のみ指定間隔でPOST /api/outlook/auto-syncを呼ぶ。
@@ -145,10 +231,16 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
+        .plugin(tauri_plugin_autostart::init(
+            MacosLauncher::LaunchAgent,
+            None,
+        ))
         .invoke_handler(tauri::generate_handler![
             get_api_token,
+            get_ui_preferences,
+            set_ui_theme,
             set_ui_zoom,
+            set_tray_enabled,
             get_autostart_enabled,
             set_autostart_enabled,
             updater::get_update_info,
@@ -161,9 +253,18 @@ fn main() {
             // 環境変数 TCPLUS_DATA_DIR があればそこに保存する(E2Eテストで普段のデータを汚さないため)。
             let data_dir = match std::env::var_os("TCPLUS_DATA_DIR") {
                 Some(dir) => std::path::PathBuf::from(dir),
-                None => app_handle.path().app_data_dir().expect("resolve app data dir"),
+                None => app_handle
+                    .path()
+                    .app_data_dir()
+                    .expect("resolve app data dir"),
             };
             std::fs::create_dir_all(&data_dir).expect("create app data dir");
+            let ui_preferences = ui_preferences::UiPreferencesState::load(&data_dir)
+                .unwrap_or_else(|error| {
+                    eprintln!("[ui-preferences] {error}");
+                    ui_preferences::UiPreferencesState::empty(&data_dir)
+                });
+            app.manage(ui_preferences);
             let db_path = data_dir.join("tasks.db");
 
             let conn = db::open_database(&db_path).expect("open database");
@@ -200,23 +301,15 @@ fn main() {
                 let _ = window.set_icon(icon);
             }
 
-            // devビルド(cargo run/tauri dev)でスタートアップに登録されると、
-            // 開発用バイナリがログイン毎に自動起動してしまうため、
-            // パッケージ済みビルド(release)のみ自動起動を有効化する。
-            #[cfg(not(debug_assertions))]
-            {
-                // Isolated smoke tests and sample-data launches must not change
-                // the user's Windows startup registration.
-                if std::env::var_os("TCPLUS_DATA_DIR").is_none() {
-                    let _ = app_handle.autolaunch().enable();
-                }
-            }
-
             let conn = Arc::new(Mutex::new(conn));
-            app.manage(updater::UpdateState::new(Arc::clone(&conn), data_dir.clone()));
+            app.manage(updater::UpdateState::new(
+                Arc::clone(&conn),
+                data_dir.clone(),
+            ));
+            app.manage(StaticRoot(static_root.clone()));
 
-            // タスクトレイ常駐機能。trayEnabledが無効な場合は
-            // トレイアイコン自体を作らず、「✕」で終了する。
+            // 起動時に有効な場合だけ作る。後から有効にした場合はコマンドか
+            // 閉じる直前に作成し、作成に失敗したらウィンドウを隠さない。
             let tray_is_enabled = {
                 let c = conn.lock().expect("db mutex poisoned");
                 bool_setting(&c, "trayEnabled", true)
@@ -228,51 +321,10 @@ fn main() {
                 tray_is_enabled && bool_setting(&c, "startMinimizedToTray", false)
             };
 
-            if tray_is_enabled
-                && let Some(ref icon_path) = icon_path
-                && let Ok(icon) = tauri::image::Image::from_path(icon_path)
-            {
-                let menu = MenuBuilder::new(&app_handle)
-                    .text(TRAY_MENU_RELOAD, "リロード")
-                    .text(TRAY_MENU_RESTART, "再起動")
-                    .text(TRAY_MENU_QUIT, "閉じる")
-                    .build()
-                    .expect("build tray menu");
-                TrayIconBuilder::with_id(TRAY_ICON_ID)
-                    .icon(icon)
-                    .menu(&menu)
-                    .show_menu_on_left_click(false)
-                    .on_menu_event(|app, event| match event.id().as_ref() {
-                        TRAY_MENU_RELOAD => {
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.reload();
-                            }
-                        }
-                        TRAY_MENU_RESTART => app.restart(),
-                        TRAY_MENU_QUIT => app.exit(0),
-                        _ => {}
-                    })
-                    .on_tray_icon_event(|tray, event| {
-                        if let TrayIconEvent::Click {
-                            button: MouseButton::Left,
-                            button_state: MouseButtonState::Up,
-                            ..
-                        } = event
-                        {
-                            let app = tray.app_handle();
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.unminimize();
-                                let _ = window.set_focus();
-                            }
-                        }
-                    })
-                    .build(&app_handle)
-                    .expect("build tray icon");
-            }
+            let tray_ready = tray_is_enabled && ensure_tray(&app_handle, &static_root).is_ok();
 
             if let Some(window) = app_handle.get_webview_window("main") {
-                if start_minimized {
+                if start_minimized && tray_ready {
                     let _ = window.hide();
                 }
 
@@ -280,13 +332,15 @@ fn main() {
                 // トレイへ格納(hide)するか、既定どおり終了するかを分岐する。
                 let conn_for_close = Arc::clone(&conn);
                 let window_for_close = window.clone();
+                let app_for_close = app_handle.clone();
+                let root_for_close = static_root.clone();
                 window.on_window_event(move |event| {
                     if let WindowEvent::CloseRequested { api, .. } = event {
                         let enabled = {
                             let c = conn_for_close.lock().expect("db mutex poisoned");
                             bool_setting(&c, "trayEnabled", true)
                         };
-                        if enabled {
+                        if enabled && ensure_tray(&app_for_close, &root_for_close).is_ok() {
                             api.prevent_close();
                             let _ = window_for_close.hide();
                         }
@@ -301,7 +355,8 @@ fn main() {
                 conn,
                 static_root,
                 proposals: Default::default(),
-                claude_command: std::env::var_os("TCPLUS_CLAUDE_PATH").map(std::path::PathBuf::from),
+                claude_command: std::env::var_os("TCPLUS_CLAUDE_PATH")
+                    .map(std::path::PathBuf::from),
                 codex_command: std::env::var_os("TCPLUS_CODEX_PATH").map(std::path::PathBuf::from),
                 api_token: api_token.clone(),
             };
@@ -317,7 +372,9 @@ fn main() {
                     let url = format!("http://127.0.0.1:{port}/")
                         .parse()
                         .expect("build window url");
-                    window.navigate(url).expect("navigate main window to http server");
+                    window
+                        .navigate(url)
+                        .expect("navigate main window to http server");
                 }
 
                 // Outlook自動同期ループを起動する。

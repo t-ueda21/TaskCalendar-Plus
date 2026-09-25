@@ -910,7 +910,7 @@ export function readDialogForm(dialog) {
 }
 
 // ── ヘッダー時計 ──────────────────────────────────────
-export function startHeaderClock({ workEnd = "18:00" } = {}) {
+export function startHeaderClock({ workEnd = "18:00", getWorkEnd } = {}) {
   const nowEl    = document.querySelector("[data-now]");
   const remEl    = document.querySelector("[data-remaining]");
   const dateEl   = document.querySelector("[data-today-date]");
@@ -923,9 +923,10 @@ export function startHeaderClock({ workEnd = "18:00" } = {}) {
     nowEl.textContent = formatNow(now);
     if (dateEl) dateEl.textContent = formatDateJP(now);
 
-    const minKey = `${formatDateKey(now)}-${now.getHours()}-${now.getMinutes()}`;
+    const currentWorkEnd = typeof getWorkEnd === "function" ? getWorkEnd() : workEnd;
+    const minKey = `${formatDateKey(now)}-${now.getHours()}-${now.getMinutes()}-${currentWorkEnd}`;
     if (minKey !== lastMinKey) {
-      const endMinutes = timeToMinutes(workEnd);
+      const endMinutes = timeToMinutes(currentWorkEnd);
       const nowMinutes = now.getHours() * 60 + now.getMinutes();
       const diff = Math.round(endMinutes - nowMinutes);
       remEl.textContent = formatRemaining(diff);

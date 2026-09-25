@@ -12,9 +12,12 @@
   },
   "permissions": [
     "allow-get-api-token",
+    "allow-get-ui-preferences",
+    "allow-set-ui-theme",
     "shell:allow-open",
     "autostart:default",
     "allow-set-ui-zoom",
+    "allow-set-tray-enabled",
     "allow-get-autostart-enabled",
     "allow-set-autostart-enabled",
     "allow-get-update-info",

@@ -773,12 +773,47 @@ async function createTask(data) {
     publish("tasks", _tasks);
     return createdTasks[0] ?? null;
   } catch (e) {
-    return _failStrictApi("tasks", "予定の保存", e);
+    throw _strictApiError("予定の保存", e);
+  }
+}
+
+// The server checks every revision and commits the complete change in one transaction.
+async function _batchTasks(upserts, deleted) {
+  const currentById = new Map(_tasks.map((task) => [task.id, task]));
+  const touched = [...upserts.filter((task) => currentById.has(task.id)), ...deleted];
+  const expected = [...new Map(touched.map((task) => [task.id, {
+    id: task.id, updatedAt: currentById.get(task.id)?.updatedAt ?? task.updatedAt,
+  }])).values()];
+  const saved = await _api.post("/tasks/batch", {
+    expected,
+    upserts,
+    deleteIds: deleted.map((task) => task.id),
+  });
+  if (!Array.isArray(saved) || !saved.every(validateTask)
+    || upserts.some((task) => !saved.some((row) => row.id === task.id))
+    || deleted.some((task) => saved.some((row) => row.id === task.id))) {
+    throw new Error("API returned invalid task batch");
+  }
+  _tasks = _backfillRecurrenceGroupIds(saved);
+  publish("tasks", _tasks);
+  return saved;
+}
+
+/** Restore a previously deleted task without changing its identity or recurrence. */
+async function restoreTask(task) {
+  if (!validateTask(task) || _tasks.some((row) => row.id === task.id)) {
+    throw new Error("予定を復元できません。元のIDが既に使われています。");
+  }
+  try {
+    const saved = await _batchTasks([task], []);
+    return saved.find((row) => row.id === task.id) ?? null;
+  } catch (e) {
+    throw _strictApiError("予定の復元", e);
   }
 }
 
 /** タスク更新 */
-async function updateTask(id, patch) {
+async function updateTask(id, patch, { expectedUpdatedAt } = {}) {
   const idx = _tasks.findIndex((t) => t.id === id);
   if (idx < 0) return null;
 
@@ -790,6 +825,15 @@ async function updateTask(id, patch) {
       normalized.groupId = current.groupId;
       normalized.originDate = current.originDate ?? _tasks[idx].date;
     }
+    if (normalized.type !== "none" && current?.occurrenceDate) {
+      normalized.occurrenceDate = current.occurrenceDate;
+    }
+    if (normalized.type !== "none" && current?.seriesStartDate) {
+      normalized.seriesStartDate = current.seriesStartDate;
+    }
+    if (normalized.type !== "none" && current?.exception) {
+      normalized.exception = true;
+    }
     recurrence = normalized;
   }
 
@@ -800,6 +844,17 @@ async function updateTask(id, patch) {
     id,
     updatedAt: new Date().toISOString(),
   };
+
+  if (updated.recurrence?.type !== "none" && patch.date !== undefined && patch.date !== _tasks[idx].date) {
+    const scheduledDate = _tasks[idx].recurrence?.occurrenceDate ?? _tasks[idx].date;
+    updated.recurrence = { ...updated.recurrence };
+    if (updated.date === scheduledDate) {
+      delete updated.recurrence.occurrenceDate;
+      delete updated.recurrence.exception;
+    } else {
+      updated.recurrence.occurrenceDate = scheduledDate;
+    }
+  }
 
   _maybeNormalizeClock(patch, updated);
 
@@ -822,26 +877,25 @@ async function updateTask(id, patch) {
         { ...updated, id: genId() }, date, { ...updated.recurrence }, updated.updatedAt,
       ));
       if (occurrences.length) {
-        const saved = await _api.post(`/tasks/${id}/recurrence`, { expectedUpdatedAt: _tasks[idx].updatedAt, task: updated, occurrences });
-        if (!Array.isArray(saved) || saved.length !== dates.length || !saved.every(validateTask)) {
-          throw new Error("API returned invalid recurring tasks");
+        if (expectedUpdatedAt !== undefined && expectedUpdatedAt !== _tasks[idx].updatedAt) {
+          throw new Error("Task revision conflict");
         }
+        const saved = await _batchTasks([updated, ...occurrences], []);
         const first = saved.find(task => task.id === id);
-        if (!first) throw new Error("API did not return the original task");
-        _tasks = _tasks.map(task => task.id === id ? first : task);
-        _tasks.push(...saved.filter(task => task.id !== id));
         publish("task-series-expanded", { taskId: id });
-        publish("tasks", _tasks);
         return first;
       }
     }
-    const saved = await _api.put(`/tasks/${id}`, updated);
+    const saved = await _api.put(`/tasks/${id}`, {
+      ...updated,
+      ...(expectedUpdatedAt !== undefined ? { expectedUpdatedAt } : {}),
+    });
     if (!validateTask(saved)) throw new Error("API returned invalid task");
     _tasks[idx] = saved;
     publish("tasks", _tasks);
     return saved;
   } catch (e) {
-    return _failStrictApi("tasks", "予定の更新", e);
+    throw _strictApiError("予定の更新", e);
   }
 }
 
@@ -892,7 +946,7 @@ function getTaskSeriesCount(task) {
   return indexes.length > 0 ? indexes.length : 1;
 }
 
-async function updateTaskWithMode(id, patch, mode = "single") {
+async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
   const target = _tasks.find((t) => t.id === id);
   if (!target) return null;
 
@@ -903,8 +957,8 @@ async function updateTaskWithMode(id, patch, mode = "single") {
   if (mode === "future") {
     indexes = indexes.filter((idx) => String(_tasks[idx].date ?? "") >= String(target.date ?? ""));
   }
-  if (!isMultiMode || indexes.length <= 1) {
-    return updateTask(id, patch);
+  if (!isMultiMode) {
+    return updateTask(id, patch, options);
   }
 
   const sharedPatch = { ...patch };
@@ -915,56 +969,125 @@ async function updateTaskWithMode(id, patch, mode = "single") {
   }
 
   const nowIso = new Date().toISOString();
-  const updatedById = new Map();
-  const ensuredGroupId = target.recurrence?.groupId || genId();
-
-  for (const idx of indexes) {
-    const current = _tasks[idx];
-
-    let recurrence;
-    if (sharedPatch.recurrence !== undefined) {
-      recurrence = _normalizeRecurrence(sharedPatch.recurrence, String(current.date ?? ""));
-    } else if (current.recurrence !== undefined) {
-      recurrence = { ...current.recurrence };
-    }
-
-    if (recurrence && recurrence.type !== "none") {
-      recurrence.groupId = current.recurrence?.groupId || target.recurrence?.groupId || ensuredGroupId;
-      recurrence.originDate = current.recurrence?.originDate ?? target.recurrence?.originDate ?? current.date;
-    }
-
-    const updated = {
-      ...current,
-      ...sharedPatch,
-      ...(recurrence !== undefined ? { recurrence } : {}),
-      id: current.id,
-      date: current.date,
-      updatedAt: nowIso,
-    };
-
-    _maybeNormalizeClock(sharedPatch, updated);
-
-    if (!validateTask(updated)) {
-      console.warn("[store] updateTaskWithMode: invalid patch", updated);
-      return null;
-    }
-
-    updatedById.set(current.id, updated);
+  const selected = indexes.map((idx) => _tasks[idx]);
+  const anchor = mode === "future" ? target.date
+    : (_isDateKey(target.recurrence?.seriesStartDate) ? target.recurrence.seriesStartDate
+      : (_isDateKey(target.recurrence?.originDate) ? target.recurrence.originDate : selected.map((t) => t.date).sort()[0]));
+  const oldRecurrence = target.recurrence ?? { type: "none" };
+  const recurrenceChanged = sharedPatch.recurrence !== undefined
+    && (sharedPatch.recurrence.type !== oldRecurrence.type
+      || sharedPatch.recurrence.until !== oldRecurrence.until);
+  const normalized = sharedPatch.recurrence === undefined ? { ...oldRecurrence }
+    : _normalizeRecurrence(sharedPatch.recurrence, anchor);
+  if (normalized.type !== "none" && normalized.until < anchor) {
+    throw new Error("繰り返しの終了日は、変更する予定の開始日以降にしてください。");
   }
-
+  const expansionAnchor = normalized.type === "monthly"
+    && oldRecurrence.type === "monthly" && _isDateKey(oldRecurrence.originDate)
+    ? oldRecurrence.originDate : anchor;
+  const recurrence = normalized.type === "none" ? { type: "none" } : {
+    ...normalized,
+    groupId: mode === "future" ? genId() : (oldRecurrence.groupId || genId()),
+    originDate: expansionAnchor,
+    seriesStartDate: anchor,
+  };
+  const oldDates = new Set(_expandRecurrenceDateKeys(
+    _isDateKey(oldRecurrence.originDate) ? oldRecurrence.originDate : anchor,
+    oldRecurrence,
+  ));
+  const nextDates = recurrenceChanged && recurrence.type !== "none"
+    ? _expandRecurrenceDateKeys(
+      recurrence.type === "monthly" && oldRecurrence.type === "monthly" ? expansionAnchor : anchor,
+      recurrence,
+    ).filter((date) => date >= anchor)
+    : selected.map((t) => t.date);
+  const byDate = new Map();
+  for (const task of selected) byDate.set(task.date, [...(byDate.get(task.date) ?? []), task]);
+  // Track moved occurrences by their original date. For rows saved by older
+  // versions, an extra row on the same generated date is also an exception.
+  const exceptionIds = new Set(recurrenceChanged ? selected.filter((task) =>
+    task.recurrence?.exception || (task.recurrence?.occurrenceDate
+      && task.recurrence.occurrenceDate !== task.date) || !oldDates.has(task.date),
+  ).map((task) => task.id) : []);
+  if (recurrenceChanged) {
+    for (const [date, rows] of byDate) {
+      if (!oldDates.has(date) || rows.length <= 1) continue;
+      const scheduled = rows.filter((task) => !exceptionIds.has(task.id))
+        .sort((a, b) => String(a.updatedAt).localeCompare(String(b.updatedAt)))[0]
+        ?? rows.slice().sort((a, b) => String(a.updatedAt).localeCompare(String(b.updatedAt)))[0];
+      for (const task of rows) if (task.id !== scheduled.id) exceptionIds.add(task.id);
+    }
+  }
+  const nextDateSet = new Set(nextDates);
+  const dates = new Set([...nextDates, ...selected.filter((task) => exceptionIds.has(task.id)).map((task) => task.date)]);
+  const upserts = [];
+  const usedIds = new Set();
+  const removed = selected.filter((task) => !nextDateSet.has(task.date) && !exceptionIds.has(task.id));
+  for (const date of dates) {
+    const candidates = byDate.get(date) ?? [];
+    const current = nextDateSet.has(date)
+      ? candidates.find((task) => !exceptionIds.has(task.id))
+      : candidates.find((task) => exceptionIds.has(task.id));
+    // A removed occurrence remains removed when only the end date is extended.
+    if (!current && !recurrenceChanged) continue;
+    if (!current && oldRecurrence.type === recurrence.type && oldDates.has(date)) continue;
+    const template = current ?? target;
+    const updated = {
+      ...template, ...sharedPatch, recurrence: {
+        ...recurrence,
+        ...(current?.recurrence?.occurrenceDate ? { occurrenceDate: current.recurrence.occurrenceDate } : {}),
+        ...(current?.recurrence?.exception || (current && exceptionIds.has(current.id) && !current.recurrence?.occurrenceDate)
+          ? { exception: true } : {}),
+      },
+      id: current?.id ?? genId(), date,
+      createdAt: current?.createdAt ?? nowIso, updatedAt: nowIso,
+    };
+    _maybeNormalizeClock(sharedPatch, updated);
+    if (!validateTask(updated)) return null;
+    upserts.push(updated);
+    if (current) usedIds.add(current.id);
+  }
+  for (const current of selected) {
+    if ((!nextDateSet.has(current.date) && !exceptionIds.has(current.id)) || usedIds.has(current.id)) continue;
+    const updated = {
+      ...current, ...sharedPatch, recurrence: {
+        ...recurrence,
+        ...(current.recurrence?.occurrenceDate ? { occurrenceDate: current.recurrence.occurrenceDate } : {}),
+        ...(current.recurrence?.exception || (exceptionIds.has(current.id) && !current.recurrence?.occurrenceDate)
+          ? { exception: true } : {}),
+      },
+      id: current.id, date: current.date, updatedAt: nowIso,
+    };
+    _maybeNormalizeClock(sharedPatch, updated);
+    if (!validateTask(updated)) return null;
+    upserts.push(updated);
+  }
+  // Future edits split the series so later "edit all" actions do not touch history.
+  if (mode === "future") {
+    const prior = _collectSeriesTaskIndexes(target).map((idx) => _tasks[idx])
+      .filter((task) => task.date < anchor);
+    const priorUntil = formatDateKey(new Date(parseLocalDate(anchor).getTime() - 86400000));
+    for (const task of prior) {
+      const updated = { ...task, recurrence: { ...task.recurrence, until: priorUntil }, updatedAt: nowIso };
+      if (!validateTask(updated)) return null;
+      upserts.push(updated);
+    }
+  }
   try {
-    const savedTasks = await Promise.all(Array.from(updatedById.values()).map((task) => _api.put(`/tasks/${task.id}`, task)));
-    const savedById = new Map(savedTasks.filter(validateTask).map((task) => [task.id, task]));
-    _tasks = _tasks.map((t) => savedById.get(t.id) ?? t);
-    publish("tasks", _tasks);
-    return savedById.get(id) ?? null;
+    if (options.expectedUpdatedAt !== undefined && options.expectedUpdatedAt !== target.updatedAt) {
+      throw new Error("Task revision conflict");
+    }
+    const saved = await _batchTasks(upserts, removed);
+    return saved.find((task) => task.id === id)
+      ?? saved.find((task) => task.id === upserts[0]?.id)
+      ?? null;
   } catch (e) {
-    return _failStrictApi("tasks", "繰り返し予定の更新", e);
+    throw _strictApiError("繰り返し予定の更新", e);
   }
 }
 
 /** タスク削除 */
-async function deleteTaskWithMode(id, mode = "single") {
+async function deleteTaskWithMode(id, mode = "single", { expectedUpdatedAt } = {}) {
   const target = _tasks.find((t) => t.id === id);
   if (!target) return;
 
@@ -987,12 +1110,24 @@ async function deleteTaskWithMode(id, mode = "single") {
   if (nextTasks.length === before) return;
 
   try {
-    await Promise.all(idsToDelete.map((taskId) => _api.del(`/tasks/${taskId}`)));
-    _tasks = nextTasks;
-    publish("tasks", _tasks);
+    if (expectedUpdatedAt !== undefined && target.updatedAt !== expectedUpdatedAt) {
+      throw new Error("Task revision conflict");
+    }
+    if (idsToDelete.length > 1) {
+      await _batchTasks([], _tasks.filter((task) => deleteSet.has(task.id)));
+    } else {
+      const query = expectedUpdatedAt === undefined ? "" : `?expectedUpdatedAt=${encodeURIComponent(expectedUpdatedAt)}`;
+      await _api.del(`/tasks/${encodeURIComponent(id)}${query}`);
+      _tasks = nextTasks;
+      publish("tasks", _tasks);
+    }
   } catch (e) {
-    return _failStrictApi("tasks", "予定の削除", e);
+    throw _strictApiError("予定の削除", e);
   }
+}
+
+async function deleteTask(id, options = {}) {
+  return deleteTaskWithMode(id, "single", options);
 }
 
 // ── タグ CRUD ────────────────────────────────────────
@@ -1142,16 +1277,10 @@ function _excludedBreaks() {
 
 // 設定された休憩時間帯(複数対応)と[start,end]区間との重なり分数(分)を返す。
 function _breakOverlapMinutes(startMin, endMin) {
-  const breaks = _excludedBreaks();
-  let overlap = 0;
-  for (const b of breaks) {
-    const bs = timeToMinutes(b.start);
-    const be = timeToMinutes(b.end);
-    const os = Math.max(startMin, bs);
-    const oe = Math.min(endMin, be);
-    if (oe > os) overlap += oe - os;
-  }
-  return overlap;
+  return _mergeIntervalMinutes(_excludedBreaks().map((b) => [
+    Math.max(startMin, timeToMinutes(b.start)),
+    Math.min(endMin, timeToMinutes(b.end)),
+  ]));
 }
 
 // [start,end]区間から休憩時間帯と重なる部分を取り除いた残り区間の配列を返す
@@ -1353,8 +1482,10 @@ export {
   getAllTasks,
   getTasksByDate,
   createTask,
+  restoreTask,
   updateTask,
   updateTaskWithMode,
+  deleteTask,
   deleteTaskWithMode,
   getTaskSeriesCount,
   // tags

@@ -51,6 +51,7 @@ let _settings = Store.getSettings();
 let _activeDateKey = formatDateKey(getInitialViewDate());
 let _miniCalInst = null;
 let _busy = false;
+let _sendCancelled = false;
 let _root = null;
 let _initialized = false;
 let _settingsDialogControl = null;
@@ -164,12 +165,12 @@ function _renderProposalCard(proposal, { dateKey, messageId }) {
 
   const footer = document.createElement("div");
   footer.className = "aiProposalActions";
-  const renderFooter = (status) => {
+  const renderFooter = (status, errorMessage = "") => {
     footer.replaceChildren();
     if (status && status !== "pending") {
       const done = document.createElement("span");
       done.className = `aiProposalStatus ${status}`;
-      done.textContent = STATUS_LABELS[status] ?? status;
+      done.textContent = errorMessage || STATUS_LABELS[status] || status;
       footer.appendChild(done);
       return;
     }
@@ -185,14 +186,16 @@ function _renderProposalCard(proposal, { dateKey, messageId }) {
       confirmBtn.disabled = true;
       dismissBtn.disabled = true;
       let next = "applied";
+      let errorMessage = "";
       try {
         await _applyProposal(proposal);
       } catch (e) {
         console.error("[ai-mode] apply proposal failed:", e);
         next = "failed";
+        errorMessage = String(e?.message ?? e);
       }
       Store.updateAiChatProposalStatus(dateKey, messageId, proposal.id, next);
-      renderFooter(next);
+      renderFooter(next, errorMessage);
     });
     dismissBtn.addEventListener("click", () => {
       Store.updateAiChatProposalStatus(dateKey, messageId, proposal.id, "dismissed");
@@ -218,6 +221,32 @@ async function _ensureTagId(tagName, dateKey) {
   return tag.id;
 }
 
+function _proposalTaskSnapshot(task, tagName = task?.tagName) {
+  const allDay = Boolean(task?.isAllDay ?? task?.allDay);
+  return {
+    title: String(task?.title ?? ""), date: String(task?.date ?? ""), allDay,
+    startTime: allDay ? "" : String(task?.startTime ?? ""),
+    endTime: allDay ? "" : String(task?.endTime ?? ""),
+    tagName: String(tagName ?? ""), memo: String(task?.memo ?? ""),
+  };
+}
+
+async function _proposalRevision(proposal) {
+  // Refresh first; comparing only the cached task misses changes from Outlook or another view.
+  await Store.refreshTasks();
+  const current = Store.getAllTasks().find(t => t.id === proposal.taskId);
+  if (!current) throw new Error("対象の予定が見つかりません。最新の内容で依頼し直してください。");
+  const before = proposal.action === "update" ? proposal.before : proposal.task;
+  const currentTag = Store.getAllTags().find(t => t.id === current.tagId)?.name ?? "";
+  if (!before || !current.updatedAt
+      || (proposal.expectedUpdatedAt && proposal.expectedUpdatedAt !== current.updatedAt)
+      || JSON.stringify(_proposalTaskSnapshot(before)) !== JSON.stringify(_proposalTaskSnapshot(current, currentTag))) {
+    throw new Error("この予定は提案後に変更されています。最新の内容でAIに依頼し直してください。");
+  }
+  // The backend checks this revision atomically too, covering changes after this refresh.
+  return current.updatedAt;
+}
+
 async function _applyProposal(proposal) {
   const task = proposal.task ?? {};
   const fields = async () => ({
@@ -233,12 +262,14 @@ async function _applyProposal(proposal) {
     const created = await Store.createTask({ ...(await fields()), recurrence: { type: "none" } });
     if (!created) throw new Error("予定を作成できませんでした");
   } else if (proposal.action === "update") {
-    if (!Store.getAllTasks().some((t) => t.id === proposal.taskId)) throw new Error("対象の予定が見つかりません");
-    const updated = await Store.updateTask(proposal.taskId, await fields());
+    const expectedUpdatedAt = await _proposalRevision(proposal);
+    const updated = await Store.updateTask(proposal.taskId, await fields(), { expectedUpdatedAt });
     if (!updated) throw new Error("予定を変更できませんでした");
   } else if (proposal.action === "delete") {
-    if (!Store.getAllTasks().some((t) => t.id === proposal.taskId)) throw new Error("対象の予定が見つかりません");
-    await Store.deleteTaskWithMode(proposal.taskId, "single");
+    const expectedUpdatedAt = await _proposalRevision(proposal);
+    await Store.deleteTaskWithMode(proposal.taskId, "single", { expectedUpdatedAt });
+  } else {
+    throw new Error("予定の提案を読み取れませんでした。");
   }
 }
 
@@ -274,6 +305,11 @@ function _renderChatHistory() {
   rows.forEach((row) => _appendMessage({ role: row.role, text: row.text, proposals: row.proposals, id: row.id, dateKey: _activeDateKey }));
 }
 
+function _cancelSend() {
+  _sendCancelled = true;
+  cancelAi();
+}
+
 async function _send() {
   if (_busy || !$.input) return;
   const text = String($.input.value ?? "").trim();
@@ -285,30 +321,32 @@ async function _send() {
     return;
   }
 
-  // 直近の会話 + 今回の質問。カレンダータブでの変更を反映するため、送信前に予定を読み直す。
-  await Store.refreshTasks().catch((e) => console.warn("[ai-mode] refreshTasks failed:", e));
-  const history = Store.getAiChatHistory(dateKey)
-    .slice(-HISTORY_TURNS)
-    .map((row) => ({ role: row.role, content: row.text }));
-  const saved = Store.addAiChatMessage(dateKey, { role: "user", text });
-  _appendMessage({ role: "user", text, id: saved?.id, dateKey });
-  $.input.value = "";
-
+  // Reserve sending before the first await so a slow refresh cannot admit a second send.
+  _sendCancelled = false;
   _setBusy(true);
   try {
+    await Store.refreshTasks().catch((e) => console.warn("[ai-mode] refreshTasks failed:", e));
+    if (_sendCancelled) return;
+    const history = Store.getAiChatHistory(dateKey)
+      .slice(-HISTORY_TURNS)
+      .map((row) => ({ role: row.role, content: row.text }));
+    const saved = Store.addAiChatMessage(dateKey, { role: "user", text });
+    _appendMessage({ role: "user", text, id: saved?.id, dateKey });
+    $.input.value = "";
+    _showLoading();
     const reply = await chatWithAgent([...history, { role: "user", content: text }]);
+    if (_sendCancelled) return;
     const answer = reply.content || "内容を確認して、下のカードで確定してください。";
     const message = Store.addAiChatMessage(dateKey, { role: "assistant", text: answer, proposals: reply.proposals });
-    _setBusy(false);
     if (dateKey === _activeDateKey) {
       _appendMessage({ role: "assistant", text: answer, proposals: message?.proposals ?? [], id: message?.id, dateKey });
     }
   } catch (e) {
-    _setBusy(false);
     const message = String(e?.message ?? e);
     if (!e?.cancelled) console.warn("[ai-mode] agent failed:", e);
-    if (dateKey === _activeDateKey) _appendMessage({ role: "assistant", text: message });
+    if (!_sendCancelled && dateKey === _activeDateKey) _appendMessage({ role: "assistant", text: message });
   } finally {
+    _setBusy(false);
     _renderModelStatus();
   }
 }
@@ -363,7 +401,7 @@ function _renderInputMode() {
 }
 
 function _wire() {
-  $.askBtn?.addEventListener("click", () => (_busy ? cancelAi() : void _send()));
+  $.askBtn?.addEventListener("click", () => (_busy ? _cancelSend() : void _send()));
   $.input?.addEventListener("keydown", (e) => {
     // 変換候補の確定Enterは送信に使わない(keyCode=229もIME入力)。
     if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;

@@ -139,8 +139,7 @@ async function _undoAction(action) {
   if (action.type === "create") {
     await Store.deleteTaskWithMode(action.taskId, "single");
   } else if (action.type === "delete") {
-    const created = await Store.createTask({ ...action.task, id: undefined, recurrence: { type: "none" } });
-    if (created) action.taskId = created.id;
+    await Store.restoreTask(action.task);
   } else if (action.type === "update") {
     await Store.updateTask(action.taskId, action.before);
   }
@@ -148,8 +147,7 @@ async function _undoAction(action) {
 
 async function _redoAction(action) {
   if (action.type === "create") {
-    const created = await Store.createTask({ ...action.task, id: undefined, recurrence: { type: "none" } });
-    if (created) action.taskId = created.id;
+    await Store.restoreTask(action.task);
   } else if (action.type === "delete") {
     await Store.deleteTaskWithMode(action.taskId, "single");
   } else if (action.type === "update") {
@@ -160,15 +158,25 @@ async function _redoAction(action) {
 async function _undo() {
   const action = _undoStack.pop();
   if (!action) return;
-  await _undoAction(action);
-  _redoStack.push(action);
+  try {
+    await _undoAction(action);
+    _redoStack.push(action);
+  } catch (error) {
+    _undoStack.push(action);
+    throw error;
+  }
 }
 
 async function _redo() {
   const action = _redoStack.pop();
   if (!action) return;
-  await _redoAction(action);
-  _undoStack.push(action);
+  try {
+    await _redoAction(action);
+    _undoStack.push(action);
+  } catch (error) {
+    _redoStack.push(action);
+    throw error;
+  }
 }
 let _taskTimePreviewEl = null;
 let _focusedSlotEl = null;
@@ -272,10 +280,10 @@ async function _deleteTaskByChoice(taskId, preferredMode = null) {
   if (!mode) return;
   // 繰り返し全体(series)の削除はUndo対象外(複数行の巻き戻しが複雑なため)。
   // 単一予定の削除(single)のみUndo/Redoに対応する。
+  await Store.deleteTaskWithMode(taskId, mode);
   if (mode === "single") {
     _recordAction({ type: "delete", taskId, task });
   }
-  await Store.deleteTaskWithMode(taskId, mode);
 }
 
 function _ensureTaskTimePreview() {
@@ -593,8 +601,8 @@ function _shiftView(direction) {
 function _updateDateLabel() {
   if (!$viewDateLabel) return;
   if (_viewMode === "week") {
-    const mon = mondayOfWeek(_viewDate);
-    const end = addDays(mon, _businessOnly ? 4 : 6);
+    const mon = _weekMonday();
+    const end = addDays(mon, _businessOnly ? 4 : 5);
     const start = _businessOnly ? mon : addDays(mon, -1);
     $viewDateLabel.textContent = `${formatDateJP(start)} - ${formatDateJP(end)}`;
   } else {
@@ -640,8 +648,14 @@ const DAY_META = [
   { key: "Sat", offset:  5, label: "土", cls: "sat" },
 ];
 
+function _weekMonday() {
+  const monday = mondayOfWeek(_viewDate);
+  // The full week is Sunday–Saturday. A selected Sunday starts its own week.
+  return !_businessOnly && _viewDate.getDay() === 0 ? addDays(monday, 7) : monday;
+}
+
 function _renderWeekColumns() {
-  const mon = mondayOfWeek(_viewDate);
+  const mon = _weekMonday();
   const showKeys = _businessOnly
     ? new Set(["Mon","Tue","Wed","Thu","Fri"])
     : new Set(["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]);
@@ -692,7 +706,7 @@ async function _renderCalendarWeather() {
     $calendarDayWeather.classList.add("loading");
   }
 
-  const mon = mondayOfWeek(_viewDate);
+  const mon = _weekMonday();
   const rangeStart = formatDateKey(addDays(mon, -1));
   const rangeEnd = formatDateKey(addDays(mon, 5));
 
@@ -930,7 +944,7 @@ function _renderDayTasks() {
 }
 
 function _renderWeekTasks() {
-  const mon  = mondayOfWeek(_viewDate);
+  const mon  = _weekMonday();
   const tags = Store.getTagsForMonth(formatYearMonth(_viewDate));
 
   DAY_META.forEach(({ key, offset }) => {
@@ -981,7 +995,7 @@ function _renderAllDayLaneSingle(tasks) {
 }
 
 function _renderAllDayLane() {
-  const mon = mondayOfWeek(_viewDate);
+  const mon = _weekMonday();
   const yearMonth = formatYearMonth(_viewDate);
   const tags = Store.getTagsForMonth(yearMonth);
   const allTags = Store.getAllTags();

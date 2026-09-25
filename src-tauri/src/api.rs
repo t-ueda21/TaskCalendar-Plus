@@ -6,9 +6,9 @@
 use axum::{
     Router,
     body::Bytes,
-    extract::{Path, Request, State},
-    middleware::{self, Next},
+    extract::{DefaultBodyLimit, Path, Query, Request, State},
     http::{HeaderMap, Method, StatusCode, header},
+    middleware::{self, Next},
     response::{IntoResponse, Redirect, Response},
     routing::{get, put},
 };
@@ -46,11 +46,17 @@ fn is_loopback_authority(value: &str) -> bool {
 }
 
 fn is_loopback_origin(origin: &str) -> bool {
-    origin.strip_prefix("http://").is_some_and(is_loopback_authority)
+    origin
+        .strip_prefix("http://")
+        .is_some_and(is_loopback_authority)
 }
 
 fn constant_time_eq(a: &str, b: &str) -> bool {
-    a.len() == b.len() && a.bytes().zip(b.bytes()).fold(0u8, |acc, (x, y)| acc | (x ^ y)) == 0
+    a.len() == b.len()
+        && a.bytes()
+            .zip(b.bytes())
+            .fold(0u8, |acc, (x, y)| acc | (x ^ y))
+            == 0
 }
 
 /// ブラウザで開いた他のWebページや、DNSリバインディングからの要求を拒否する。
@@ -82,9 +88,16 @@ async fn request_guard(State(state): State<AppState>, request: Request, next: Ne
             let is_json = headers
                 .get(header::CONTENT_TYPE)
                 .and_then(|v| v.to_str().ok())
-                .is_some_and(|v| v.trim_start().to_ascii_lowercase().starts_with("application/json"));
+                .is_some_and(|v| {
+                    v.trim_start()
+                        .to_ascii_lowercase()
+                        .starts_with("application/json")
+                });
             if !is_json {
-                return json_err(StatusCode::UNSUPPORTED_MEDIA_TYPE, "Content-Type must be application/json");
+                return json_err(
+                    StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                    "Content-Type must be application/json",
+                );
             }
         }
     }
@@ -96,11 +109,15 @@ pub fn build_router(state: AppState) -> Router {
         .route("/", get(root_redirect))
         .route("/favicon.ico", get(favicon))
         .route("/api/tasks", get(tasks_list).post(tasks_create))
-        .route("/api/tasks/{id}/recurrence", axum::routing::post(tasks_expand_recurrence))
         .route(
-            "/api/tasks/{id}",
-            put(tasks_update).delete(tasks_delete),
+            "/api/tasks/batch",
+            axum::routing::post(tasks_batch).layer(DefaultBodyLimit::max(128 * 1024 * 1024)),
         )
+        .route(
+            "/api/tasks/{id}/recurrence",
+            axum::routing::post(tasks_expand_recurrence),
+        )
+        .route("/api/tasks/{id}", put(tasks_update).delete(tasks_delete))
         .route("/api/tags", get(tags_list).post(tags_create))
         .route("/api/tags/{id}", put(tags_update).delete(tags_delete))
         .route("/api/settings", get(settings_get).put(settings_put))
@@ -114,16 +131,24 @@ pub fn build_router(state: AppState) -> Router {
             get(weather_cache_get).put(weather_cache_put),
         )
         .route("/api/runtime", get(runtime_info))
-        .route("/api/outlook/auto-sync", axum::routing::post(outlook_auto_sync))
+        .route(
+            "/api/outlook/auto-sync",
+            axum::routing::post(outlook_auto_sync),
+        )
         .route("/api/ai/chat", axum::routing::post(ai_chat))
         .route(
             "/mcp/{session}",
-            axum::routing::post(mcp_post).get(mcp_not_allowed).delete(mcp_not_allowed),
+            axum::routing::post(mcp_post)
+                .get(mcp_not_allowed)
+                .delete(mcp_not_allowed),
         )
         .route("/api/ai/detect", get(ai_detect))
         .route("/api/ai/models/{provider}", get(ai_models))
         .route("/api/backup", get(backup_get))
-        .route("/api/restore", axum::routing::post(backup_restore))
+        .route(
+            "/api/restore",
+            axum::routing::post(backup_restore).layer(DefaultBodyLimit::max(128 * 1024 * 1024)),
+        )
         .fallback(fallback)
         .layer(middleware::from_fn_with_state(state.clone(), request_guard))
         .with_state(state)
@@ -139,8 +164,12 @@ fn json_created(value: impl serde::Serialize) -> Response {
 
 /// 要求本文をJSONとして読む。読めなければ 400 の応答を返す。
 fn parse_body<T: serde::de::DeserializeOwned>(body: &Bytes) -> Result<T, Box<Response>> {
-    serde_json::from_slice(body)
-        .map_err(|err| Box::new(json_err(StatusCode::BAD_REQUEST, format!("invalid JSON body: {err}"))))
+    serde_json::from_slice(body).map_err(|err| {
+        Box::new(json_err(
+            StatusCode::BAD_REQUEST,
+            format!("invalid JSON body: {err}"),
+        ))
+    })
 }
 
 fn json_err(status: StatusCode, message: impl Into<String>) -> Response {
@@ -195,9 +224,14 @@ async fn tasks_update(
         Err(response) => return *response,
     };
     let conn = lock_conn(&state);
-    match repo::tasks_update(&conn, &id, input) {
-        Ok(Some(row)) => json_ok(row),
-        Ok(None) => json_err(StatusCode::NOT_FOUND, "Task not found"),
+    let expected = input.expected_updated_at.clone();
+    match repo::tasks_update_guarded(&conn, &id, expected.as_deref(), input) {
+        Ok(repo::GuardedTaskResult::Applied(row)) => json_ok(row),
+        Ok(repo::GuardedTaskResult::NotFound) => json_err(StatusCode::NOT_FOUND, "Task not found"),
+        Ok(repo::GuardedTaskResult::Conflict) => json_err(
+            StatusCode::CONFLICT,
+            "予定が変更されています。開き直してから保存してください",
+        ),
         Err(err) => json_err(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
     }
 }
@@ -210,7 +244,27 @@ struct RecurringTaskUpdate {
     occurrences: Vec<repo::TaskInsertInput>,
 }
 
-async fn tasks_expand_recurrence(State(state): State<AppState>, Path(id): Path<String>, body: Bytes) -> Response {
+async fn tasks_batch(State(state): State<AppState>, body: Bytes) -> Response {
+    let input: repo::TaskBatchInput = match parse_body(&body) {
+        Ok(v) => v,
+        Err(response) => return *response,
+    };
+    let conn = lock_conn(&state);
+    match repo::tasks_batch(&conn, input) {
+        Ok(rows) => json_ok(rows),
+        Err(repo::TaskBatchError::Invalid(message)) => json_err(StatusCode::BAD_REQUEST, message),
+        Err(repo::TaskBatchError::Conflict(message)) => json_err(StatusCode::CONFLICT, message),
+        Err(repo::TaskBatchError::Db(err)) => {
+            json_err(StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+        }
+    }
+}
+
+async fn tasks_expand_recurrence(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    body: Bytes,
+) -> Response {
     let input: RecurringTaskUpdate = match parse_body(&body) {
         Ok(v) => v,
         Err(response) => return *response,
@@ -219,18 +273,44 @@ async fn tasks_expand_recurrence(State(state): State<AppState>, Path(id): Path<S
         return json_err(StatusCode::BAD_REQUEST, "繰り返し予定は5000件までです");
     }
     let conn = lock_conn(&state);
-    match repo::tasks_update_with_occurrences(&conn, &id, &input.expected_updated_at, input.task, input.occurrences) {
+    match repo::tasks_update_with_occurrences(
+        &conn,
+        &id,
+        &input.expected_updated_at,
+        input.task,
+        input.occurrences,
+    ) {
         Ok(repo::RecurringTaskUpdateResult::Updated(rows)) => json_ok(rows),
-        Ok(repo::RecurringTaskUpdateResult::NotFound) => json_err(StatusCode::NOT_FOUND, "Task not found"),
-        Ok(repo::RecurringTaskUpdateResult::Conflict) => json_err(StatusCode::CONFLICT, "予定が変更されています。開き直してから保存してください"),
+        Ok(repo::RecurringTaskUpdateResult::NotFound) => {
+            json_err(StatusCode::NOT_FOUND, "Task not found")
+        }
+        Ok(repo::RecurringTaskUpdateResult::Conflict) => json_err(
+            StatusCode::CONFLICT,
+            "予定が変更されています。開き直してから保存してください",
+        ),
         Err(err) => json_err(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
     }
 }
 
-async fn tasks_delete(State(state): State<AppState>, Path(id): Path<String>) -> Response {
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TaskDeleteQuery {
+    expected_updated_at: Option<String>,
+}
+
+async fn tasks_delete(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Query(query): Query<TaskDeleteQuery>,
+) -> Response {
     let conn = lock_conn(&state);
-    match repo::tasks_remove(&conn, &id) {
-        Ok(()) => no_content(),
+    match repo::tasks_remove_guarded(&conn, &id, query.expected_updated_at.as_deref()) {
+        Ok(repo::GuardedTaskResult::Applied(())) => no_content(),
+        Ok(repo::GuardedTaskResult::NotFound) => json_err(StatusCode::NOT_FOUND, "Task not found"),
+        Ok(repo::GuardedTaskResult::Conflict) => json_err(
+            StatusCode::CONFLICT,
+            "予定が変更されています。開き直してから保存してください",
+        ),
         Err(err) => json_err(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
     }
 }
@@ -315,7 +395,10 @@ async fn settings_put(State(state): State<AppState>, body: Bytes) -> Response {
 // --- ai-memory ---------------------------------------------------------
 
 fn invalid_ai_memory_kind(kind: &str) -> Response {
-    json_err(StatusCode::NOT_FOUND, format!("unknown ai-memory kind: {kind}"))
+    json_err(
+        StatusCode::NOT_FOUND,
+        format!("unknown ai-memory kind: {kind}"),
+    )
 }
 
 async fn ai_memory_put_item(
@@ -351,7 +434,10 @@ async fn ai_memory_delete_item(
     }
 }
 
-async fn ai_memory_list_by_kind(State(state): State<AppState>, Path(kind): Path<String>) -> Response {
+async fn ai_memory_list_by_kind(
+    State(state): State<AppState>,
+    Path(kind): Path<String>,
+) -> Response {
     if !repo::is_valid_ai_memory_kind(&kind) {
         return invalid_ai_memory_kind(&kind);
     }
@@ -372,7 +458,10 @@ fn is_valid_location_key(key: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_' || c == '-')
 }
 
-async fn weather_cache_get(State(state): State<AppState>, Path(location_key): Path<String>) -> Response {
+async fn weather_cache_get(
+    State(state): State<AppState>,
+    Path(location_key): Path<String>,
+) -> Response {
     if !is_valid_location_key(&location_key) {
         return json_err(StatusCode::NOT_FOUND, "GET /api/weather-cache not found");
     }
@@ -501,12 +590,19 @@ async fn ai_chat(State(state): State<AppState>, headers: HeaderMap, body: Bytes)
         Ok(v) => v,
         Err(response) => return *response,
     };
-    let mut messages = body.get("messages").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+    let mut messages = body
+        .get("messages")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
     let format = body.get("format").filter(|v| !v.is_null()).cloned();
     let agent = body.get("agent").and_then(|v| v.as_bool()).unwrap_or(false);
     let ai = {
         let conn = lock_conn(&state);
-        let settings = repo::settings_get(&conn).ok().flatten().unwrap_or(Value::Null);
+        let settings = repo::settings_get(&conn)
+            .ok()
+            .flatten()
+            .unwrap_or(Value::Null);
         crate::ai::AiSettings::from_settings(&settings)
     };
     let Some(kind) = ai.provider else {
@@ -525,18 +621,40 @@ async fn ai_chat(State(state): State<AppState>, headers: HeaderMap, body: Bytes)
     // この要求が届いたホスト(127.0.0.1:ポート)をそのまま使う。
     let session = agent.then(|| format!("s-{:016x}", rand::random::<u64>()));
     let mcp_url = session.as_ref().map(|id| {
-        let host = headers.get(header::HOST).and_then(|v| v.to_str().ok()).unwrap_or("127.0.0.1");
+        let host = headers
+            .get(header::HOST)
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("127.0.0.1");
         format!("http://{host}/mcp/{id}?token={}", state.api_token)
     });
     if let Some(id) = &session {
-        state.proposals.lock().expect("proposal store poisoned").insert(id.clone(), Vec::new());
+        state
+            .proposals
+            .lock()
+            .expect("proposal store poisoned")
+            .insert(id.clone(), Vec::new());
         messages.insert(0, json!({ "role": "system", "content": crate::ai::agent_system_prompt(chrono::Local::now().date_naive()) }));
     }
 
-    let result = crate::ai_cli::chat(kind, program_override, model, effort, &messages, format.as_ref(), mcp_url.as_deref()).await;
+    let result = crate::ai_cli::chat(
+        kind,
+        program_override,
+        model,
+        effort,
+        &messages,
+        format.as_ref(),
+        mcp_url.as_deref(),
+    )
+    .await;
     let proposals = session
         .as_ref()
-        .and_then(|id| state.proposals.lock().expect("proposal store poisoned").remove(id))
+        .and_then(|id| {
+            state
+                .proposals
+                .lock()
+                .expect("proposal store poisoned")
+                .remove(id)
+        })
         .unwrap_or_default();
 
     match result {
@@ -555,7 +673,11 @@ async fn ai_chat(State(state): State<AppState>, headers: HeaderMap, body: Bytes)
                 .unwrap_or_default();
             json_err(
                 StatusCode::SERVICE_UNAVAILABLE,
-                format!("{}の呼び出しに失敗しました{version}: {}", kind.label(), err.0),
+                format!(
+                    "{}の呼び出しに失敗しました{version}: {}",
+                    kind.label(),
+                    err.0
+                ),
             )
         }
     }
@@ -569,10 +691,18 @@ async fn mcp_post(
     axum::extract::Query(query): axum::extract::Query<std::collections::HashMap<String, String>>,
     body: Bytes,
 ) -> Response {
-    if !query.get("token").is_some_and(|t| constant_time_eq(t, &state.api_token)) {
+    if !query
+        .get("token")
+        .is_some_and(|t| constant_time_eq(t, &state.api_token))
+    {
         return json_err(StatusCode::UNAUTHORIZED, "missing or invalid token");
     }
-    if !state.proposals.lock().expect("proposal store poisoned").contains_key(&session) {
+    if !state
+        .proposals
+        .lock()
+        .expect("proposal store poisoned")
+        .contains_key(&session)
+    {
         return json_err(StatusCode::NOT_FOUND, "session not found");
     }
     let message: Value = match parse_body(&body) {
@@ -587,8 +717,13 @@ async fn mcp_post(
         proposals: &state.proposals,
     };
     let responses: Vec<Value> = match &message {
-        Value::Array(batch) => batch.iter().filter_map(|m| crate::mcp::handle_message(&ctx, m)).collect(),
-        single => crate::mcp::handle_message(&ctx, single).into_iter().collect(),
+        Value::Array(batch) => batch
+            .iter()
+            .filter_map(|m| crate::mcp::handle_message(&ctx, m))
+            .collect(),
+        single => crate::mcp::handle_message(&ctx, single)
+            .into_iter()
+            .collect(),
     };
     match (message.is_array(), responses.len()) {
         (_, 0) => StatusCode::ACCEPTED.into_response(),
@@ -604,8 +739,14 @@ async fn mcp_not_allowed() -> Response {
 /// 設定画面の「検出」ボタン用。Claude Code / Codex のCLIが使えるかを返す。
 async fn ai_detect(State(state): State<AppState>) -> Response {
     let (claude, codex) = tokio::join!(
-        crate::ai_cli::detect(crate::ai_cli::CliKind::ClaudeCode, state.claude_command.as_deref()),
-        crate::ai_cli::detect(crate::ai_cli::CliKind::Codex, state.codex_command.as_deref()),
+        crate::ai_cli::detect(
+            crate::ai_cli::CliKind::ClaudeCode,
+            state.claude_command.as_deref()
+        ),
+        crate::ai_cli::detect(
+            crate::ai_cli::CliKind::Codex,
+            state.codex_command.as_deref()
+        ),
     );
     json_ok(json!({ "claudeCode": claude, "codex": codex }))
 }
@@ -636,13 +777,20 @@ async fn backup_get(State(state): State<AppState>) -> Response {
 async fn backup_restore(State(state): State<AppState>, body: Bytes) -> Response {
     let value: Value = match serde_json::from_slice(&body) {
         Ok(v) => v,
-        Err(err) => return json_err(StatusCode::BAD_REQUEST, format!("JSONとして読み込めませんでした: {err}")),
+        Err(err) => {
+            return json_err(
+                StatusCode::BAD_REQUEST,
+                format!("JSONとして読み込めませんでした: {err}"),
+            );
+        }
     };
     let conn = lock_conn(&state);
     match repo::backup_restore(&conn, &value) {
         Ok(counts) => json_ok(counts),
         Err(repo::RestoreError::Invalid(message)) => json_err(StatusCode::BAD_REQUEST, message),
-        Err(repo::RestoreError::Db(err)) => json_err(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+        Err(repo::RestoreError::Db(err)) => {
+            json_err(StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+        }
     }
 }
 
@@ -687,10 +835,7 @@ async fn serve_static(state: &AppState, url_path: &str) -> Response {
                 return json_err(StatusCode::FORBIDDEN, "Forbidden");
             }
             let mut headers = HeaderMap::new();
-            headers.insert(
-                header::CONTENT_TYPE,
-                mime_for(&file_path).parse().unwrap(),
-            );
+            headers.insert(header::CONTENT_TYPE, mime_for(&file_path).parse().unwrap());
             (StatusCode::OK, headers, data).into_response()
         }
         Err(_) => json_err(StatusCode::NOT_FOUND, "Not found"),
@@ -747,10 +892,16 @@ mod tests {
     #[cfg(windows)]
     fn write_mock_cli(dir: &std::path::Path, name: &str, stdout_line: &str) -> PathBuf {
         let path = dir.join(format!("{name}.cmd"));
-        std::fs::write(&path, format!("@echo off
+        std::fs::write(
+            &path,
+            format!(
+                "@echo off
 more > nul
 echo {stdout_line}
-")).unwrap();
+"
+            ),
+        )
+        .unwrap();
         path
     }
 
@@ -758,9 +909,20 @@ echo {stdout_line}
     async fn ai_chat_returns_503_when_provider_is_not_configured() {
         let (state, _tmp) = test_state();
         let router = build_router(state);
-        let (status, body) = send(&router, "POST", "/api/ai/chat", Some(json!({ "messages": [] }))).await;
+        let (status, body) = send(
+            &router,
+            "POST",
+            "/api/ai/chat",
+            Some(json!({ "messages": [] })),
+        )
+        .await;
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
-        assert!(body["error"].as_str().unwrap().contains("接続先が設定されていません"));
+        assert!(
+            body["error"]
+                .as_str()
+                .unwrap()
+                .contains("接続先が設定されていません")
+        );
     }
 
     #[tokio::test]
@@ -772,7 +934,8 @@ echo {stdout_line}
         let (status, _) = send(&router, "GET", "/api/ai/models/unknown", None).await;
         assert_eq!(status, StatusCode::BAD_REQUEST);
         for provider in ["codex", "claude-code"] {
-            let (status, body) = send(&router, "GET", &format!("/api/ai/models/{provider}"), None).await;
+            let (status, body) =
+                send(&router, "GET", &format!("/api/ai/models/{provider}"), None).await;
             assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
             assert!(body["error"].as_str().is_some_and(|s| !s.is_empty()));
         }
@@ -793,24 +956,55 @@ echo {stdout_line}
             "expectedUpdatedAt":created["updatedAt"],
             "task":{"title":"終日予定","date":"2026-09-14","isAllDay":true,"recurrence":recurrence},"occurrences":occurrences,
         });
-        let (status, rows) = send(&router, "POST", "/api/tasks/base/recurrence", Some(payload.clone())).await;
+        let (status, rows) = send(
+            &router,
+            "POST",
+            "/api/tasks/base/recurrence",
+            Some(payload.clone()),
+        )
+        .await;
         assert_eq!(status, StatusCode::OK, "{rows}");
         assert_eq!(rows.as_array().unwrap().len(), 4);
         payload["occurrences"] = json!([{"id":"duplicate-day","title":"重複","date":"2026-09-15","isAllDay":true,"recurrence":recurrence}]);
-        assert_eq!(send(&router, "POST", "/api/tasks/base/recurrence", Some(payload.clone())).await.0, StatusCode::CONFLICT);
+        assert_eq!(
+            send(
+                &router,
+                "POST",
+                "/api/tasks/base/recurrence",
+                Some(payload.clone())
+            )
+            .await
+            .0,
+            StatusCode::CONFLICT
+        );
         payload["expectedUpdatedAt"] = rows[0]["updatedAt"].clone();
-        assert_eq!(send(&router, "POST", "/api/tasks/base/recurrence", Some(payload)).await.0, StatusCode::CONFLICT);
+        assert_eq!(
+            send(&router, "POST", "/api/tasks/base/recurrence", Some(payload))
+                .await
+                .0,
+            StatusCode::CONFLICT
+        );
         let (_, persisted) = send(&router, "GET", "/api/tasks", None).await;
         let persisted = persisted.as_array().unwrap();
         assert_eq!(persisted.len(), 4);
-        assert!(persisted.iter().all(|row| row["isAllDay"] == true && row["recurrence"]["groupId"] == "series"));
+        assert!(
+            persisted
+                .iter()
+                .all(|row| row["isAllDay"] == true && row["recurrence"]["groupId"] == "series")
+        );
     }
 
     #[tokio::test]
     async fn recurring_update_rolls_back_when_an_occurrence_cannot_be_inserted() {
         let (state, _tmp) = test_state();
         let router = build_router(state);
-        let (_, created) = send(&router, "POST", "/api/tasks", Some(json!({"id":"base","title":"元の予定","date":"2026-09-14","isAllDay":true}))).await;
+        let (_, created) = send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({"id":"base","title":"元の予定","date":"2026-09-14","isAllDay":true})),
+        )
+        .await;
         let (status, _) = send(&router, "POST", "/api/tasks/base/recurrence", Some(json!({
             "expectedUpdatedAt":created["updatedAt"],
             "task":{"title":"変更後","date":"2026-09-14","isAllDay":true,"recurrence":{"type":"daily"}},
@@ -835,7 +1029,10 @@ echo {stdout_line}
             "claude",
             r#"{"type":"result","is_error":false,"result":"x","structured_output":{"ok":true},"modelUsage":{"claude-mock":{}}}"#,
         ));
-        set_settings(&state, json!({ "aiProvider": "claude-code", "aiCliEnabled": true }));
+        set_settings(
+            &state,
+            json!({ "aiProvider": "claude-code", "aiCliEnabled": true }),
+        );
         let router = build_router(state);
 
         let (status, body) = send(
@@ -855,14 +1052,30 @@ echo {stdout_line}
     #[tokio::test]
     async fn ai_chat_reports_claude_code_error_result() {
         let (mut state, tmp) = test_state();
-        state.claude_command = Some(write_mock_cli(tmp.path(), "claude", r#"{"is_error":true,"result":"Not logged in"}"#));
-        set_settings(&state, json!({ "aiProvider": "claude-code", "aiCliEnabled": true }));
+        state.claude_command = Some(write_mock_cli(
+            tmp.path(),
+            "claude",
+            r#"{"is_error":true,"result":"Not logged in"}"#,
+        ));
+        set_settings(
+            &state,
+            json!({ "aiProvider": "claude-code", "aiCliEnabled": true }),
+        );
         let router = build_router(state);
 
-        let (status, body) = send(&router, "POST", "/api/ai/chat", Some(json!({ "messages": [{ "role": "user", "content": "hi" }] }))).await;
+        let (status, body) = send(
+            &router,
+            "POST",
+            "/api/ai/chat",
+            Some(json!({ "messages": [{ "role": "user", "content": "hi" }] })),
+        )
+        .await;
         assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
         let error = body["error"].as_str().unwrap();
-        assert!(error.starts_with("Claude Codeの呼び出しに失敗しました"), "{error}");
+        assert!(
+            error.starts_with("Claude Codeの呼び出しに失敗しました"),
+            "{error}"
+        );
         // 偽CLIは --version にも同じ行を返すため、バージョン欄にその内容が入る。
         assert!(error.contains("バージョン:"), "{error}");
         assert!(error.contains("Not logged in"), "{error}");
@@ -873,10 +1086,19 @@ echo {stdout_line}
     async fn ai_chat_uses_codex_cli_output_when_selected() {
         let (mut state, tmp) = test_state();
         state.codex_command = Some(write_mock_cli(tmp.path(), "codex", "codex reply"));
-        set_settings(&state, json!({ "aiProvider": "codex", "aiCliEnabled": true, "aiCodexModel": "gpt-mock" }));
+        set_settings(
+            &state,
+            json!({ "aiProvider": "codex", "aiCliEnabled": true, "aiCodexModel": "gpt-mock" }),
+        );
         let router = build_router(state);
 
-        let (status, body) = send(&router, "POST", "/api/ai/chat", Some(json!({ "messages": [{ "role": "user", "content": "hi" }] }))).await;
+        let (status, body) = send(
+            &router,
+            "POST",
+            "/api/ai/chat",
+            Some(json!({ "messages": [{ "role": "user", "content": "hi" }] })),
+        )
+        .await;
         assert_eq!(status, StatusCode::OK, "{body}");
         assert_eq!(body["provider"], "codex");
         assert_eq!(body["model"], "gpt-mock");
@@ -896,7 +1118,10 @@ echo {stdout_line}
         assert_eq!(body["claudeCode"]["available"], true);
         assert_eq!(body["claudeCode"]["version"], "9.9.9 (Claude Code)");
         assert_eq!(body["claudeCode"]["olderThanTested"], false);
-        assert_eq!(body["claudeCode"]["testedVersion"], crate::ai_cli::TESTED_CLAUDE_CODE_VERSION);
+        assert_eq!(
+            body["claudeCode"]["testedVersion"],
+            crate::ai_cli::TESTED_CLAUDE_CODE_VERSION
+        );
         assert_eq!(body["codex"]["available"], false);
     }
 
@@ -911,31 +1136,65 @@ echo {stdout_line}
         let response = router.clone().oneshot(request).await.unwrap();
         let status = response.status();
         let bytes = response.into_body().collect().await.unwrap().to_bytes();
-        (status, serde_json::from_slice(&bytes).unwrap_or(Value::Null))
+        (
+            status,
+            serde_json::from_slice(&bytes).unwrap_or(Value::Null),
+        )
     }
 
     #[tokio::test]
     async fn mcp_endpoint_requires_token_and_active_session() {
         let (state, _tmp) = test_state();
-        state.proposals.lock().unwrap().insert("s-test".into(), vec![]);
+        state
+            .proposals
+            .lock()
+            .unwrap()
+            .insert("s-test".into(), vec![]);
         let router = build_router(state.clone());
         let init = json!({ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {} });
 
         let (status, _) = mcp_send(&router, "/mcp/s-test?token=wrong", init.clone()).await;
         assert_eq!(status, StatusCode::UNAUTHORIZED);
-        let (status, _) = mcp_send(&router, &format!("/mcp/s-other?token={TEST_TOKEN}"), init.clone()).await;
+        let (status, _) = mcp_send(
+            &router,
+            &format!("/mcp/s-other?token={TEST_TOKEN}"),
+            init.clone(),
+        )
+        .await;
         assert_eq!(status, StatusCode::NOT_FOUND);
 
         let base = format!("/mcp/s-test?token={TEST_TOKEN}");
         let (status, body) = mcp_send(&router, &base, init).await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body["result"]["serverInfo"]["name"], "taskcalendar");
-        let (status, _) = mcp_send(&router, &base, json!({ "jsonrpc": "2.0", "method": "notifications/initialized" })).await;
+        let (status, _) = mcp_send(
+            &router,
+            &base,
+            json!({ "jsonrpc": "2.0", "method": "notifications/initialized" }),
+        )
+        .await;
         assert_eq!(status, StatusCode::ACCEPTED);
-        let (_, body) = mcp_send(&router, &base, json!({ "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).await;
-        assert!(body["result"]["tools"].as_array().unwrap().iter().any(|t| t["name"] == "month_status"));
+        let (_, body) = mcp_send(
+            &router,
+            &base,
+            json!({ "jsonrpc": "2.0", "id": 2, "method": "tools/list" }),
+        )
+        .await;
+        assert!(
+            body["result"]["tools"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|t| t["name"] == "month_status")
+        );
 
-        send(&router, "POST", "/api/tags", Some(json!({ "id": "g1", "name": "会議", "color": "#111111" }))).await;
+        send(
+            &router,
+            "POST",
+            "/api/tags",
+            Some(json!({ "id": "g1", "name": "会議", "color": "#111111" })),
+        )
+        .await;
         let call = json!({ "jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": { "name": "propose_create_task", "arguments": { "date": "2026-09-25", "startTime": "15:00", "title": "設計会議", "tagName": "会議" } } });
         let (_, body) = mcp_send(&router, &base, call).await;
         assert_eq!(body["result"]["isError"], false);
@@ -950,8 +1209,15 @@ echo {stdout_line}
     async fn guard_rejects_missing_or_wrong_token() {
         let (state, _tmp) = test_state();
         let router = build_router(state);
-        let no_token = Request::builder().uri("/api/tasks").header("host", TEST_HOST).body(Body::empty()).unwrap();
-        assert_eq!(raw_status(&router, no_token).await, StatusCode::UNAUTHORIZED);
+        let no_token = Request::builder()
+            .uri("/api/tasks")
+            .header("host", TEST_HOST)
+            .body(Body::empty())
+            .unwrap();
+        assert_eq!(
+            raw_status(&router, no_token).await,
+            StatusCode::UNAUTHORIZED
+        );
         let wrong = Request::builder()
             .uri("/api/tasks")
             .header("host", TEST_HOST)
@@ -972,7 +1238,10 @@ echo {stdout_line}
             .body(Body::empty())
             .unwrap();
         assert_eq!(raw_status(&router, rebinding).await, StatusCode::FORBIDDEN);
-        let no_host = Request::builder().uri("/hello.txt").body(Body::empty()).unwrap();
+        let no_host = Request::builder()
+            .uri("/hello.txt")
+            .body(Body::empty())
+            .unwrap();
         assert_eq!(raw_status(&router, no_host).await, StatusCode::FORBIDDEN);
         let cross_origin = Request::builder()
             .method("POST")
@@ -983,7 +1252,10 @@ echo {stdout_line}
             .header("content-type", "application/json")
             .body(Body::from(r##"{"name":"x","color":"#000000"}"##))
             .unwrap();
-        assert_eq!(raw_status(&router, cross_origin).await, StatusCode::FORBIDDEN);
+        assert_eq!(
+            raw_status(&router, cross_origin).await,
+            StatusCode::FORBIDDEN
+        );
         let same_origin = Request::builder()
             .method("POST")
             .uri("/api/tags")
@@ -1009,7 +1281,10 @@ echo {stdout_line}
             .header("content-type", "text/plain")
             .body(Body::from(r##"{"name":"x","color":"#000000"}"##))
             .unwrap();
-        assert_eq!(raw_status(&router, plain).await, StatusCode::UNSUPPORTED_MEDIA_TYPE);
+        assert_eq!(
+            raw_status(&router, plain).await,
+            StatusCode::UNSUPPORTED_MEDIA_TYPE
+        );
     }
 
     #[test]
@@ -1048,6 +1323,26 @@ echo {stdout_line}
             serde_json::from_slice(&bytes).unwrap_or(Value::Null)
         };
         (status, value)
+    }
+
+    #[tokio::test]
+    async fn batch_accepts_large_existing_task_payloads() {
+        let (state, _dir) = test_state();
+        let router = build_router(state);
+        let mut rows = Vec::new();
+        for id in ["large-a", "large-b", "large-c"] {
+            let (status, row) = send(&router, "POST", "/api/tasks", Some(json!({
+                "id":id,"title":"large","date":"2026-09-26","startTime":"09:00","endTime":"10:00","memo":"x".repeat(900_000)
+            }))).await;
+            assert_eq!(status, StatusCode::CREATED);
+            rows.push(row);
+        }
+        let expected: Vec<Value> = rows.iter().map(|row| json!({"id":row["id"],"updatedAt":row["updatedAt"]})).collect();
+        let payload = json!({"expected":expected,"upserts":rows,"deleteIds":[]});
+        assert!(serde_json::to_vec(&payload).unwrap().len() > 2 * 1024 * 1024);
+        let (status, result) = send(&router, "POST", "/api/tasks/batch", Some(payload)).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(result.as_array().unwrap().len(), 3);
     }
 
     #[tokio::test]
@@ -1097,6 +1392,188 @@ echo {stdout_line}
         assert_eq!(list_after_delete.as_array().unwrap().len(), 0);
     }
 
+    #[tokio::test]
+    async fn batch_is_atomic_and_checks_every_revision() {
+        let (state, _tmp) = test_state();
+        let router = build_router(state);
+        let (_, a) = send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({"id":"a","date":"2026-08-04","title":"A","startTime":"09:00","endTime":"10:00"})),
+        )
+        .await;
+        let (_, b) = send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({"id":"b","date":"2026-08-05","title":"B","startTime":"09:00","endTime":"10:00"})),
+        )
+        .await;
+        let mut changed_a = a.clone();
+        changed_a["title"] = json!("changed");
+        changed_a["meetingUrl"] = json!("https://teams.microsoft.com/example");
+        let payload = json!({"expected":[{"id":"a","updatedAt":a["updatedAt"]},{"id":"b","updatedAt":"stale"}],"upserts":[changed_a],"deleteIds":["b"]});
+        let (status, _) = send(&router, "POST", "/api/tasks/batch", Some(payload)).await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        let (_, rows) = send(&router, "GET", "/api/tasks", None).await;
+        assert_eq!(rows[0]["title"], "A");
+        assert_eq!(rows.as_array().unwrap().len(), 2);
+
+        let mut changed_a = a.clone();
+        changed_a["title"] = json!("changed");
+        changed_a["meetingUrl"] = json!("https://teams.microsoft.com/example");
+        let payload = json!({"expected":[{"id":"a","updatedAt":a["updatedAt"]},{"id":"b","updatedAt":b["updatedAt"]}],"upserts":[changed_a],"deleteIds":["b"]});
+        let (status, rows) = send(&router, "POST", "/api/tasks/batch", Some(payload)).await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(rows.as_array().unwrap().len(), 1);
+        assert_eq!(rows[0]["id"], "a");
+        assert_eq!(rows[0]["meetingUrl"], "https://teams.microsoft.com/example");
+        assert_ne!(rows[0]["updatedAt"], a["updatedAt"]);
+    }
+
+    #[tokio::test]
+    async fn batch_rolls_back_when_later_upsert_violates_unique_outlook_key() {
+        let (state, _tmp) = test_state();
+        let router = build_router(state);
+        let (_, created) = send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({"id":"old","date":"2026-08-04","title":"original","startTime":"09:00","endTime":"10:00"})),
+        )
+        .await;
+        let mut changed = created.clone();
+        changed["title"] = json!("changed");
+        let mut first_new = created.clone();
+        first_new["id"] = json!("new-1");
+        first_new["outlookOccurrenceKey"] = json!("duplicate-key");
+        let mut second_new = first_new.clone();
+        second_new["id"] = json!("new-2");
+        let payload = json!({"expected":[{"id":"old","updatedAt":created["updatedAt"]}],"upserts":[changed,first_new,second_new],"deleteIds":[]});
+        let (status, _) = send(&router, "POST", "/api/tasks/batch", Some(payload)).await;
+        assert_eq!(status, StatusCode::INTERNAL_SERVER_ERROR);
+        let (_, rows) = send(&router, "GET", "/api/tasks", None).await;
+        assert_eq!(rows.as_array().unwrap().len(), 1);
+        assert_eq!(rows[0]["title"], "original");
+    }
+
+    #[tokio::test]
+    async fn batch_restores_and_edits_midnight_ending_task() {
+        let (state, _tmp) = test_state();
+        let router = build_router(state);
+        let (_, original) = send(&router, "POST", "/api/tasks", Some(json!({"id":"late","date":"2026-08-04","title":"Late","startTime":"23:00","endTime":"24:00"}))).await;
+        send(&router, "DELETE", "/api/tasks/late", None).await;
+        let (status, rows) = send(
+            &router,
+            "POST",
+            "/api/tasks/batch",
+            Some(json!({"expected":[],"upserts":[original],"deleteIds":[]})),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{rows}");
+        assert_eq!(rows[0]["endTime"], "24:00");
+        let mut series = rows[0].clone();
+        series["recurrence"] = json!({"type":"daily","until":"2026-08-06","groupId":"late-series"});
+        let (status, updated) = send(&router, "POST", "/api/tasks/batch", Some(json!({"expected":[{"id":"late","updatedAt":rows[0]["updatedAt"]}],"upserts":[series],"deleteIds":[]}))).await;
+        assert_eq!(status, StatusCode::OK, "{updated}");
+        assert_eq!(updated[0]["endTime"], "24:00");
+        assert_eq!(updated[0]["recurrence"]["groupId"], "late-series");
+        let mut invalid = updated[0].clone();
+        invalid["startTime"] = json!("24:01");
+        let (status, _) = send(&router, "POST", "/api/tasks/batch", Some(json!({"expected":[{"id":"late","updatedAt":updated[0]["updatedAt"]}],"upserts":[invalid],"deleteIds":[]}))).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn batch_restores_outlook_overnight_task_without_changing_its_fields() {
+        let (state, _tmp) = test_state();
+        let router = build_router(state.clone());
+        let (status, _) = send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({
+                "id":"overnight", "title":"Outlook夜間", "date":"2026-08-04",
+                "startTime":"23:00", "endTime":"01:00", "tagId":"custom-tag",
+                "outlookOccurrenceKey":"series-1|2026-08-04T23:00", "outlookSeriesId":"series-1",
+                "recurrence":{"type":"none"}
+            })),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CREATED);
+        state.conn.lock().unwrap().execute(
+            "UPDATE tasks SET meeting_url='https://teams.microsoft.com/example' WHERE id='overnight'", []
+        ).unwrap();
+        let (_, rows) = send(&router, "GET", "/api/tasks", None).await;
+        let original = rows[0].clone();
+        send(&router, "DELETE", "/api/tasks/overnight", None).await;
+        let (status, restored) = send(
+            &router,
+            "POST",
+            "/api/tasks/batch",
+            Some(json!({"expected":[],"upserts":[original],"deleteIds":[]})),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{restored}");
+        assert_eq!(restored[0]["id"], "overnight");
+        assert_eq!(restored[0]["startTime"], "23:00");
+        assert_eq!(restored[0]["endTime"], "01:00");
+        assert_eq!(restored[0]["tagId"], "custom-tag");
+        assert_eq!(
+            restored[0]["outlookOccurrenceKey"],
+            "series-1|2026-08-04T23:00"
+        );
+        assert_eq!(restored[0]["outlookSeriesId"], "series-1");
+        assert_eq!(
+            restored[0]["meetingUrl"],
+            "https://teams.microsoft.com/example"
+        );
+    }
+
+    #[tokio::test]
+    async fn guarded_put_and_delete_reject_stale_revision() {
+        let (state, _tmp) = test_state();
+        let router = build_router(state);
+        let (_, created) = send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({"id":"a","date":"2026-08-04","title":"A"})),
+        )
+        .await;
+        let (status, updated) = send(
+            &router,
+            "PUT",
+            "/api/tasks/a",
+            Some(json!({"date":"2026-08-04","title":"B","expectedUpdatedAt":created["updatedAt"]})),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK);
+        assert_ne!(updated["updatedAt"], created["updatedAt"]);
+        let (status, _) = send(
+            &router,
+            "PUT",
+            "/api/tasks/a",
+            Some(json!({"date":"2026-08-04","title":"C","expectedUpdatedAt":created["updatedAt"]})),
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        let (status, _) = send(
+            &router,
+            "DELETE",
+            &format!(
+                "/api/tasks/a?expectedUpdatedAt={}",
+                created["updatedAt"].as_str().unwrap().replace('+', "%2B")
+            ),
+            None,
+        )
+        .await;
+        assert_eq!(status, StatusCode::CONFLICT);
+        let (_, rows) = send(&router, "GET", "/api/tasks", None).await;
+        assert_eq!(rows[0]["title"], "B");
+    }
+
     /// 手動確認で見つかった不具合の回帰テスト: 「タグなし」(空文字列)を明示的に
     /// 選択した場合、別のタグIDへ勝手に置き換わらないこと。
     #[tokio::test]
@@ -1123,7 +1600,10 @@ echo {stdout_line}
         )
         .await;
         assert_eq!(status, StatusCode::OK);
-        assert_eq!(updated["tagId"], "", "タグなしのタスクを更新しても既定タグへ戻らないこと");
+        assert_eq!(
+            updated["tagId"], "",
+            "タグなしのタスクを更新しても既定タグへ戻らないこと"
+        );
     }
 
     #[tokio::test]
@@ -1135,7 +1615,13 @@ echo {stdout_line}
         let (_, list) = send(&router, "GET", "/api/tags", None).await;
         assert_eq!(list.as_array().unwrap().len(), 0);
 
-        let (status, base) = send(&router, "POST", "/api/tags", Some(json!({ "id": "tag-base", "name": "基本", "color": "#000000" }))).await;
+        let (status, base) = send(
+            &router,
+            "POST",
+            "/api/tags",
+            Some(json!({ "id": "tag-base", "name": "基本", "color": "#000000" })),
+        )
+        .await;
         assert_eq!(status, StatusCode::CREATED);
         let base_tag_id = base["id"].as_str().unwrap().to_string();
 
@@ -1180,7 +1666,13 @@ echo {stdout_line}
         let (state, _tmp) = test_state();
         let router = build_router(state);
 
-        let (_, tag) = send(&router, "POST", "/api/tags", Some(json!({ "name": "唯一", "color": "#111111" }))).await;
+        let (_, tag) = send(
+            &router,
+            "POST",
+            "/api/tags",
+            Some(json!({ "name": "唯一", "color": "#111111" })),
+        )
+        .await;
         let tag_id = tag["id"].as_str().unwrap().to_string();
         send(
             &router,
@@ -1189,7 +1681,13 @@ echo {stdout_line}
             Some(json!({ "monthTagOrders": { "2026-08": [tag_id] }, "outlookSyncTagId": tag_id })),
         )
         .await;
-        send(&router, "POST", "/api/tasks", Some(json!({ "id": "t-1", "date": "2026-08-04", "tagId": tag_id }))).await;
+        send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({ "id": "t-1", "date": "2026-08-04", "tagId": tag_id })),
+        )
+        .await;
 
         let (status, _) = send(&router, "DELETE", &format!("/api/tags/{tag_id}"), None).await;
         assert_eq!(status, StatusCode::NO_CONTENT);
@@ -1199,7 +1697,9 @@ echo {stdout_line}
 
         // 設定内の参照(月ごとのタグ順、Outlook取り込み先)からも取り除かれる。
         let (_, settings_after) = send(&router, "GET", "/api/settings", None).await;
-        let order = settings_after["monthTagOrders"]["2026-08"].as_array().unwrap();
+        let order = settings_after["monthTagOrders"]["2026-08"]
+            .as_array()
+            .unwrap();
         assert!(!order.iter().any(|v| v == tag_id.as_str()));
         assert_eq!(settings_after["outlookSyncTagId"], "");
         let (_, tasks_after) = send(&router, "GET", "/api/tasks", None).await;
@@ -1212,8 +1712,20 @@ echo {stdout_line}
         let router = build_router(state);
         send(&router, "POST", "/api/tags", Some(json!({ "id": "tag-a", "name": "会議", "color": "#111111", "budgetMaxMinutes": 600 }))).await;
         send(&router, "POST", "/api/tasks", Some(json!({ "id": "t-1", "date": "2026-08-04", "title": "打合せ", "tagId": "tag-a", "memo": "メモ" }))).await;
-        send(&router, "PUT", "/api/settings", Some(json!({ "workStart": "08:30" }))).await;
-        send(&router, "PUT", "/api/ai-memory/summary/2026-08-04", Some(json!({ "summaryText": "要約" }))).await;
+        send(
+            &router,
+            "PUT",
+            "/api/settings",
+            Some(json!({ "workStart": "08:30" })),
+        )
+        .await;
+        send(
+            &router,
+            "PUT",
+            "/api/ai-memory/summary/2026-08-04",
+            Some(json!({ "summaryText": "要約" })),
+        )
+        .await;
 
         let (status, backup) = send(&router, "GET", "/api/backup", None).await;
         assert_eq!(status, StatusCode::OK);
@@ -1221,8 +1733,20 @@ echo {stdout_line}
         assert_eq!(backup["tasks"].as_array().unwrap().len(), 1);
 
         // 復元前にデータを変更・追加しておき、バックアップの内容に置き換わることを確認する。
-        send(&router, "POST", "/api/tasks", Some(json!({ "id": "t-2", "date": "2026-08-05", "title": "後から追加" }))).await;
-        send(&router, "PUT", "/api/settings", Some(json!({ "workStart": "10:00" }))).await;
+        send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({ "id": "t-2", "date": "2026-08-05", "title": "後から追加" })),
+        )
+        .await;
+        send(
+            &router,
+            "PUT",
+            "/api/settings",
+            Some(json!({ "workStart": "10:00" })),
+        )
+        .await;
 
         let (status, counts) = send(&router, "POST", "/api/restore", Some(backup.clone())).await;
         assert_eq!(status, StatusCode::OK, "{counts}");
@@ -1243,14 +1767,32 @@ echo {stdout_line}
     async fn restore_rejects_invalid_file_without_changing_data() {
         let (state, _tmp) = test_state();
         let router = build_router(state);
-        send(&router, "POST", "/api/tasks", Some(json!({ "id": "t-1", "date": "2026-08-04" }))).await;
+        send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({ "id": "t-1", "date": "2026-08-04" })),
+        )
+        .await;
 
-        let (status, body) = send(&router, "POST", "/api/restore", Some(json!({ "format": "other", "version": 1 }))).await;
+        let (status, body) = send(
+            &router,
+            "POST",
+            "/api/restore",
+            Some(json!({ "format": "other", "version": 1 })),
+        )
+        .await;
         assert_eq!(status, StatusCode::BAD_REQUEST);
-        assert!(body["error"].as_str().unwrap().contains("バックアップファイルではありません"));
+        assert!(
+            body["error"]
+                .as_str()
+                .unwrap()
+                .contains("バックアップファイルではありません")
+        );
 
         // タスクの必須項目(date)が無い → 400、既存データはそのまま。
-        let broken = json!({ "format": repo::BACKUP_FORMAT, "version": 1, "tasks": [{ "id": "x" }] });
+        let broken =
+            json!({ "format": repo::BACKUP_FORMAT, "version": 1, "tasks": [{ "id": "x" }] });
         let (status, _) = send(&router, "POST", "/api/restore", Some(broken)).await;
         assert_eq!(status, StatusCode::BAD_REQUEST);
         let (_, tasks) = send(&router, "GET", "/api/tasks", None).await;
@@ -1258,11 +1800,70 @@ echo {stdout_line}
     }
 
     #[tokio::test]
+    async fn restore_rejects_missing_collections_and_bad_ai_memory_before_deleting() {
+        let (state, _tmp) = test_state();
+        let router = build_router(state);
+        send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({"id":"keep","date":"2026-08-04"})),
+        )
+        .await;
+        let (_, valid) = send(&router, "GET", "/api/backup", None).await;
+        let mut missing = valid.clone();
+        missing.as_object_mut().unwrap().remove("tasks");
+        let mut bad_notes = valid.clone();
+        bad_notes["aiMemory"]["notes"] = json!([]);
+        for broken in [
+            json!({"format":repo::BACKUP_FORMAT,"version":1}),
+            missing,
+            bad_notes,
+        ] {
+            let (status, _) = send(&router, "POST", "/api/restore", Some(broken)).await;
+            assert_eq!(status, StatusCode::BAD_REQUEST);
+            let (_, tasks) = send(&router, "GET", "/api/tasks", None).await;
+            assert_eq!(tasks[0]["id"], "keep");
+        }
+    }
+
+    #[tokio::test]
+    async fn restore_accepts_valid_backup_larger_than_default_two_megabytes() {
+        let (state, _tmp) = test_state();
+        let router = build_router(state);
+        send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({"id":"big","date":"2026-08-04"})),
+        )
+        .await;
+        let (_, mut backup) = send(&router, "GET", "/api/backup", None).await;
+        backup["tasks"][0]["memo"] = json!("x".repeat(2_100_000));
+        assert!(backup.to_string().len() > 2 * 1024 * 1024);
+        let (status, result) = send(&router, "POST", "/api/restore", Some(backup)).await;
+        assert_eq!(status, StatusCode::OK, "{result}");
+        assert_eq!(result["tasks"], 1);
+    }
+
+    #[tokio::test]
     async fn tags_created_in_the_same_instant_get_distinct_ids() {
         let (state, _tmp) = test_state();
         let router = build_router(state);
-        let (s1, a) = send(&router, "POST", "/api/tags", Some(json!({ "name": "A", "color": "#111111" }))).await;
-        let (s2, b) = send(&router, "POST", "/api/tags", Some(json!({ "name": "B", "color": "#222222" }))).await;
+        let (s1, a) = send(
+            &router,
+            "POST",
+            "/api/tags",
+            Some(json!({ "name": "A", "color": "#111111" })),
+        )
+        .await;
+        let (s2, b) = send(
+            &router,
+            "POST",
+            "/api/tags",
+            Some(json!({ "name": "B", "color": "#222222" })),
+        )
+        .await;
         assert_eq!((s1, s2), (StatusCode::CREATED, StatusCode::CREATED));
         assert_ne!(a["id"], b["id"]);
     }
@@ -1272,7 +1873,13 @@ echo {stdout_line}
         let (state, _tmp) = test_state();
         let router = build_router(state);
 
-        let (status, created) = send(&router, "POST", "/api/tasks", Some(json!({ "id": "t-1", "date": "2026-08-04" }))).await;
+        let (status, created) = send(
+            &router,
+            "POST",
+            "/api/tasks",
+            Some(json!({ "id": "t-1", "date": "2026-08-04" })),
+        )
+        .await;
         assert_eq!(status, StatusCode::CREATED);
         assert_eq!(created["tagId"], "");
     }
@@ -1306,7 +1913,13 @@ echo {stdout_line}
         let (state, _tmp) = test_state();
         let router = build_router(state);
 
-        let (status, _) = send(&router, "PUT", "/api/ai-memory/bogus/2026-08-04", Some(json!({}))).await;
+        let (status, _) = send(
+            &router,
+            "PUT",
+            "/api/ai-memory/bogus/2026-08-04",
+            Some(json!({})),
+        )
+        .await;
         assert_eq!(status, StatusCode::NOT_FOUND);
         let (status, _) = send(&router, "GET", "/api/ai-memory/bogus", None).await;
         assert_eq!(status, StatusCode::NOT_FOUND);
@@ -1368,7 +1981,11 @@ echo {stdout_line}
         let (state, _tmp) = test_state();
         let router = build_router(state);
 
-        let request = Request::builder().header("host", TEST_HOST).uri("/").body(Body::empty()).unwrap();
+        let request = Request::builder()
+            .header("host", TEST_HOST)
+            .uri("/")
+            .body(Body::empty())
+            .unwrap();
         let response = router.clone().oneshot(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT);
         assert_eq!(
@@ -1376,14 +1993,19 @@ echo {stdout_line}
             "/assets/app.html"
         );
 
-        let request = Request::builder().header("host", TEST_HOST)
+        let request = Request::builder()
+            .header("host", TEST_HOST)
             .uri("/favicon.ico")
             .body(Body::empty())
             .unwrap();
         let response = router.clone().oneshot(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
-        let request = Request::builder().header("host", TEST_HOST).uri("/hello.txt").body(Body::empty()).unwrap();
+        let request = Request::builder()
+            .header("host", TEST_HOST)
+            .uri("/hello.txt")
+            .body(Body::empty())
+            .unwrap();
         let response = router.clone().oneshot(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(
@@ -1391,7 +2013,8 @@ echo {stdout_line}
             "application/octet-stream"
         );
 
-        let request = Request::builder().header("host", TEST_HOST)
+        let request = Request::builder()
+            .header("host", TEST_HOST)
             .uri("/does-not-exist.txt")
             .body(Body::empty())
             .unwrap();
@@ -1408,7 +2031,8 @@ echo {stdout_line}
         assert_eq!(status, StatusCode::NOT_FOUND);
         assert_eq!(body["error"], "GET /api/does-not-exist not found");
 
-        let request = Request::builder().header("host", TEST_HOST)
+        let request = Request::builder()
+            .header("host", TEST_HOST)
             .method("POST")
             .uri("/hello.txt")
             .body(Body::empty())
@@ -1416,5 +2040,4 @@ echo {stdout_line}
         let response = router.clone().oneshot(request).await.unwrap();
         assert_eq!(response.status(), StatusCode::METHOD_NOT_ALLOWED);
     }
-
 }

@@ -480,6 +480,7 @@ fn propose_update(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, 
     p.insert("taskId".into(), json!(target.id));
     p.insert("newTag".into(), json!(!tag_exists(data, &tag)));
     p.insert("before".into(), Value::Object(before));
+    p.insert("expectedUpdatedAt".into(), json!(target.updated_at));
     p.insert("task".into(), Value::Object(after));
     add_proposal(ctx, p)
 }
@@ -489,6 +490,7 @@ fn propose_delete(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, 
     let mut p = Map::new();
     p.insert("action".into(), json!("delete"));
     p.insert("taskId".into(), json!(target.id));
+    p.insert("expectedUpdatedAt".into(), json!(target.updated_at));
     p.insert("task".into(), Value::Object(task_as_map(data, target)));
     add_proposal(ctx, p)
 }
@@ -641,6 +643,9 @@ mod tests {
         assert_eq!(list[1]["action"], "delete");
         assert_eq!(list[2]["before"]["startTime"], "10:00");
         assert_eq!(list[2]["task"]["startTime"], "10:30");
+        let revision: String = conn.query_row("SELECT updated_at FROM tasks WHERE id='1'", [], |r| r.get(0)).unwrap();
+        assert_eq!(list[2]["expectedUpdatedAt"], revision);
+        assert!(list[1]["expectedUpdatedAt"].as_str().is_some_and(|s| !s.is_empty()));
         // DBは変わっていない
         let count: i64 = conn.query_row("SELECT COUNT(*) FROM tasks", [], |r| r.get(0)).unwrap();
         assert_eq!(count, 5);
