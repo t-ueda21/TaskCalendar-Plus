@@ -469,17 +469,16 @@ async fn outlook_auto_sync(State(state): State<AppState>) -> Response {
         .unwrap_or(90)
         .clamp(1, 365);
 
-    let events = match crate::outlook::fetch_events(calendar_name, days_ahead).await {
-        Ok(events) => events,
+    let snapshot = match crate::outlook::fetch_events(calendar_name, days_ahead).await {
+        Ok(snapshot) => snapshot,
         Err(message) => return json_err(StatusCode::SERVICE_UNAVAILABLE, message),
     };
 
-    let now = chrono::Local::now().naive_local();
-    let start_key = now.format("%Y-%m-%d").to_string();
-    let end_key = (now + chrono::Duration::days(days_ahead)).format("%Y-%m-%d").to_string();
+    let start_key = snapshot.range.start_key();
+    let end_key = snapshot.range.end_key();
 
     let conn = lock_conn(&state);
-    match repo::outlook_auto_sync(&conn, &events, &tag_id, &start_key, &end_key) {
+    match repo::outlook_auto_sync(&conn, &snapshot.events, &tag_id, &start_key, &end_key) {
         Ok(result) => json_ok(json!({
             "success": true,
             "count": result.count,

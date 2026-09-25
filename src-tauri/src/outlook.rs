@@ -33,10 +33,42 @@ pub struct OutlookEvent {
     pub meeting_url: Option<String>,
 }
 
+/// COMで取得した範囲をそのまま削除判定にも使う。取得中に日付が変わっても再計算しない。
+pub struct OutlookSnapshot {
+    pub events: Vec<OutlookEvent>,
+    pub range: OutlookSyncRange,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct OutlookSyncRange {
+    start_date: chrono::NaiveDate,
+    end_date: chrono::NaiveDate,
+}
+
+impl OutlookSyncRange {
+    fn new(now: chrono::NaiveDateTime, days_ahead: i64) -> Self {
+        let start_date = now.date();
+        Self { start_date, end_date: start_date + chrono::Duration::days(days_ahead.clamp(1, 365)) }
+    }
+
+    pub fn start_key(self) -> String { date_key(self.start_date) }
+    pub fn end_key(self) -> String { date_key(self.end_date) }
+
+    fn contains(self, start: chrono::NaiveDateTime) -> bool {
+        self.start_date <= start.date() && start.date() <= self.end_date
+    }
+
+    fn restrict_filter(self) -> String {
+        // SQLiteの終了日は含むため、COMの排他的な上限はその翌日0時にする。
+        let end_exclusive = self.end_date + chrono::Duration::days(1);
+        format!("[Start] >= '{}' AND [Start] < '{}'", self.start_date.format("%m/%d/%Y"), end_exclusive.format("%m/%d/%Y"))
+    }
+}
+
 struct OutlookRequest {
     calendar_name: String,
     days_ahead: i64,
-    reply: oneshot::Sender<Result<Vec<OutlookEvent>, String>>,
+    reply: oneshot::Sender<Result<OutlookSnapshot, String>>,
 }
 
 static WORKER: OnceLock<std_mpsc::Sender<OutlookRequest>> = OnceLock::new();
@@ -76,7 +108,7 @@ fn outlook_worker_loop(rx: std_mpsc::Receiver<OutlookRequest>) {
 /// Outlookカレンダーから予定一覧を取得する(F-OUTLOOK-001, 002, 005)。
 /// ブロッキングCOM呼び出しは専用ワーカースレッドへ委譲し、HTTPサーバー
 /// 側のtokioランタイムをブロックしない。
-pub async fn fetch_events(calendar_name: String, days_ahead: i64) -> Result<Vec<OutlookEvent>, String> {
+pub async fn fetch_events(calendar_name: String, days_ahead: i64) -> Result<OutlookSnapshot, String> {
     let tx = worker_sender();
     let (reply_tx, reply_rx) = oneshot::channel();
     tx.send(OutlookRequest { calendar_name, days_ahead, reply: reply_tx })
@@ -295,7 +327,9 @@ fn extract_teams_meeting_url(body: &str) -> Option<String> {
     Some(rest[..end].to_string())
 }
 
-fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<Vec<OutlookEvent>, String> {
+fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<OutlookSnapshot, String> {
+    let now = chrono::Local::now().naive_local();
+    let range = OutlookSyncRange::new(now, days_ahead);
     let outlook = connect_outlook()?;
     let namespace = outlook
         .invoke_method("GetNamespace", &[&w::Variant::from_str("MAPI")])
@@ -312,14 +346,9 @@ fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<Vec<Outloo
     let _ = items.invoke_method("Sort", &[&w::Variant::from_str("[Start]")]);
     let _ = items.invoke_put("IncludeRecurrences", &w::Variant::Bool(true));
 
-    let now = chrono::Local::now().naive_local();
-    let end_cutoff = (now + chrono::Duration::days(days_ahead)).date();
-
     // Restrict()でCOM側にて事前絞り込みする(全件イテレートは著しく遅いため)。
     // 失敗/0件時は全件イテレート+Rust側フィルタへフォールバックする。
-    let end_exclusive = now + chrono::Duration::days(days_ahead);
-    let us_date = |d: chrono::NaiveDateTime| d.format("%m/%d/%Y").to_string();
-    let filter = format!("[Start] >= '{}' AND [Start] < '{}'", us_date(now), us_date(end_exclusive));
+    let filter = range.restrict_filter();
 
     let filtered_items = items
         .invoke_method("Restrict", &[&w::Variant::from_str(&filter)])
@@ -354,20 +383,13 @@ fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<Vec<Outloo
             .unwrap_or(start_dt);
 
         let start_date = start_dt.date();
-        if start_date > end_cutoff {
+        if start_date > range.end_date {
             break; // [Start]昇順ソート済みのため、これ以降も全て範囲外
         }
         let is_all_day = item.invoke_get("AllDayEvent", &[]).map(|v| variant_to_bool(&v)).unwrap_or(false);
-        // 「今日以降」ではなく「今の時間以降」を同期対象にする
-        // (進行中の会議を工数集計から除外するため)。終日予定はStartが
-        // 00:00固定のため、この時刻比較だと今日の終日予定が丸ごと漏れて
-        // しまう。終日予定だけは日付単位で判定する。
-        let is_before_cutoff = if is_all_day {
-            start_date < now.date()
-        } else {
-            start_dt < now
-        };
-        if is_before_cutoff {
+        // 時間指定・終日とも今日0時から。過去の時刻を除外すると、削除照合で
+        // 「Outlookから消えた予定」と誤判定してしまう。
+        if !range.contains(start_dt) {
             continue;
         }
 
@@ -417,7 +439,60 @@ fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<Vec<Outloo
             meeting_url,
         });
     }
-    Ok(events)
+    Ok(OutlookSnapshot { events, range })
+}
+
+#[cfg(test)]
+mod sync_range_tests {
+    use super::*;
+
+    fn at(value: &str) -> chrono::NaiveDateTime {
+        chrono::NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S").unwrap()
+    }
+
+    #[test]
+    fn fetching_again_in_the_afternoon_preserves_morning_and_ongoing_events() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn, "2026-09").unwrap();
+        let events: Vec<_> = [("morning", "09:00", "10:00"), ("ongoing", "12:00", "14:00"), ("future", "15:00", "16:00")]
+            .into_iter().map(|(key, start, end)| OutlookEvent {
+                title: key.into(), date: "2026-09-25".into(), start_time: Some(start.into()), end_time: Some(end.into()),
+                location: String::new(), is_all_day: false, outlook_series_id: key.into(), outlook_occurrence_key: key.into(),
+                is_recurring: false, recurrence: json!({"type":"none"}), meeting_url: None,
+            }).collect();
+        crate::repositories::outlook_auto_sync(&conn, &events, "", "2026-09-25", "2026-10-25").unwrap();
+        let now = at("2026-09-25 13:00:00");
+        let range = OutlookSyncRange::new(now, 30);
+        let fetched: Vec<_> = events.into_iter().filter(|event| {
+            let start = at(&format!("{} {}:00", event.date, event.start_time.as_deref().unwrap()));
+            range.contains(start)
+        }).collect();
+        let result = crate::repositories::outlook_auto_sync(&conn, &fetched, "", &range.start_key(), &range.end_key()).unwrap();
+        assert_eq!(result.deleted, 0, "時間が進んでも、Outlookに残る予定を削除しない");
+        assert_eq!(crate::repositories::tasks_list(&conn).unwrap().len(), 3);
+    }
+
+    #[test]
+    fn range_includes_all_of_today_and_the_last_day() {
+        let range = OutlookSyncRange::new(at("2026-09-25 13:00:00"), 1);
+        assert!(!range.contains(at("2026-09-24 23:59:59")));
+        assert!(range.contains(at("2026-09-25 00:00:00")), "今日の終日予定");
+        assert!(range.contains(at("2026-09-25 09:00:00")), "終了済みの予定");
+        assert!(range.contains(at("2026-09-25 13:00:00")));
+        assert!(range.contains(at("2026-09-26 23:59:59")), "終了日の最後まで");
+        assert!(!range.contains(at("2026-09-27 00:00:00")));
+        assert_eq!(range.restrict_filter(), "[Start] >= '09/25/2026' AND [Start] < '09/27/2026'");
+        assert_eq!((range.start_key(), range.end_key()), ("2026-09-25".into(), "2026-09-26".into()));
+    }
+
+    #[test]
+    fn snapshot_keeps_its_fetch_dates_across_midnight_and_year_end() {
+        let snapshot = OutlookSnapshot { events: vec![], range: OutlookSyncRange::new(at("2026-12-31 23:59:59"), 1) };
+        // 取得完了が翌日でも、呼び出し側はsnapshotの範囲を使う。
+        assert_eq!(snapshot.range.start_key(), "2026-12-31");
+        assert_eq!(snapshot.range.end_key(), "2027-01-01");
+        assert_eq!(snapshot.range.restrict_filter(), "[Start] >= '12/31/2026' AND [Start] < '01/02/2027'");
+    }
 }
 
 #[cfg(test)]
@@ -431,11 +506,11 @@ mod live_tests {
     #[ignore]
     async fn live_connect_and_fetch_events_from_real_outlook() {
         // fetch_events経由(実運用と同じCoInitializeEx済みの専用ワーカースレッド)で呼ぶ。
-        let events = fetch_events("Calendar".to_string(), 30)
+        let snapshot = fetch_events("Calendar".to_string(), 30)
             .await
             .expect("Outlookからの取得に失敗しました");
-        eprintln!("fetched {} events", events.len());
-        for e in events.iter().take(10) {
+        eprintln!("fetched {} events", snapshot.events.len());
+        for e in snapshot.events.iter().take(10) {
             eprintln!(
                 "title={:?} date={} start={:?} end={:?} all_day={} recurring={} key={:?} recurrence={} meeting_url={:?}",
                 e.title, e.date, e.start_time, e.end_time, e.is_all_day, e.is_recurring,
