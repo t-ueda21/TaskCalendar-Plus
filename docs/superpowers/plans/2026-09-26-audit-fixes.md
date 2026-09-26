@@ -1,5 +1,8 @@
 # v0.1.4 audit fixes
 
+> Delivery status: v0.1.4 was tagged but not published. These fixes shipped in
+> [v0.1.5](../../releases/v0.1.5.md); see the [release verification](../../releases/v0.1.5-verification.md).
+
 The user approved fixing all 16 findings from the 2026-09-26 v0.1.3 audit.
 Work on `fix/audit-20260926`; preserve real data and do not run real Outlook or
 change the user's startup registration during tests. Reproduce before fixing.
@@ -21,7 +24,7 @@ change the user's startup registration during tests. Reproduce before fixing.
   use a native atomic revision guard; reserve send state before awaiting refresh.
 - [x] Integration/review: validate all new regressions, existing Rust/JS/native
   UI checks, release package signature and old-version update discovery.
-- [ ] Release v0.1.4 with user-facing notes; leave installation to the user.
+- [x] Publish these planned v0.1.4 fixes in v0.1.5 with user-facing notes; leave installation to the user.
 
 ## Shared interfaces
 

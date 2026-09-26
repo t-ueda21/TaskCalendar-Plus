@@ -14,8 +14,8 @@
     },
     "summary": {}
   },
-  "appVersion": "0.1.0",
-  "exportedAt": "2026-09-24T14:44:41.182990200+00:00",
+  "appVersion": "0.1.5",
+  "exportedAt": "2026-09-26T20:18:12.978Z",
   "format": "taskcalendar-plus-backup",
   "settings": {
     "aiClaudeEffort": "low",
@@ -76,35 +76,37 @@
       "Wed",
       "Thu",
       "Fri"
-    ]
+    ],
+    "checkUpdatesOnStartup": false
   },
   "tags": [
     {
-      "budgetMaxMinutes": 3600,
       "color": "#0072bc",
       "id": "f96c0912-b8b4-42af-8729-48b566a9a507",
-      "name": "顧客ポータル改善"
+      "name": "顧客ポータル改善",
+      "budgetMinMinutes": 2400,
+      "budgetMaxMinutes": 3600
     },
     {
-      "budgetMaxMinutes": 1440,
       "color": "#7c3aed",
       "id": "e2a0791b-e117-4004-8194-028f9eba8868",
-      "name": "社内業務の改善"
+      "name": "社内業務の改善",
+      "budgetMinMinutes": 1200,
+      "budgetMaxMinutes": 1800
     },
     {
-      "budgetMaxMinutes": 1440,
       "color": "#d97706",
       "id": "c976e1f4-5f40-4afc-8488-2404dc9357dc",
-      "name": "打ち合わせ"
+      "name": "打ち合わせ",
+      "budgetMaxMinutes": 1440
     },
     {
-      "budgetMaxMinutes": 1920,
       "color": "#0d9488",
       "id": "ef54e7f9-c2b6-4e0d-9510-8c75c2a9cf8e",
-      "name": "運用・サポート"
+      "name": "運用・サポート",
+      "budgetMaxMinutes": 960
     },
     {
-      "budgetMaxMinutes": 960,
       "color": "#64748b",
       "id": "09aa00c6-022a-434d-97a9-91f5d4e881c7",
       "name": "調査・学習"
