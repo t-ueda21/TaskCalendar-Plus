@@ -6,9 +6,9 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 
 [Windows版をダウンロード](https://github.com/t-ueda21/TaskCalendar-Plus/releases/latest) ・ [変更履歴](CHANGELOG.md) ・ [サンプルデータ](docs/examples/sample-backup.json)
 
-![現在の週表示。左側で5種類の工数設定を確認し、右上のサイド・取得・更新・設定から操作できる](docs/images/calendar-week.png)
+<a href="docs/images/calendar-week.png"><img src="docs/images/previews/calendar-week.webp" alt="現在の週表示。左側で5種類の工数設定を確認し、右上のサイド・取得・更新・設定から操作できる" width="800" height="556"></a>
 
-> 画像は v0.1.5 の実際の画面です。架空の業務データを使い、2026年9月16日を表示しています。時計と天気も撮影用に固定しています。
+> 画像は v0.1.5 の実際の画面です。架空の業務データを使い、2026年9月16日を表示しています。時計と天気も撮影用に固定しています。画像をクリックすると元の大きさで確認できます。
 
 ## まずは3ステップ
 
@@ -34,7 +34,7 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 
 カレンダーの「表示」で **日／週** を切り替えます。一日の時間配分を見るなら日表示、一週間の予定を見渡すなら週表示が便利です。
 
-![2026年9月16日の7件の予定を表示した日表示](docs/images/calendar-day.png)
+<a href="docs/images/calendar-day.png"><img src="docs/images/previews/calendar-day.webp" alt="2026年9月16日の7件の予定を表示した日表示" width="800" height="556"></a>
 
 | やりたいこと | 操作 |
 |---|---|
@@ -48,7 +48,7 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 
 予定には、日付・タイトル・開始／終了時刻・タグ・メモを登録できます。終日予定や、毎日・毎週・毎月の繰り返しにも対応しています。
 
-![最新版のタスク編集画面。日時、タグ、繰り返し、メモを設定](docs/images/task-edit.png)
+<a href="docs/images/task-edit.png"><img src="docs/images/previews/task-edit.webp" alt="最新版のタスク編集画面。日時、タグ、繰り返し、メモを設定" width="520" height="469"></a>
 
 ## 工数バーの見方
 
@@ -56,7 +56,7 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 
 タグには「下限と上限」「上限のみ」「設定なし」を指定できます。下の画像では、範囲内・下限未達・上限のみ・超過・設定なしを、一つの集計欄で見比べられます。
 
-![上下限の範囲内、下限未達、上限のみ、上限超過、設定なしを同時に表示した月次集計](docs/images/monthly-budgets.png)
+<a href="docs/images/monthly-budgets.png"><img src="docs/images/previews/monthly-budgets.webp" alt="上下限の範囲内、下限未達、上限のみ、上限超過、設定なしを同時に表示した月次集計" width="420" height="473"></a>
 
 | 状態 | タグ | 設定 | 登録時間 | 見方 |
 |---|---|---|---|---|
@@ -72,7 +72,7 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 
 「設定」→「タグ管理」で、対象の月とタグを確認します。**先に上限を入力すると、下限も入力できるようになります。** 数値の単位は時間で、下限は上限より小さく設定します。上限を空欄にすると上下限なしになります。
 
-![5タグの工数設定。上下限あり2件、上限のみ2件、設定なし1件](docs/images/tag-budgets.png)
+<a href="docs/images/tag-budgets.png"><img src="docs/images/previews/tag-budgets.webp" alt="5タグの工数設定。上下限あり2件、上限のみ2件、設定なし1件" width="560" height="636"></a>
 
 タグの色や表示順も変更できます。次の月も同じタグを使う場合は「前月をコピー」が便利です。
 
@@ -80,7 +80,7 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 
 「タスク一覧」では、開始・終了時刻、タイトル、タグ、工数を確認できます。見出しをクリックすると並べ替え、上部の「タグ」で絞り込みができます。
 
-![7件の予定と合計7時間30分、タグ別の集計、気づきの入力欄を表示したタスク一覧](docs/images/tasks.png)
+<a href="docs/images/tasks.png"><img src="docs/images/previews/tasks.webp" alt="7件の予定と合計7時間30分、タグ別の集計、気づきの入力欄を表示したタスク一覧" width="800" height="556"></a>
 
 この日の例は、**9:00〜17:30、昼休み1時間を除いて7時間30分**です。画面下部の日次集計にあるコピー用ボタンから、作業内容や時間を日報へ転記できます。
 
@@ -90,7 +90,7 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 
 設定画面の右上でダークモードと配色を選べます。色見本の「＋」から好きな色も指定できます。配色はプレビュー後に「保存」で確定し、「キャンセル」で元に戻ります。
 
-![最新版の設定画面。ダークモードと紫の配色をプレビュー](docs/images/appearance-dark.png)
+<a href="docs/images/appearance-dark.png"><img src="docs/images/previews/appearance-dark.webp" alt="最新版の設定画面。ダークモードと紫の配色をプレビュー" width="560" height="636"></a>
 
 | 設定 | 使い方 |
 |---|---|
@@ -113,7 +113,7 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 2. 予定表名、取得する日数、取り込む予定に付けるタグを指定します。
 3. 「今すぐ取得」を押します。定期的に取り込む場合は「自動同期」をONにして、間隔を選びます。
 
-![取得条件、自動同期のスイッチ、今すぐ取得ボタンをまとめたOutlook設定](docs/images/outlook-sync.png)
+<a href="docs/images/outlook-sync.png"><img src="docs/images/previews/outlook-sync.webp" alt="取得条件、自動同期のスイッチ、今すぐ取得ボタンをまとめたOutlook設定" width="560" height="636"></a>
 
 Outlookで削除・キャンセルされた予定は、次の正常な同期で、取得期間内の取り込み済み予定にも反映されます。手動で作成した予定は同期による削除の対象になりません。取得が途中で失敗した場合は、既存の予定を変更せずに同期を中止します。
 
