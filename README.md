@@ -8,7 +8,7 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 
 <a href="docs/images/calendar-week.png"><img src="docs/images/previews/calendar-week.webp" alt="現在の週表示。左側で5種類の工数設定を確認し、右上のサイド・取得・更新・設定から操作できる" width="800" height="556"></a>
 
-> 画像は v0.1.5 の実際の画面です。架空の業務データを使い、2026年9月16日を表示しています。時計と天気も撮影用に固定しています。画像をクリックすると元の大きさで確認できます。
+> 画像は v0.1.6 の実際の画面です。架空の業務データを使い、2026年9月16日を表示しています。時計と天気も撮影用に固定しています。画像をクリックすると元の大きさで確認できます。
 
 ## まずは3ステップ
 
@@ -161,4 +161,4 @@ Windows 10／11（64ビット）とMicrosoft Edge WebView2ランタイムが必�
 
 Windowsのコード署名は付けていないため、ダウンロードや初回起動時にWindowsの警告が表示される場合があります。会社のPCでは、管理者の設定により実行できない場合があります。
 
-[変更履歴](CHANGELOG.md) ・ [v0.1.5の画面変更](docs/releases/v0.1.5-ui.md) ・ [MIT License](LICENSE)
+[変更履歴](CHANGELOG.md) ・ [v0.1.6の画面変更](docs/releases/v0.1.6-ui.md) ・ [MIT License](LICENSE)

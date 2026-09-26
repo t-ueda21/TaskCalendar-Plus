@@ -1006,38 +1006,39 @@ aside .panelBody::-webkit-scrollbar {
   min-height: 0;
 }
 
-/* カレンダー右端のスクロールバーをオーバーレイ風の細い半透明表示にする。
+/* カレンダーと設定のスクロールバーを、細い半透明表示にそろえる。
    トラックは透明にし、コンテンツ幅を圧迫しない見た目にする。
    ::-webkit-scrollbar系の疑似要素はvar()によるカスタムプロパティ参照を
    解決できない(Chromiumの既知の制限。background-colorが空になり
    スクロールバーが透明化=非表示になってしまう)ため、ここだけ
    ライト/ダーク双方の色をリテラル値で指定する。 */
-.gridWrap::-webkit-scrollbar {
+:is(.gridWrap, .settingsDialogBody)::-webkit-scrollbar {
   width: 8px;
 }
 
-.gridWrap::-webkit-scrollbar-track {
+:is(.gridWrap, .settingsDialogBody)::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.gridWrap::-webkit-scrollbar-thumb {
+:is(.gridWrap, .settingsDialogBody)::-webkit-scrollbar-thumb {
   background: rgba(28, 35, 51, 0.22);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
-.gridWrap::-webkit-scrollbar-thumb:hover {
+:is(.gridWrap, .settingsDialogBody)::-webkit-scrollbar-thumb:hover {
   background: rgba(28, 35, 51, 0.38);
   background-clip: padding-box;
 }
 
-:root[data-theme="dark"] .gridWrap::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.22);
+:root[data-theme="dark"] :is(.gridWrap, .settingsDialogBody)::-webkit-scrollbar-thumb {
+  /* background の一括指定で background-clip をリセットしない。 */
+  background-color: rgba(255, 255, 255, 0.22);
 }
 
-:root[data-theme="dark"] .gridWrap::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.38);
+:root[data-theme="dark"] :is(.gridWrap, .settingsDialogBody)::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.38);
 }
 
 /* All-day lane (day view) */
@@ -3450,7 +3451,7 @@ label.uiToggle { position: relative; width: fit-content; }
 .btn.action:hover { background: var(--accent-soft); border-color: var(--accent-strong); }
 .toolbarUpdateButton.hasUpdate { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .toolbar .right { flex: 0 0 auto; }
-.updateNoticeIcon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 16px; border-radius: 14px; background: var(--accent-soft); color: var(--accent-strong); font-size: 28px; font-weight: 700; }
+.updateNoticeIcon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 16px; border-radius: 14px; background: var(--accent-soft); color: var(--accent-strong); }
 .updateIntro { margin: 0 0 20px; color: var(--muted); }
 .updateVersionComparison { display: flex; gap: 18px; align-items: center; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); }
 .updateVersionComparison strong { margin-left: 8px; }
