@@ -3450,6 +3450,11 @@ label.uiToggle { position: relative; width: fit-content; }
 .btn.action { color: var(--accent-strong); background: var(--accent-soft); border-color: rgba(var(--accent-rgb), .35); white-space: nowrap; font-weight: 700; }
 .btn.action:hover { background: var(--accent-soft); border-color: var(--accent-strong); }
 .toolbarUpdateButton.hasUpdate { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.toolbarUpdateButton.hasUpdate:hover:not(:disabled) {
+  background: var(--accent-hover);
+  color: var(--on-accent-hover);
+  border-color: var(--accent-hover);
+}
 .toolbar .right { flex: 0 0 auto; }
 .updateNoticeIcon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 16px; border-radius: 14px; background: var(--accent-soft); color: var(--accent-strong); }
 .updateIntro { margin: 0 0 20px; color: var(--muted); }
