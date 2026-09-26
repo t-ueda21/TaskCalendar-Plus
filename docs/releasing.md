@@ -72,4 +72,4 @@ The toolbar always shows **Side / Fetch / Update / Settings** with icons and lab
 
 Installation is an explicit user action. The app verifies the downloaded signature, writes a restorable JSON backup under the existing data directory's `backups` folder, then launches the installer. Failed signature verification or backup creation aborts installation. Database migration and compatibility remain the application's responsibility.
 
-Current user instructions are in the [README](../README.md). The [v0.1.6 verification record](releases/v0.1.6-verification.md) shows the actual local-build path, checks performed, and remaining limits for that release.
+Current user instructions are in the [README](../README.md). The [v0.1.7 verification record](releases/v0.1.7-verification.md) shows the actual local-build path, checks performed, and remaining limits for that release.
