@@ -94,8 +94,8 @@ function _todayKey() {
   return formatDateKey(new Date());
 }
 
-function _isPastOrToday(dateKey) {
-  return dateKey <= _todayKey();
+function _isPast(dateKey) {
+  return dateKey < _todayKey();
 }
 
 async function _ensureLocationLoaded(locationKey) {
@@ -160,7 +160,7 @@ function _buildRecord(dateKey, weatherCode, tempMaxC, tempMinC) {
 
 function _recordNeedsRefresh(record, dateKey) {
   if (!record || typeof record !== "object") return true;
-  if (_isPastOrToday(dateKey) && dateKey < _todayKey()) return false;
+  if (_isPast(dateKey)) return false;
 
   const updatedAt = Date.parse(String(record.updatedAt ?? ""));
   if (!Number.isFinite(updatedAt)) return true;
@@ -241,8 +241,8 @@ async function _fillMissingRange(startDateKey, endDateKey, { force = false } = {
     return Object.fromEntries(keys.map((k) => [k, cache[k] ?? null]));
   }
 
-  const pastBounds = _segmentBounds(needs, (dateKey) => _isPastOrToday(dateKey));
-  const futureBounds = _segmentBounds(needs, (dateKey) => !_isPastOrToday(dateKey));
+  const pastBounds = _segmentBounds(needs, (dateKey) => _isPast(dateKey));
+  const futureBounds = _segmentBounds(needs, (dateKey) => !_isPast(dateKey));
 
   try {
     if (pastBounds) {

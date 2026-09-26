@@ -222,12 +222,14 @@ export function init(rootEl) {
   Store.subscribe("tags",  () => _render());
   Store.subscribe("ai-summaries", () => _render());
   Store.subscribe("ai-notes", () => {
+    if (_root.hidden) return;
     const dateKey = formatDateKey(_selectedDate);
     _renderDaySummaryBubble(dateKey, Store.getTasksByDate(dateKey));
     _renderInsightMeta(dateKey);
   });
   Store.subscribe("settings", () => {
     _settings = Store.getSettings();
+    if (_root.hidden) return;
     const dateKey = formatDateKey(_selectedDate);
     void _renderTaskDayWeather(dateKey);
     _render();
@@ -324,6 +326,7 @@ function _resolveInitialDate() {
 // SPAシェルでタブを再訪した際、他ビューでの日付選択をsessionStorage/URL
 // クエリ経由で拾い直す(initは初回マウント時にしか呼ばれないため)。
 export function activate() {
+  _settings = Store.getSettings();
   _selectDate(_resolveInitialDate());
 }
 
@@ -452,6 +455,7 @@ function _renderInsightMeta(dateKey) {
 }
 
 async function _renderTaskDayWeather(dateKey) {
+  if (_root.hidden) return;
   if (!$dayWeather) return;
   const token = ++_dayWeatherRenderToken;
   $dayWeather.classList.add("loading");
@@ -459,12 +463,12 @@ async function _renderTaskDayWeather(dateKey) {
 
   try {
     const weather = await getWeatherByDate(dateKey);
-    if (token !== _dayWeatherRenderToken) return;
+    if (token !== _dayWeatherRenderToken || _root.hidden) return;
     $dayWeather.classList.remove("loading");
     $dayWeather.textContent = formatWeatherForDisplay(weather);
   } catch (e) {
     console.warn("[tasks] weather rendering failed:", e);
-    if (token !== _dayWeatherRenderToken) return;
+    if (token !== _dayWeatherRenderToken || _root.hidden) return;
     $dayWeather.classList.remove("loading");
     $dayWeather.textContent = "天気取得に失敗しました";
   }
@@ -562,6 +566,7 @@ function _wireToolbar() {
   });
 
   document.addEventListener("keydown", (e) => {
+    if (_root.hidden || document.querySelector('dialog[open]')) return;
     const active = document.activeElement?.tagName;
     if (active === "INPUT" || active === "TEXTAREA" || active === "SELECT") return;
     if ($dialog?.open) return;
@@ -628,7 +633,7 @@ function _renderEmptyState(dateKey, visibleTasks) {
 
 // ── 描画 ──────────────────────────────────────────────
 function _render() {
-  if (!$tbody) return;
+  if (!$tbody || _root.hidden) return;
   hideTaskTagMenu();
   const dateKey  = formatDateKey(_selectedDate);
   const yearMonth = formatYearMonth(_selectedDate);

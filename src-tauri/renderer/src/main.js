@@ -8,6 +8,7 @@ import * as Store from "./store.js";
 import { startHeaderClock, timeToMinutes } from "./ui-utils.js";
 import { applyUiColor } from "./ui-color-picker.js";
 import { initAppUpdater } from "./app-updater.js";
+import { mountViewTemplates } from "./view-shell.js";
 
 // SPAシェル(app.html)で切替可能なビュー一覧。
 const VIEW_MODULE_LOADERS = {
@@ -44,12 +45,11 @@ function _viewSection(name) {
 // 一度マウントしたビューは非表示にするだけで、二度とinit()を呼ばない
 // (Store.subscribeの永続購読・calendar.jsの現在時刻線setIntervalが
 // 再マウントのたびに積み重なるのを防ぐため)。既にマウント済みのビューを
-// 再訪した場合はactivate()を呼び、sessionStorage/URLクエリ経由で他ビュー
+// 表示した後にactivate()を呼び、sessionStorage/URLクエリ経由で他ビュー
 // での日付選択を拾い直す(initはマウント時にしか実行されないため)。
 async function _mountView(name) {
   const cached = _mountedViews.get(name);
   if (cached) {
-    cached.activate?.();
     return _viewSection(name);
   }
   const rootEl = _viewSection(name);
@@ -94,10 +94,16 @@ async function switchView(name) {
     section.hidden = section.getAttribute("data-view") !== name;
   });
   _currentView = name;
+  _mountedViews.get(name)?.activate?.();
   _updateNavCurrent(name);
 }
 
 function _wireShellNav() {
+  document.querySelectorAll('[data-outlook-open]').forEach(button => button.addEventListener('click', () => {
+    // 現在のタブの日付・保存後処理を引き継いで取得設定を開く。
+    button.closest('.view')?.querySelector('[data-settings-btn]')?.click();
+    document.querySelector('[data-settings-tab="outlook"]')?.click();
+  }));
   document.querySelectorAll("a[data-nav-target]").forEach((a) => {
     a.addEventListener("click", (e) => {
       e.preventDefault();
@@ -137,6 +143,7 @@ function _renderQuickLinks() {
 
 async function bootstrap() {
   try {
+    mountViewTemplates();
     await window.tcplusUiPreferences?.ready;
     await Store.init();
     applyUiColor(Store.getSettings().uiAccentColor);

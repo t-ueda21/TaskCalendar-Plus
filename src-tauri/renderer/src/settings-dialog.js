@@ -501,7 +501,7 @@ function wireOutlookSync(settingsDialog, Store, { getTagMgrMonth } = {}) {
   syncBtn.addEventListener("click", async () => {
     syncBtn.disabled = true;
     statusEl.textContent = "同期中...";
-    statusEl.className = "";
+    statusEl.className = "settingsOutlookStatus";
     const controller = new AbortController();
     const timeoutMs = 45000;
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -548,11 +548,11 @@ function wireOutlookSync(settingsDialog, Store, { getTagMgrMonth } = {}) {
         if (deleted > 0) parts.push(`${deleted}件を削除`);
         statusEl.textContent = parts.join("、");
       }
-      statusEl.className = "success";
+      statusEl.className = "settingsOutlookStatus success";
 
       setTimeout(() => {
         statusEl.textContent = "";
-        statusEl.className = "";
+        statusEl.className = "settingsOutlookStatus";
       }, 4000);
 
     } catch (e) {
@@ -561,10 +561,10 @@ function wireOutlookSync(settingsDialog, Store, { getTagMgrMonth } = {}) {
         ? `タイムアウト: ${Math.floor(timeoutMs / 1000)}秒以内に完了しませんでした。Outlookを開いて再試行してください。`
         : String(e?.message || e || "不明なエラー");
       statusEl.textContent = `エラー: ${message}`;
-      statusEl.className = "error";
+      statusEl.className = "settingsOutlookStatus error";
       setTimeout(() => {
         statusEl.textContent = "";
-        statusEl.className = "";
+        statusEl.className = "settingsOutlookStatus";
       }, 5000);
     } finally {
       clearTimeout(timeoutId);
@@ -635,6 +635,11 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   // logPrefix はconsole.warn用の目印に過ぎず、複数画面分を厳密に出し分ける実益が
   // 無いため、コア配線(1回だけ実行)の時点の固定文字列でよい。
   _wireThemeToggle(settingsDialog);
+  const syncSettingToggles = () => {
+    settingsDialog.querySelector('[name="outlookAutoSyncIntervalMin"]').disabled =
+      !settingsDialog.querySelector('[name="outlookAutoSync"]').checked;
+  };
+  settingsDialog.querySelector('[name="outlookAutoSync"]').addEventListener('change', syncSettingToggles);
   bindCompanyHolidayImport(settingsDialog);
   bindSettingsTransfer(settingsDialog, Store);
   bindBackupRestore(settingsDialog, Store);
@@ -787,6 +792,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     if (autoSyncEl) autoSyncEl.checked = Boolean(s.outlookAutoSync);
     const intervalEl = settingsDialog.querySelector("[name='outlookAutoSyncIntervalMin']");
     if (intervalEl) intervalEl.value = String(s.outlookAutoSyncIntervalMin || 10);
+    syncSettingToggles();
     const calEl = settingsDialog.querySelector("[name='outlookCalendarName']");
     if (calEl) calEl.value = s.outlookSyncCalendarName || calEl.value;
     const daysEl2 = settingsDialog.querySelector("[name='outlookDays']");
@@ -806,12 +812,6 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
           launchAtLoginEl.checked = Boolean(enabled);
         }).catch(() => {});
       }
-    }
-    const versionChipEl = settingsDialog.querySelector("[data-app-version-chip]");
-    if (versionChipEl) {
-      const version = Store.getRuntimeInfo().appVersion;
-      versionChipEl.textContent = version ? `v${version}` : "";
-      versionChipEl.hidden = !version;
     }
     tabControl.activate(initialTab || "general");
     _tagMgrMonth = formatYearMonth(getTagMgrSeedDate ? getTagMgrSeedDate() : new Date());
@@ -965,9 +965,10 @@ function renderBreaksEditor(container, breaks, timeValues) {
           <label>終了</label>
           <select class="settingsTimeSelect" data-break-end></select>
         </div>
-        <label class="settingsCheck settingsBreakCountAsWork">
-          <input type="checkbox" data-break-count-as-work />
-          <span>工数に含める</span>
+        <label class="uiToggle settingsBreakCountAsWork">
+          <input class="uiToggleInput" type="checkbox" role="switch" data-break-count-as-work />
+          <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
+          <span class="themeToggleLabel">工数に含める</span>
         </label>
         <button class="btn settingsBreakRemoveBtn" type="button" data-remove-break aria-label="この休憩時間を削除">✕</button>
       </div>

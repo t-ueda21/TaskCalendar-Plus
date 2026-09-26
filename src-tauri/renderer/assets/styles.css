@@ -66,6 +66,7 @@
   --shadow-sm: 0 1px 2px rgba(28, 35, 51, 0.05), 0 1px 1px rgba(28, 35, 51, 0.04);
   --shadow-md: 0 6px 20px rgba(28, 35, 51, 0.08);
   --shadow-lg: 0 16px 40px rgba(28, 35, 51, 0.14);
+  --control-transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease, box-shadow 0.12s ease, transform 0.06s ease;
 
   /* 半透明サーフェス(ヘッダー/ツールバー等のbackdrop-blur背景、
      チップ/コントロール等の--panel2系背景)。ダークモードで差し替えられるよう
@@ -230,7 +231,7 @@ a { color: inherit; text-decoration: none; }
   height: 100%;
   max-width: none;
   margin: 0;
-  padding: 16px 8px 0;
+  padding: 6px 8px 0;
 }
 
 /* ── SPAシェル(app.html)のタブ切替 ──────────────
@@ -415,34 +416,13 @@ a { color: inherit; text-decoration: none; }
   gap: 8px;
   padding: 8px 11px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   background: var(--surface-3);
   color: var(--muted);
   font-size: var(--font-body);
 }
 
-/* タスク作成/編集ダイアログのチェックボックス(終日・編集範囲)。
-   .controlの枠付きピル型スタイルは日付入力欄と紛らわしいため使わず、
-   .settingsCheckと同じ枠なしのチェックボックス表現に揃える。 */
-.formCheck {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  color: var(--text);
-  font-size: var(--font-body);
-}
-
-.formCheck input[type="checkbox"] {
-  transform: translateY(1px);
-  accent-color: var(--accent);
-}
-
-.control select,
-.control input[type="date"],
-.control input[type="time"],
-.control input[type="text"],
-.control textarea {
+.control select {
   color: var(--text);
   background: var(--panel);
   border: 1px solid var(--border);
@@ -451,13 +431,8 @@ a { color: inherit; text-decoration: none; }
   outline: none;
 }
 
-.control input[type="checkbox"] {
-  transform: translateY(1px);
-  accent-color: var(--accent);
-}
-
 .btn {
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   padding: 8px 12px;
   background: var(--panel);
@@ -469,7 +444,8 @@ a { color: inherit; text-decoration: none; }
   transition: background 0.12s, border-color 0.12s, box-shadow 0.12s, transform 0.06s;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
+  background: var(--panel2);
   border-color: var(--border-strong);
   box-shadow: var(--shadow-md);
 }
@@ -2564,32 +2540,40 @@ th[data-sort]:hover { background: var(--accent-soft); }
   gap: 6px 12px;
 }
 
-.aiEnterToggle {
+:is(button, label).uiToggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
-  min-height: 28px;
-  padding: 3px 6px;
+  min-height: 30px;
+  padding: 4px 6px;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--muted);
   font-size: var(--font-caption);
+  font-weight: 600;
+  line-height: 1.5;
   cursor: pointer;
+  transition: var(--control-transition);
 }
 
-.aiEnterToggle:hover {
+label.uiToggle { position: relative; width: fit-content; }
+.uiToggleInput { position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0; padding: 0; border: 0; }
+.uiToggle:has(.uiToggleInput:focus-visible) { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+
+.aiEnterToggle { margin-left: auto; }
+
+.uiToggle:hover:not(:disabled):not(:has(input:disabled)) {
   background: var(--hover-tint);
   color: var(--text);
 }
 
-.aiEnterToggle:focus-visible {
-  outline: 2px solid var(--accent-strong);
-  outline-offset: 2px;
+.uiToggle:active:not(:disabled):not(:has(input:disabled)) {
+  background: var(--accent-soft);
 }
 
-.aiEnterToggle:disabled {
+.uiToggle:disabled,
+.uiToggle:has(input:disabled) {
   opacity: 0.6;
   cursor: wait;
 }
@@ -2597,27 +2581,20 @@ th[data-sort]:hover { background: var(--accent-soft); }
 /* ダーク/ライト切替トグル(設定ダイアログ右上に配置) */
 .themeToggle {
   position: absolute;
-  top: 14px;
-  right: 18px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
+  top: 12px;
+  right: 12px;
 }
 
 .themeToggleLabel {
-  font-size: var(--font-caption);
-  font-weight: 600;
-  color: var(--muted);
+  font: inherit;
+  color: inherit;
 }
 
 .themeToggleTrack {
   position: relative;
   width: 38px;
   height: 21px;
+  flex: 0 0 38px;
   border-radius: var(--radius-pill);
   background: var(--surface-3);
   border: 1px solid var(--border);
@@ -2636,14 +2613,16 @@ th[data-sort]:hover { background: var(--accent-soft); }
   transition: transform 0.15s;
 }
 
-.themeToggle[aria-pressed="true"] .themeToggleTrack,
-.aiEnterToggle[aria-checked="true"] .themeToggleTrack {
+.uiToggle[aria-pressed="true"] .themeToggleTrack,
+.uiToggle:has(input:checked) .themeToggleTrack,
+.uiToggle[aria-checked="true"] .themeToggleTrack {
   background: var(--accent);
   border-color: var(--accent);
 }
 
-.themeToggle[aria-pressed="true"] .themeToggleThumb,
-.aiEnterToggle[aria-checked="true"] .themeToggleThumb {
+.uiToggle[aria-pressed="true"] .themeToggleThumb,
+.uiToggle:has(input:checked) .themeToggleThumb,
+.uiToggle[aria-checked="true"] .themeToggleThumb {
   transform: translateX(17px);
 }
 
@@ -3062,20 +3041,6 @@ th[data-sort]:hover { background: var(--accent-soft); }
   font-size: var(--font-caption);
 }
 
-.settingsCheck {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  width: fit-content;
-  color: var(--text);
-  font-size: var(--font-body);
-}
-
-.settingsCheck input[type="checkbox"] {
-  transform: translateY(1px);
-  accent-color: var(--accent);
-}
-
 .settingsTagSection {
   padding: 14px 16px;
   display: flex;
@@ -3375,18 +3340,32 @@ th[data-sort]:hover { background: var(--accent-soft); }
   min-width: 116px;
 }
 
-/* 自動同期の間隔セレクトは行の3番目の子要素のため、gridの1列目(80px)へ
-   暗黙的に折り返されて窮屈になっていた。2列目(可変幅)へ明示配置する */
-#cfg-outlook-auto-sync-interval {
-  grid-column: 2;
-  justify-self: start;
+.settingsActionCard { gap: 14px; padding: 16px; }
+.settingsActionHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.settingsActionText { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.settingsActionText .settingsSectionSub { margin: 0; line-height: 1.6; overflow-wrap: anywhere; }
+.settingsActionHeader > .btn, .settingsActionHeader .updateActions { flex: 0 0 auto; }
+.settingsActionHeader .btn { min-height: 34px; min-width: 108px; padding: 7px 12px; white-space: nowrap; }
+.settingsPreferenceLine { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 12px; border-top: 1px solid var(--border); font-size: var(--font-body); }
+.settingsPreferenceLine > label { cursor: pointer; }
+.settingsSyncBar { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--border); padding-top: 12px; flex-wrap: wrap; }
+.settingsSyncOptions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.settingsSyncOptions select { width: 108px; min-width: 0; padding: 6px 9px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); background: var(--panel); font: inherit; }
+.settingsSyncOptions select:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 520px) {
+  .settingsActionHeader { flex-wrap: wrap; gap: 10px; }
 }
-
 .settingsOutlookStatus {
-  margin-left: 8px;
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.6;
   font-size: var(--font-caption);
   color: var(--muted);
 }
+
+.settingsOutlookStatus:empty { display: none; }
 
 .settingsOutlookStatus.success {
   color: var(--success);
@@ -3415,10 +3394,6 @@ th[data-sort]:hover { background: var(--accent-soft); }
 
 .copySummaryBtn:hover {
   opacity: 1;
-}
-
-.copySummaryBtn:active {
-  transform: scale(0.95);
 }
 
 @media (max-width: 700px) {
@@ -3463,18 +3438,18 @@ th[data-sort]:hover { background: var(--accent-soft); }
 .updateDialogBody h2 { font-size: 21px; line-height: 1.5; margin: 0 0 8px; }
 .updateReleaseNotes { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; line-height: 1.9; }
 .updateDialog progress { width: 100%; accent-color: var(--accent); }
-.updateVersionRow, .updatePreferenceRow label { display: flex; align-items: center; gap: 10px; }
+.updateVersionRow { display: flex; align-items: center; gap: 10px; }
 .updateVersionRow { margin: 0; }
 .updateVersionRow span { white-space: nowrap; }
-.settingsUpdateSection { gap: 6px; padding: 12px 16px; }
+.settingsUpdateSection { gap: 14px; padding: 16px; }
 .settingsUpdateSection .settingsSectionSub { margin: 0; }
-.updateHeaderRow, .updateActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.updateHeaderRow { justify-content: space-between; }
-.updateActions .btn { min-height: 30px; padding: 4px 10px; }
-.updatePreferenceRow { margin: 0; }
-.updatePreferenceRow input { flex: 0 0 auto; margin: 0; }
+.updateActions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.updateActions .btn { min-height: 34px; padding: 7px 12px; }
 
-.headerUpdateButton { color: var(--accent-strong); background: var(--accent-soft); border-color: rgba(var(--accent-rgb), .35); white-space: nowrap; font-weight: 700; border-radius: var(--radius-pill); }
+.btn.action { color: var(--accent-strong); background: var(--accent-soft); border-color: rgba(var(--accent-rgb), .35); white-space: nowrap; font-weight: 700; }
+.btn.action:hover { background: var(--accent-soft); border-color: var(--accent-strong); }
+.toolbarUpdateButton.hasUpdate { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.toolbar .right { flex: 0 0 auto; }
 .updateNoticeIcon { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 16px; border-radius: 14px; background: var(--accent-soft); color: var(--accent-strong); font-size: 28px; font-weight: 700; }
 .updateIntro { margin: 0 0 20px; color: var(--muted); }
 .updateVersionComparison { display: flex; gap: 18px; align-items: center; padding: 14px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-1); }
@@ -3484,6 +3459,41 @@ th[data-sort]:hover { background: var(--accent-soft); }
 .updateSafetyNote { margin-top: 20px; line-height: 1.7; }
 .headerNavigation { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
 .headerNavigation > .nav { width: 300px; flex: 0 1 300px; }
-.headerNavigation > .headerUpdateButton { flex: 0 0 auto; }
+.toolbarActions { display: flex; align-items: center; gap: 10px; }
+.toolbar .right .btn { display: inline-flex; align-items: center; justify-content: center; height: 34px; padding: 6px 10px; line-height: 20px; white-space: nowrap; }
+.toolbarIconButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 6px 10px; flex: 0 0 auto; white-space: nowrap; }
+.toolbarIconButton svg { flex-shrink: 0; }
+
+/* 通常・選択・日付操作・スイッチで反応の速さと押下量を揃える。 */
+:is(.btn, .btnGroupItem, .settingsTabBtn, .miniCalToggle, .miniCalMonthLabel,
+    .miniMonth, .timeStepperBtn, .copySummaryBtn, .settingsOrderBtn, .settingsCopyBtn,
+    .uiToggle) {
+  transition: var(--control-transition);
+}
+:is(.btn, .btnGroupItem, .settingsTabBtn, .miniCalToggle, .miniCalMonthLabel,
+    .miniMonth, .timeStepperBtn, .copySummaryBtn, .settingsOrderBtn, .settingsCopyBtn,
+    .uiToggle):active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+button:focus-visible,
+.nav a:focus-visible,
+.externalLinks a:focus-visible {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: 2px;
+}
+.btnGroupItem.active:hover,
+.settingsTabBtn.isActive:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent-hover);
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.btn, .btnGroupItem, .settingsTabBtn, .miniCalToggle, .miniCalMonthLabel,
+      .miniMonth, .timeStepperBtn, .copySummaryBtn, .settingsOrderBtn, .settingsCopyBtn,
+      .uiToggle, .themeToggleTrack, .themeToggleThumb) {
+    transition: none;
+  }
+}
 .settingsProjectLink { margin: 0; }
 .settingsProjectLink a { color: var(--accent-strong); text-underline-offset: 3px; }

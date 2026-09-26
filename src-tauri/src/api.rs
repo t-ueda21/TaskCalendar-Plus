@@ -194,12 +194,28 @@ async fn favicon() -> Response {
 
 // --- tasks -------------------------------------------------------------
 
-async fn tasks_list(State(state): State<AppState>) -> Response {
+async fn tasks_list(State(state): State<AppState>, headers: HeaderMap) -> Response {
     let conn = lock_conn(&state);
-    match repo::tasks_list(&conn) {
+    let revision = match repo::tasks_revision(&conn) {
+        Ok(revision) => revision,
+        Err(err) => return json_err(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
+    };
+    let etag = format!("\"tasks-{revision}\"");
+    let unchanged = headers.get(header::IF_NONE_MATCH).and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.split(',').any(|tag| {
+            let tag = tag.trim().strip_prefix("W/").unwrap_or(tag.trim());
+            tag == etag || tag == "*"
+        }));
+    // 同じDBロック内で変更番号と一覧を読む。未変更なら全件SELECT・JSON化もしない。
+    let mut response = if unchanged {
+        StatusCode::NOT_MODIFIED.into_response()
+    } else { match repo::tasks_list(&conn) {
         Ok(rows) => json_ok(rows),
         Err(err) => json_err(StatusCode::INTERNAL_SERVER_ERROR, err.to_string()),
-    }
+    }};
+    response.headers_mut().insert(header::ETAG, etag.parse().unwrap());
+    response.headers_mut().insert(header::CACHE_CONTROL, "private, no-cache".parse().unwrap());
+    response
 }
 
 async fn tasks_create(State(state): State<AppState>, body: Bytes) -> Response {
@@ -866,6 +882,56 @@ mod tests {
 
     const TEST_TOKEN: &str = "test-token";
     const TEST_HOST: &str = "127.0.0.1:1234";
+
+    #[tokio::test]
+    async fn task_etag_tracks_all_mutations_but_not_rollback_or_migration() {
+        let (state, _tmp) = test_state();
+        let router = build_router(state.clone());
+        async fn get(router: &Router, etag: Option<&str>) -> Response {
+            let mut request = Request::builder().uri("/api/tasks")
+                .header("Host", TEST_HOST).header("X-TCPlus-Token", TEST_TOKEN);
+            if let Some(etag) = etag { request = request.header(header::IF_NONE_MATCH, etag); }
+            router.clone().oneshot(request.body(Body::empty()).unwrap()).await.unwrap()
+        }
+        let first = get(&router, None).await;
+        assert_eq!(first.status(), StatusCode::OK);
+        let mut etag = first.headers().get(header::ETAG).expect("task revision ETag").to_str().unwrap().to_string();
+        let same = get(&router, Some(&etag)).await;
+        assert_eq!(same.status(), StatusCode::NOT_MODIFIED);
+        assert!(same.into_body().collect().await.unwrap().to_bytes().is_empty());
+        for sql in [
+            "INSERT INTO tasks(id,date,created_at,updated_at) VALUES ('etag-task','2026-09-25','same','same')",
+            "UPDATE tasks SET title='changed without timestamp change' WHERE id='etag-task'",
+            "DELETE FROM tasks WHERE id='etag-task'",
+        ] {
+            state.conn.lock().unwrap().execute(sql, []).unwrap();
+            let changed = get(&router, Some(&etag)).await;
+            assert_eq!(changed.status(), StatusCode::OK);
+            let next = changed.headers()[header::ETAG].to_str().unwrap().to_string();
+            assert_ne!(next, etag);
+            etag = next;
+        }
+        {
+            let conn = state.conn.lock().unwrap();
+            let tx = conn.unchecked_transaction().unwrap();
+            tx.execute("INSERT INTO tasks(id,date,created_at,updated_at) VALUES ('rolled-back','2026-09-25','a','a')", []).unwrap();
+            tx.rollback().unwrap();
+            crate::db::migrate(&conn, "2026-09").unwrap();
+        }
+        assert_eq!(get(&router, Some(&etag)).await.status(), StatusCode::NOT_MODIFIED);
+        {
+            let conn = state.conn.lock().unwrap();
+            conn.execute("INSERT INTO tasks(id,date,created_at,updated_at) VALUES ('restore','2026-09-25','a','a')", []).unwrap();
+        }
+        let snapshot = get(&router, None).await;
+        etag = snapshot.headers()[header::ETAG].to_str().unwrap().to_string();
+        {
+            let conn = state.conn.lock().unwrap();
+            let backup = repo::backup_export(&conn).unwrap();
+            repo::backup_restore(&conn, &backup).unwrap();
+        }
+        assert_eq!(get(&router, Some(&etag)).await.status(), StatusCode::OK);
+    }
 
     fn test_state() -> (AppState, tempfile::TempDir) {
         let conn = Connection::open_in_memory().unwrap();

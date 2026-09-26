@@ -328,6 +328,11 @@ function subscribe(channel, fn) {
 }
 
 function publish(channel, payload) {
+  if (channel === "tasks") {
+    _taskEtag = null;
+    _invalidateTaskIndex();
+  }
+  if (["tasks", "tags", "settings"].includes(channel)) _clearSummaryCache();
   _subscribers.get(channel)?.forEach((fn) => {
     try { fn(payload); } catch (e) { console.error("[store] subscriber error:", e); }
   });
@@ -437,14 +442,11 @@ function _backfillRecurrenceGroupIds(tasks) {
 }
 
 async function _reloadFromSource(channel = "all") {
+  if (channel === "tasks") return _refreshTaskSnapshot();
   if (_syncReloading) return;
   _syncReloading = true;
   try {
-    if (channel === "all" || channel === "tasks") {
-      const tasks = await _api.get("/tasks");
-      _tasks = _backfillRecurrenceGroupIds(Array.isArray(tasks) ? tasks.filter(validateTask) : []);
-      publish("tasks", _tasks);
-    }
+    if (channel === "all") await _refreshTaskSnapshot();
     if (channel === "all" || channel === "tags") {
       const tags = await _api.get("/tags");
       _tags = Array.isArray(tags) ? tags.filter(validateTag) : [];
@@ -457,6 +459,7 @@ async function _reloadFromSource(channel = "all") {
     }
   } catch (e) {
     console.warn("[store] sync reload failed:", e);
+    throw e;
   } finally {
     _syncReloading = false;
   }
@@ -508,6 +511,79 @@ function _normalizeMonthTagOrders(monthTagOrders) {
 
 // ── タスク CRUD ───────────────────────────────────────
 let _tasks = [];
+let _tasksGeneration = 0;
+let _taskEtag = null;
+let _taskRefreshPromise = null;
+let _tasksByDate = null;
+let _tasksByMonth = null;
+const _daySummaryCache = new Map();
+const _monthSummaryCache = new Map();
+
+function _clearSummaryCache() {
+  _daySummaryCache.clear();
+  _monthSummaryCache.clear();
+}
+function _invalidateTaskIndex() {
+  _tasksGeneration++;
+  _tasksByDate = null;
+  _tasksByMonth = null;
+  _clearSummaryCache();
+}
+function _ensureTaskIndex() {
+  if (_tasksByDate) return;
+  _tasksByDate = new Map();
+  _tasksByMonth = new Map();
+  for (const task of _tasks) {
+    const date = task.date, month = date.slice(0, 7);
+    if (!_tasksByDate.has(date)) _tasksByDate.set(date, []);
+    if (!_tasksByMonth.has(month)) _tasksByMonth.set(month, []);
+    _tasksByDate.get(date).push(task);
+    _tasksByMonth.get(month).push(task);
+  }
+}
+const _copySummary = summary => ({ total: summary.total, byTag: new Map(summary.byTag) });
+
+async function _readTaskSnapshot(etag = null) {
+  const headers = etag ? { 'If-None-Match': etag } : {};
+  const res = await fetch('/api/tasks', { headers, cache: 'no-store' });
+  if (res.status === 304) return { unchanged: true };
+  if (!res.ok) throw new Error(`GET /api/tasks → ${res.status}`);
+  const tasks = JSON.parse(await res.text());
+  if (!Array.isArray(tasks)) throw new Error('API returned invalid tasks');
+  return { tasks, etag: res.headers?.get('ETag') ?? null, unchanged: false };
+}
+
+function _refreshTaskSnapshot() {
+  if (_taskRefreshPromise) return _taskRefreshPromise;
+  _taskRefreshPromise = (async () => {
+    // 読み込み中にローカル保存が完了したら古い応答を捨て、保存後の状態を取り直す。
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const generation = _tasksGeneration;
+      const snapshot = await _readTaskSnapshot(_taskEtag);
+      if (_tasksGeneration !== generation) continue;
+      if (!snapshot.unchanged) {
+        _tasks = _backfillRecurrenceGroupIds(snapshot.tasks.filter(validateTask));
+        publish('tasks', _tasks);
+        _taskEtag = snapshot.etag;
+      }
+      return;
+    }
+    throw new Error('予定を編集中のため再読み込みできませんでした。もう一度お試しください。');
+  })().finally(() => { _taskRefreshPromise = null; });
+  return _taskRefreshPromise;
+}
+
+async function _commitTaskMutation(generation, apply) {
+  if (_tasksGeneration !== generation) {
+    // 保存応答より先に再取得や別の保存が完了した場合、古い配列へ追加・上書きしない。
+    _taskEtag = null;
+    _invalidateTaskIndex();
+    await _refreshTaskSnapshot();
+  } else {
+    apply();
+    publish('tasks', _tasks);
+  }
+}
 
 // ── AI用のローカル永続データ（日次サマリー / 日次メモ） ────────
 let _dailySummaries = {};
@@ -718,12 +794,14 @@ function getAllTasks() {
 
 /** 日付でフィルタ */
 function getTasksByDate(dateKey) {
-  return _tasks.filter((t) => t.date === dateKey);
+  _ensureTaskIndex();
+  return (_tasksByDate.get(dateKey) ?? []).slice();
 }
 
 /** 月でフィルタ (YYYY-MM) */
 function getTasksByMonth(yearMonth) {
-  return _tasks.filter((t) => t.date.startsWith(yearMonth));
+  _ensureTaskIndex();
+  return (_tasksByMonth.get(yearMonth) ?? []).slice();
 }
 
 function _makeTaskEntity(data, dateKey, recurrence, nowIso) {
@@ -768,9 +846,9 @@ async function createTask(data) {
   }
 
   try {
+    const generation = _tasksGeneration;
     const createdTasks = await Promise.all(nextTasks.map((task) => _api.post("/tasks", task)));
-    _tasks.push(...createdTasks.filter(validateTask));
-    publish("tasks", _tasks);
+    await _commitTaskMutation(generation, () => _tasks.push(...createdTasks.filter(validateTask)));
     return createdTasks[0] ?? null;
   } catch (e) {
     throw _strictApiError("予定の保存", e);
@@ -779,6 +857,7 @@ async function createTask(data) {
 
 // The server checks every revision and commits the complete change in one transaction.
 async function _batchTasks(upserts, deleted) {
+  const generation = _tasksGeneration;
   const currentById = new Map(_tasks.map((task) => [task.id, task]));
   const touched = [...upserts.filter((task) => currentById.has(task.id)), ...deleted];
   const expected = [...new Map(touched.map((task) => [task.id, {
@@ -794,9 +873,8 @@ async function _batchTasks(upserts, deleted) {
     || deleted.some((task) => saved.some((row) => row.id === task.id))) {
     throw new Error("API returned invalid task batch");
   }
-  _tasks = _backfillRecurrenceGroupIds(saved);
-  publish("tasks", _tasks);
-  return saved;
+  await _commitTaskMutation(generation, () => { _tasks = _backfillRecurrenceGroupIds(saved); });
+  return _tasks.slice();
 }
 
 /** Restore a previously deleted task without changing its identity or recurrence. */
@@ -886,13 +964,13 @@ async function updateTask(id, patch, { expectedUpdatedAt } = {}) {
         return first;
       }
     }
+    const generation = _tasksGeneration;
     const saved = await _api.put(`/tasks/${id}`, {
       ...updated,
       ...(expectedUpdatedAt !== undefined ? { expectedUpdatedAt } : {}),
     });
     if (!validateTask(saved)) throw new Error("API returned invalid task");
-    _tasks[idx] = saved;
-    publish("tasks", _tasks);
+    await _commitTaskMutation(generation, () => { _tasks[idx] = saved; });
     return saved;
   } catch (e) {
     throw _strictApiError("予定の更新", e);
@@ -1117,9 +1195,9 @@ async function deleteTaskWithMode(id, mode = "single", { expectedUpdatedAt } = {
       await _batchTasks([], _tasks.filter((task) => deleteSet.has(task.id)));
     } else {
       const query = expectedUpdatedAt === undefined ? "" : `?expectedUpdatedAt=${encodeURIComponent(expectedUpdatedAt)}`;
+      const generation = _tasksGeneration;
       await _api.del(`/tasks/${encodeURIComponent(id)}${query}`);
-      _tasks = nextTasks;
-      publish("tasks", _tasks);
+      await _commitTaskMutation(generation, () => { _tasks = nextTasks; });
     }
   } catch (e) {
     throw _strictApiError("予定の削除", e);
@@ -1347,6 +1425,7 @@ function _mergeIntervalMinutes(intervals) {
  * - total: 重なりをマージした実時間（同日内のみマージ）
  */
 function calcDaySummary(dateKey) {
+  if (_daySummaryCache.has(dateKey)) return _copySummary(_daySummaryCache.get(dateKey));
   const tasks = getTasksByDate(dateKey);
   const validTagIds = new Set(_tags.map((tag) => String(tag.id ?? "").trim()).filter(Boolean));
   const byTag = new Map();
@@ -1360,7 +1439,9 @@ function calcDaySummary(dateKey) {
       intervals.push(..._subtractBreaksFromInterval(timeToMinutes(t.startTime), timeToMinutes(t.endTime)));
     }
   }
-  return { total: _mergeIntervalMinutes(intervals), byTag };
+  const result = { total: _mergeIntervalMinutes(intervals), byTag };
+  _daySummaryCache.set(dateKey, result);
+  return _copySummary(result);
 }
 
 /**
@@ -1368,6 +1449,7 @@ function calcDaySummary(dateKey) {
  * - total は日ごとに重なりをマージしてから合算する（別日同士はマージしない）。
  */
 function calcMonthSummary(yearMonth) {
+  if (_monthSummaryCache.has(yearMonth)) return _copySummary(_monthSummaryCache.get(yearMonth));
   const tasks = getTasksByMonth(yearMonth);
   const validTagIds = new Set(_tags.map((tag) => String(tag.id ?? "").trim()).filter(Boolean));
   const byTag = new Map();
@@ -1387,7 +1469,9 @@ function calcMonthSummary(yearMonth) {
   for (const list of intervalsByDate.values()) {
     total += _mergeIntervalMinutes(list);
   }
-  return { total, byTag };
+  const result = { total, byTag };
+  _monthSummaryCache.set(yearMonth, result);
+  return _copySummary(result);
 }
 
 // ── 初期化 ────────────────────────────────────────────
@@ -1398,13 +1482,15 @@ async function init() {
       ? { ..._runtimeInfo, ...runtime }
       : { ..._runtimeInfo };
 
-    const [tasks, tags, settings] = await Promise.all([
-      _api.get("/tasks"),
+    const [snapshot, tags, settings] = await Promise.all([
+      _readTaskSnapshot(),
       _api.get("/tags"),
       _api.get("/settings"),
     ]);
 
-    _tasks = _backfillRecurrenceGroupIds(Array.isArray(tasks) ? tasks.filter(validateTask) : []);
+    _tasks = _backfillRecurrenceGroupIds(snapshot.tasks.filter(validateTask));
+    _taskEtag = snapshot.etag;
+    _invalidateTaskIndex();
     _tags = Array.isArray(tags) ? tags.filter(validateTag) : [];
     _settings = _normalizeSettings(settings);
 

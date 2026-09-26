@@ -124,6 +124,32 @@ try {
     check(`「${view}」タブに切り替えられる`, ok);
   }
 
+
+  for (const view of ['calendar', 'tasks', 'ai']) {
+    const shortcut = await evaluate('(async()=>{document.querySelector(\'[data-nav-target="'+view+'"]\').click(); await new Promise(r=>setTimeout(r,150)); const button=document.querySelector(\'.view:not([hidden]) [data-outlook-open]\'); if(!button) return false; button.click(); const dialog=document.querySelector("[data-settings-dialog]"); const ok=dialog.open && !dialog.querySelector(\'[data-settings-tab-panel="outlook"]\').hidden; dialog.querySelector("[data-settings-cancel]").click(); return ok;})()');
+    check(view+' 各タブからOutlook取得画面を直接開ける',shortcut);
+  }
+  await evaluate("document.querySelector('[data-nav-target=calendar]').click()");
+
+
+  const syncMessage = await evaluate(`(async () => {
+    document.querySelector('.view:not([hidden]) [data-outlook-open]').click();
+    const dialog = document.querySelector('[data-settings-dialog]');
+    const originalFetch = window.fetch;
+    window.fetch = (url, init) => String(url) === '/api/outlook/auto-sync'
+      ? Promise.resolve(new Response(JSON.stringify({error:'CLSIDFromProgID(Outlook.Application) に失敗しました: [0x800401f3] クラス文字列が無効です'}), {status:500,headers:{'Content-Type':'application/json'}}))
+      : originalFetch(url, init);
+    try {
+      dialog.querySelector('[data-sync-outlook-btn]').click();
+      await new Promise(r => setTimeout(r, 400));
+      const status = dialog.querySelector('[data-outlook-sync-status]');
+      const message = status.getBoundingClientRect(), button = dialog.querySelector('[data-sync-outlook-btn]').getBoundingClientRect();
+      const fullWidth = message.width > status.closest('.settingsSection').getBoundingClientRect().width * .85;
+      return {fullWidth, below:message.top >= button.bottom, error:status.classList.contains('error'), styled:status.classList.contains('settingsOutlookStatus'), text:status.textContent.includes('0x800401f3')};
+    } finally { window.fetch = originalFetch; dialog.querySelector('[data-settings-cancel]').click(); }
+  })()`);
+  check('Outlookエラーはボタンの下で横幅全体に表示される', Object.values(syncMessage).every(Boolean), JSON.stringify(syncMessage));
+
   const saved = await evaluate(`(async () => {
     document.querySelector('[data-view="calendar"] [data-settings-btn]').click();
     await new Promise((r) => setTimeout(r, 300));
@@ -174,9 +200,9 @@ try {
       const btn = root.querySelector('[data-sidebar-toggle]');
       const layout = root.querySelector('.layout');
       btn.click();
-      const collapsed = layout.classList.contains('sidebar-collapsed') && btn.textContent.includes('▶');
+      const collapsed = layout.classList.contains('sidebar-collapsed') && btn.getAttribute('aria-expanded') === 'false' && !!btn.querySelector('svg + span');
       btn.click();
-      const reopened = !layout.classList.contains('sidebar-collapsed') && btn.textContent.includes('◀');
+      const reopened = !layout.classList.contains('sidebar-collapsed') && btn.getAttribute('aria-expanded') === 'true' && !!btn.querySelector('svg + span');
 
       const label = root.querySelector('[data-mini-month-label]');
       label.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 40, clientY: 40 }));
@@ -195,6 +221,10 @@ try {
     }
   }
 
+  // 非表示の日表示は描画しないため、実際に日表示へ切り替えて検査する。
+  await evaluate("document.querySelector('[data-nav-target=calendar]').click()");
+  await sleep(150);
+  await evaluate("(()=>{const select=document.querySelector('[data-viewmode]');select.value='day';select.dispatchEvent(new Event('change'));})()");
   const grid = await evaluate(`(async () => {
     const root = document.querySelector('#viewRoot > .view[data-view="calendar"]');
     const slots = root.querySelectorAll('[data-slots="day"] [data-index]').length;
@@ -543,6 +573,10 @@ try {
   check('更新UIは通信失敗・新版・安全なリリースノートを表示する',updaterUi.failure&&updaterUi.available&&updaterUi.escaped,JSON.stringify(updaterUi));
   check('更新UIは編集中のインストールを防ぎ、検証失敗後に再試行できる',updaterUi.guarded&&updaterUi.retry,JSON.stringify(updaterUi));
 
+
+  const persistentUpdate = await evaluate('(async()=>{ const container=document.createElement("div"); const entry=document.querySelector("[data-update-entry]").cloneNode(true); container.append(entry, document.querySelector("[data-update-dialog]").cloneNode(true)); document.body.append(container); let mode="current",checks=0; const bridge={core:{invoke:async cmd=>{if(cmd==="get_update_info")return {currentVersion:"0.1.4",installSupported:true};if(cmd==="check_app_update"){checks++;if(mode==="error")throw Error("offline");return mode==="new"?{version:"0.2.0",notes:"test"}:null;}}}}; try {const {initAppUpdater}=await import("/src/app-updater.js"); await initAppUpdater({getSettings:()=>({checkUpdatesOnStartup:false})},container,bridge); const visible=!entry.hidden; entry.click();await new Promise(r=>setTimeout(r,50)); const dialog=container.querySelector("dialog");const current=dialog.open&&checks===1&&dialog.querySelector("[data-update-status]").textContent.includes("最新版")&&dialog.querySelector("[data-update-install]").hidden; mode="error";dialog.querySelector("[data-update-check]").click();await new Promise(r=>setTimeout(r,50));const error=dialog.querySelector("[data-update-status]").textContent.includes("offline")&&!entry.hidden; mode="new";dialog.querySelector("[data-update-check]").click();await new Promise(r=>setTimeout(r,50));const available=entry.classList.contains("hasUpdate")&&entry.getAttribute("aria-label").includes("更新あり")&&!!entry.querySelector("svg")&&!dialog.querySelector("[data-update-install]").hidden;dialog.close();return {visible,current,error,available};}finally{container.remove();}})()');
+  check('常設の更新入口から確認・エラー後再試行・新版強調まで操作できる',Object.values(persistentUpdate).every(Boolean),JSON.stringify(persistentUpdate));
+
   const updateHandoff = await evaluate(`(async () => {
     const Store = await import('/src/store.js');
     const pause = () => new Promise(r => setTimeout(r, 250));
@@ -605,16 +639,26 @@ try {
   const updateKeyboard=await evaluate(`(()=>{window.fetch=window.updateOriginalFetch;const result={saves:window.updateKeyboardSaves,opened:document.querySelector('[data-update-dialog]').open,settingsClosed:!document.querySelector('[data-settings-dialog]').open};document.querySelector('[data-update-close]').click();return result;})()`);
   check('設定から更新はEnterキーでも1回だけ保存し、更新画面へ進む',updateKeyboard.saves===1&&updateKeyboard.opened&&updateKeyboard.settingsClosed,JSON.stringify(updateKeyboard));
 
+
   for (const width of [1280, 1100, 1024]) {
     await send('Emulation.setDeviceMetricsOverride',{width,height:800,deviceScaleFactor:1,mobile:false});
-    const layout=await evaluate(`(()=>{
-      const header=document.querySelector('.header'),button=header.querySelector('[data-update-open]');
-      const height=header.getBoundingClientRect().height;
-      button.hidden=true;const without=header.getBoundingClientRect().height;button.hidden=false;
-      const rects=['.brand','.nav','.headerUpdateButton','.clock'].map(s=>{const r=header.querySelector(s).getBoundingClientRect();return {left:r.left,right:r.right,mid:r.y+r.height/2};});
-      return {height,without,sameRow:Math.max(...rects.map(r=>r.mid))-Math.min(...rects.map(r=>r.mid))<2,rightOfTabs:rects[2].left>=rects[1].right,clock:document.querySelector('.clock').innerText};
-    })()`);
-    check('更新ボタンはタブの右、時計と同じ段で高さを増やさない ('+width+'px)',layout.height===layout.without&&layout.sameRow&&layout.rightOfTabs&&layout.clock.includes('定時まで'),JSON.stringify(layout));
+    for (const view of ['calendar','tasks','ai']) {
+      await evaluate('document.querySelector(\'[data-nav-target="'+view+'"]\').click()');
+      await sleep(150);
+      const layout = await evaluate(`(() => {
+        const toolbar = document.querySelector('.view:not([hidden]) .toolbar');
+        const rects = ['[data-sidebar-toggle]', '[data-outlook-open]', '[data-update-entry]', '[data-settings-btn]'].map(s => {
+          const el = toolbar.querySelector(s), r = el.getBoundingClientRect();
+          return {left:r.left,right:r.right,mid:r.y+r.height/2,height:r.height,icon:!!el.querySelector('svg'),iconWidth:el.querySelector('svg')?.getBoundingClientRect().width};
+        });
+        return {ordered:rects[0].right<=rects[1].left && rects[1].right<=rects[2].left && rects[2].right<=rects[3].left,
+          sameHeight:rects.every(r=>r.height===34), iconSize:rects.every(r=>r.iconWidth===16),
+          sameRow:Math.max(...rects.map(r=>r.mid))-Math.min(...rects.map(r=>r.mid))<2,
+          visible:rects.every(r=>r.right<=innerWidth&&r.left>=0), icons:rects.every(r=>r.icon),
+          noHeaderIcons:!document.querySelector('.header [data-update-entry]')};
+      })()`);
+      check(view+' サイド・取得・更新・設定の順でサイズも揃う ('+width+'px)',Object.values(layout).every(Boolean),JSON.stringify(layout));
+    }
   }
   await send('Emulation.clearDeviceMetricsOverride');
 

@@ -119,6 +119,10 @@ pub fn tasks_list(conn: &Connection) -> rusqlite::Result<Vec<TaskRow>> {
         .collect()
 }
 
+pub fn tasks_revision(conn: &Connection) -> rusqlite::Result<i64> {
+    conn.query_row("SELECT revision FROM task_revision WHERE id = 1", [], |row| row.get(0))
+}
+
 fn tasks_get(conn: &Connection, id: &str) -> rusqlite::Result<Option<TaskRow>> {
     conn.query_row(
         "SELECT * FROM tasks WHERE id = ?1",
@@ -210,14 +214,10 @@ pub fn tasks_update(
     id: &str,
     input: TaskUpdateInput,
 ) -> rusqlite::Result<Option<TaskRow>> {
-    if tasks_get(conn, id)?.is_none() {
+    let Some(current) = tasks_get(conn, id)? else {
         return Ok(None);
-    }
-    let now = next_revision(
-        tasks_get(conn, id)?
-            .as_ref()
-            .map(|row| row.updated_at.as_str()),
-    );
+    };
+    let now = next_revision(Some(&current.updated_at));
     let recurrence = input.recurrence.unwrap_or_else(default_recurrence);
     conn.execute(
         "UPDATE tasks SET title=?1, date=?2, is_all_day=?3, start_time=?4, end_time=?5,
@@ -634,9 +634,17 @@ pub fn ai_memory_list_by_kind(
     conn: &Connection,
     kind: &str,
 ) -> rusqlite::Result<Map<String, Value>> {
+    read_dated_json_map(conn, "SELECT date, value FROM ai_memory WHERE kind = ?1", kind)
+}
+
+fn read_dated_json_map(
+    conn: &Connection,
+    sql: &str,
+    key: &str,
+) -> rusqlite::Result<Map<String, Value>> {
     let mut out = Map::new();
-    let mut stmt = conn.prepare("SELECT date, value FROM ai_memory WHERE kind = ?1")?;
-    let rows = stmt.query_map(params![kind], |row| {
+    let mut stmt = conn.prepare(sql)?;
+    let rows = stmt.query_map(params![key], |row| {
         let date: String = row.get(0)?;
         let value: String = row.get(1)?;
         Ok((date, value))
@@ -656,18 +664,11 @@ pub fn weather_cache_list_by_location(
     conn: &Connection,
     location_key: &str,
 ) -> rusqlite::Result<Map<String, Value>> {
-    let mut out = Map::new();
-    let mut stmt = conn.prepare("SELECT date, value FROM weather_cache WHERE location_key = ?1")?;
-    let rows = stmt.query_map(params![location_key], |row| {
-        let date: String = row.get(0)?;
-        let value: String = row.get(1)?;
-        Ok((date, value))
-    })?;
-    for row in rows {
-        let (date, value) = row?;
-        out.insert(date, serde_json::from_str(&value).unwrap_or(Value::Null));
-    }
-    Ok(out)
+    read_dated_json_map(
+        conn,
+        "SELECT date, value FROM weather_cache WHERE location_key = ?1",
+        location_key,
+    )
 }
 
 pub fn weather_cache_set_many(
@@ -1532,5 +1533,43 @@ mod outlook_sync_tests {
         assert_eq!(after.id, before.id);
         assert_eq!(after.tag_id, "custom-tag");
         assert_eq!(after.date, "2026-08-01");
+    }
+}
+
+
+#[cfg(test)]
+mod json_map_contract_tests {
+    use super::*;
+
+    #[test]
+    fn json_maps_keep_invalid_json_null_and_separate_storage_keys() {
+        let conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn, "2026-09").unwrap();
+        for (table, key_column) in [("ai_memory", "kind"), ("weather_cache", "location_key")] {
+            let sql = format!("INSERT INTO {table} ({key_column},date,value) VALUES (?1,?2,?3)");
+            conn.execute(&sql, params!["first", "2026-09-25", "{\"value\":42}"]).unwrap();
+            conn.execute(&sql, params!["first", "2026-09-26", "invalid-json"]).unwrap();
+            conn.execute(&sql, params!["second", "2026-09-27", "7"]).unwrap();
+        }
+        for values in [ai_memory_list_by_kind(&conn, "first").unwrap(), weather_cache_list_by_location(&conn, "first").unwrap()] {
+            assert_eq!(values.len(), 2);
+            assert_eq!(values["2026-09-25"], json!({"value":42}));
+            assert_eq!(values["2026-09-26"], Value::Null);
+            assert!(!values.contains_key("2026-09-27"));
+        }
+        assert!(ai_memory_list_by_kind(&conn, "missing").unwrap().is_empty());
+        assert!(weather_cache_list_by_location(&conn, "missing").unwrap().is_empty());
+    }
+
+    #[test]
+    fn json_maps_propagate_database_and_row_conversion_errors() {
+        let conn = Connection::open_in_memory().unwrap();
+        assert!(ai_memory_list_by_kind(&conn, "first").is_err());
+        assert!(weather_cache_list_by_location(&conn, "first").is_err());
+        crate::db::migrate(&conn, "2026-09").unwrap();
+        conn.execute("INSERT INTO ai_memory(kind,date,value) VALUES ('first','2026-09-25',X'00')", []).unwrap();
+        conn.execute("INSERT INTO weather_cache(location_key,date,value) VALUES ('first','2026-09-25',X'00')", []).unwrap();
+        assert!(ai_memory_list_by_kind(&conn, "first").is_err());
+        assert!(weather_cache_list_by_location(&conn, "first").is_err());
     }
 }

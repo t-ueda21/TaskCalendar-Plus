@@ -354,6 +354,7 @@ async function _send() {
 // ── サイドバー・表示 ────────────────────────────────────────
 
 function _renderSideSummaries() {
+  if (_root.hidden) return;
   renderSideSummaries({
     monthEl: $.sideMonth,
     dayEl: $.sideDay,
@@ -472,6 +473,7 @@ export function init(rootEl) {
   Store.subscribe("tags", _renderSideSummaries);
   Store.subscribe("settings", () => {
     _settings = Store.getSettings();
+    if (_root.hidden) return;
     _renderModelStatus();
     _renderInputMode();
     _renderSideSummaries(); // タグ管理(月ごとのタグ順)の変更を反映
@@ -484,5 +486,8 @@ export function init(rootEl) {
 
 // SPAシェルでタブを再訪したとき、他のタブで選んだ日付を拾い直す(init は初回だけ呼ばれる)。
 export function activate() {
+  _settings = Store.getSettings();
+  _renderModelStatus();
+  _renderInputMode();
   _setActiveDate(formatDateKey(getInitialViewDate()));
 }

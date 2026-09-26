@@ -17,6 +17,16 @@ const OL_FOLDER_CALENDAR: i32 = 9;
 const OL_APPOINTMENT_CLASS: i32 = 26;
 const SAFETY_MAX_ITEMS: i32 = 5000;
 
+fn meeting_status_is_active(status: i32) -> Result<bool, String> {
+    // Outlook.OlMeetingStatus: 5=主催者側のキャンセル、7=受信したキャンセル。
+    // 件名では判定しない。状態を確認できない場合は同期全体を中止して既存タスクを守る。
+    match status {
+        0 | 1 | 3 => Ok(true),
+        5 | 7 => Ok(false),
+        _ => Err(format!("Outlookの会議状態が不正です: {status}")),
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct OutlookEvent {
     pub title: String,
@@ -27,7 +37,6 @@ pub struct OutlookEvent {
     pub is_all_day: bool,
     pub outlook_series_id: String,
     pub outlook_occurrence_key: String,
-    #[allow(dead_code)]
     pub is_recurring: bool,
     pub recurrence: Value,
     pub meeting_url: Option<String>,
@@ -528,6 +537,17 @@ fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<OutlookSna
             continue;
         }
 
+        let meeting_status_value = item
+            .invoke_get("MeetingStatus", &[])
+            .map_err(|e| format!("Outlookの予定{i}の会議状態を取得できません: {e}"))?;
+        let meeting_status = variant_to_i32(&meeting_status_value)
+            .ok_or_else(|| format!("Outlookの予定{i}の会議状態が不正です"))?;
+        if !meeting_status_is_active(meeting_status)? {
+            // 取得範囲内のキャンセル済み予定は有効な取得一覧から外す。
+            // 全件取得が成功した後、削除済み予定と同じ照合処理でDBから削除される。
+            continue;
+        }
+
         let start_value = item
             .invoke_get("Start", &[])
             .map_err(|e| format!("Outlookの予定{i}の開始時刻を取得できません: {e}"))?;
@@ -622,6 +642,90 @@ fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<OutlookSna
 #[cfg(test)]
 mod sync_range_tests {
     use super::*;
+
+    #[test]
+    fn cancelled_meeting_statuses_are_excluded_and_unknown_status_aborts() {
+        for status in [0, 1, 3] {
+            assert!(meeting_status_is_active(status).unwrap());
+        }
+        for status in [5, 7] {
+            assert!(!meeting_status_is_active(status).unwrap());
+        }
+        for status in [-1, 2, 99] {
+            assert!(meeting_status_is_active(status).is_err());
+        }
+    }
+
+    #[test]
+    fn cancelled_and_deleted_occurrences_are_removed_without_touching_other_tasks() {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn, "2026-09").unwrap();
+        let events: Vec<_> = [
+            "active",
+            "cancelled-organizer",
+            "cancelled-attendee",
+            "cancelled-all-day",
+            "deleted",
+            "outside",
+        ]
+        .into_iter()
+        .map(|key| OutlookEvent {
+            title: key.into(),
+            date: if key == "outside" {
+                "2026-09-01"
+            } else {
+                "2026-09-26"
+            }
+            .into(),
+            start_time: Some("09:00".into()),
+            end_time: Some("10:00".into()),
+            location: String::new(),
+            is_all_day: key == "cancelled-all-day",
+            outlook_series_id: "shared-recurrence".into(),
+            outlook_occurrence_key: key.into(),
+            is_recurring: true,
+            recurrence: json!({"type":"daily","until":"2026-10-01"}),
+            meeting_url: None,
+        })
+        .collect();
+        crate::repositories::outlook_auto_sync(&conn, &events, "", "2026-09-01", "2026-10-01")
+            .unwrap();
+        conn.execute("INSERT INTO tasks (id,title,date,created_at,updated_at) VALUES ('manual','manual','2026-09-26','a','a')", []).unwrap();
+        let remaining: Vec<_> = events[..4]
+            .iter()
+            .zip([3, 5, 7, 5])
+            .filter_map(|(event, status)| {
+                meeting_status_is_active(status)
+                    .unwrap()
+                    .then_some(event.clone())
+            })
+            .collect();
+        let result = crate::repositories::outlook_auto_sync(
+            &conn,
+            &remaining,
+            "",
+            "2026-09-26",
+            "2026-10-01",
+        )
+        .unwrap();
+        assert_eq!(result.deleted, 4);
+        let mut titles: Vec<_> = crate::repositories::tasks_list(&conn)
+            .unwrap()
+            .into_iter()
+            .map(|row| row.title)
+            .collect();
+        titles.sort();
+        assert_eq!(titles, ["active", "manual", "outside"]);
+        let repeated = crate::repositories::outlook_auto_sync(
+            &conn,
+            &remaining,
+            "",
+            "2026-09-26",
+            "2026-10-01",
+        )
+        .unwrap();
+        assert_eq!((repeated.added, repeated.deleted), (0, 0));
+    }
 
     #[test]
     fn custom_calendar_lookup_never_falls_back_on_missing_or_error() {

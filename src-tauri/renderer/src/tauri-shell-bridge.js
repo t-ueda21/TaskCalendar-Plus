@@ -7,6 +7,12 @@
 (function () {
   'use strict';
 
+  // WebView2標準の右クリックメニューを抑止する。
+  // 伝播は止めず、予定や月見出しの独自メニューはそのまま動かす。
+  document.addEventListener('contextmenu', function (event) {
+    event.preventDefault();
+  }, { capture: true });
+
   // 組み込みHTTP API(/api/)への要求に、起動ごとの合言葉ヘッダーを付ける。
   // 合言葉はHTTPでは配らず、Tauriコマンドでだけ受け取る(他のWebページや
   // DNSリバインディングから読み取れないようにするため)。画面側のfetch呼び出しは

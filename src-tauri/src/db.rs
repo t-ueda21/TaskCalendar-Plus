@@ -20,11 +20,32 @@ pub fn open_database(path: &Path) -> Result<Connection> {
 /// 呼び出し側(main.rs)がシステム時刻から算出して渡す。
 pub fn migrate(conn: &Connection, current_month: &str) -> Result<()> {
     create_tables(conn)?;
+    create_task_revision(conn)?;
     add_tags_budget_range_columns(conn)?;
     dedupe_outlook_occurrence_keys(conn)?;
     create_indexes(conn)?;
     seed_current_month_tag_order(conn, current_month)?;
     Ok(())
+}
+
+// 全書き込み経路(Outlook同期・AI・復元を含む)を同じトランザクションで追跡する。
+fn create_task_revision(conn: &Connection) -> Result<()> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS task_revision (
+            id INTEGER PRIMARY KEY CHECK(id = 1),
+            revision INTEGER NOT NULL DEFAULT 0
+        );
+        INSERT OR IGNORE INTO task_revision(id, revision) VALUES (1, 0);
+        CREATE TRIGGER IF NOT EXISTS tasks_revision_insert AFTER INSERT ON tasks BEGIN
+            UPDATE task_revision SET revision = revision + 1 WHERE id = 1;
+        END;
+        CREATE TRIGGER IF NOT EXISTS tasks_revision_update AFTER UPDATE ON tasks BEGIN
+            UPDATE task_revision SET revision = revision + 1 WHERE id = 1;
+        END;
+        CREATE TRIGGER IF NOT EXISTS tasks_revision_delete AFTER DELETE ON tasks BEGIN
+            UPDATE task_revision SET revision = revision + 1 WHERE id = 1;
+        END;",
+    )
 }
 
 /// タグごとの月間予定工数の下限・上限(分)。CREATE TABLE IF NOT EXISTSは
@@ -179,7 +200,7 @@ mod tests {
         names.sort();
         assert_eq!(
             names,
-            vec!["ai_memory", "settings", "tags", "tasks", "weather_cache"]
+            vec!["ai_memory", "settings", "tags", "task_revision", "tasks", "weather_cache"]
         );
     }
 

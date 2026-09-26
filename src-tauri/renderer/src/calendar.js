@@ -453,6 +453,7 @@ export function init(rootEl) {
   // データ変更を購読してカレンダーを再描画
   Store.subscribe("task-series-expanded", _forgetTaskHistory);
   Store.subscribe("tasks", () => {
+    if (_root.hidden) return;
     _renderDayTasks();
     _renderWeekTasks();
     _renderSideSummary();
@@ -467,13 +468,18 @@ export function init(rootEl) {
   });
 
   _wireDragDropTargets();
-  setInterval(() => updateNowLine(_granularity, _viewMode), 30_000);
+  setInterval(() => { if (!_root.hidden) updateNowLine(_granularity, _viewMode); }, 30_000);
 }
 
 // SPAシェルでタブを再訪した際、他ビューでの日付選択をsessionStorage/URL
 // クエリ経由で拾い直す(initは初回マウント時にしか呼ばれないため)。
 export function activate() {
+  _settings = Store.getSettings();
+  if ($granularitySelect) $granularitySelect.value = String(_granularity);
+  if ($businessOnlyChk) $businessOnlyChk.checked = _businessOnly;
+  _renderTimeGrids();
   _setViewDate(getInitialViewDate());
+  _wireDragDropTargets();
 }
 
 // ── DOM キャッシュ ─────────────────────────────────────
@@ -502,6 +508,7 @@ function _applySettingsSnapshot(nextSettings) {
   _settings = { ...nextSettings };
   _granularity = _settings.granularity;
   _businessOnly = _settings.showBusinessDaysOnly;
+  if (_root.hidden) return;
 
   if ($granularitySelect) $granularitySelect.value = String(_granularity);
   if ($businessOnlyChk) $businessOnlyChk.checked = _businessOnly;
@@ -564,16 +571,25 @@ function _wireToolbar() {
 
 // ── ビュー管理 ─────────────────────────────────────────
 function _applyViewMode(mode) {
+  _setFocusedTaskElement(null);
+  _setFocusedSlotElement(null);
   const dayView  = _root.querySelector("[data-view='day']");
   const weekView = _root.querySelector("[data-view='week']");
   if (dayView)  dayView.hidden  = (mode !== "day");
   if (weekView) weekView.hidden = (mode !== "week");
   if ($viewModeSelect) $viewModeSelect.value = mode;
+  _renderTimeGrids();
+  _renderWeekColumns();
+  _renderDayTasks();
+  _renderWeekTasks();
+  void _renderCalendarWeather();
   _updateDateLabel();
   setTimeout(_scrollToWorkStart, 0);
 }
 
 function _setViewDate(date) {
+  _setFocusedTaskElement(null);
+  _setFocusedSlotElement(null);
   _viewDate = new Date(date);
   _viewDate.setHours(0, 0, 0, 0);
   syncViewDate(_viewDate);
@@ -655,6 +671,7 @@ function _weekMonday() {
 }
 
 function _renderWeekColumns() {
+  if (_root.hidden || _viewMode !== "week") return;
   const mon = _weekMonday();
   const showKeys = _businessOnly
     ? new Set(["Mon","Tue","Wed","Thu","Fri"])
@@ -699,6 +716,7 @@ function _renderWeekColumns() {
 }
 
 async function _renderCalendarWeather() {
+  if (_root.hidden) return;
   const token = ++_weatherRenderToken;
   const selectedDateKey = formatDateKey(_viewDate);
   if ($calendarDayWeather) {
@@ -716,7 +734,7 @@ async function _renderCalendarWeather() {
       getWeatherRange(rangeStart, rangeEnd),
     ]);
 
-    if (token !== _weatherRenderToken) return;
+    if (token !== _weatherRenderToken || _root.hidden) return;
 
     if ($calendarDayWeather) {
       $calendarDayWeather.classList.remove("loading");
@@ -735,7 +753,7 @@ async function _renderCalendarWeather() {
     });
   } catch (e) {
     console.warn("[calendar] weather rendering failed:", e);
-    if (token !== _weatherRenderToken) return;
+    if (token !== _weatherRenderToken || _root.hidden) return;
     if ($calendarDayWeather) {
       $calendarDayWeather.classList.remove("loading");
       $calendarDayWeather.textContent = "天気取得に失敗しました";
@@ -748,13 +766,17 @@ async function _renderCalendarWeather() {
 
 // ── TimeGrid(日・週) ─────────────────────────────────
 function _renderTimeGrids() {
+  if (_root.hidden) return;
   const grid = {
     granularity: _granularity,
     workStart: _settings.workStart,
     workEnd: _settings.workEnd,
     breaks: normalizeBreaks(_settings.breaks),
   };
-  renderTimeGrid({ timesEl: $dayTimes, slotEls: [$daySlots], ...grid });
+  if (_viewMode === "day") {
+    renderTimeGrid({ timesEl: $dayTimes, slotEls: [$daySlots], ...grid });
+    return;
+  }
 
   const weekCols = Array.from(_root.querySelectorAll("[data-weekcol]"));
   const slotEls  = weekCols.map((c) => c.querySelector("[data-slots='week']")).filter(Boolean);
@@ -924,7 +946,7 @@ function _applyOverlapLayout(tasks, blocksById) {
 }
 
 function _renderDayTasks() {
-  if (!$daycol) return;
+  if (!$daycol || _root.hidden || _viewMode !== "day") return;
   _clearTaskBlocks($daycol);
   const dateKey = formatDateKey(_viewDate);
   const tasks   = Store.getTasksByDate(dateKey);
@@ -944,12 +966,13 @@ function _renderDayTasks() {
 }
 
 function _renderWeekTasks() {
+  if (_root.hidden || _viewMode !== "week") return;
   const mon  = _weekMonday();
   const tags = Store.getTagsForMonth(formatYearMonth(_viewDate));
 
   DAY_META.forEach(({ key, offset }) => {
     const col = _root.querySelector(`[data-weekcol][data-weekday="${key}"]`);
-    if (!col) return;
+    if (!col || col.hidden) return;
     _clearTaskBlocks(col);
     const dateKey = formatDateKey(addDays(mon, offset));
     const tasks   = Store.getTasksByDate(dateKey).filter((t) => !t.isAllDay);
@@ -967,6 +990,7 @@ function _renderWeekTasks() {
 
 // ── 終日レーン ────────────────────────────────────────
 function _renderAllDayLaneSingle(tasks) {
+  if (_root.hidden || _viewMode !== "day") return;
   const container = _root.querySelector(".allDayItems");
   if (!container) return;
   container.querySelectorAll("[data-task-id]").forEach((el) => el.remove());
@@ -995,6 +1019,7 @@ function _renderAllDayLaneSingle(tasks) {
 }
 
 function _renderAllDayLane() {
+  if (_root.hidden || _viewMode !== "week") return;
   const mon = _weekMonday();
   const yearMonth = formatYearMonth(_viewDate);
   const tags = Store.getTagsForMonth(yearMonth);
@@ -1031,6 +1056,7 @@ function _renderAllDayLane() {
 
 // ── サイドバー工数集計 ────────────────────────────────
 function _renderSideSummary() {
+  if (_root.hidden) return;
   renderSideSummaries({ monthEl: $sideMonthSummary, dayEl: $sideDaySummary, Store, dateKey: formatDateKey(_viewDate) });
 }
 
@@ -1560,13 +1586,14 @@ function _wireResize(el, task) {
 // ── コピー＆ペースト (F-TASK-005) ────────────────────
 function _wireCopyPaste() {
   document.addEventListener("keydown", (e) => {
+    if (_root.hidden || document.querySelector('dialog[open]')) return;
     const activeTag = document.activeElement?.tagName;
     if (activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT") return;
     if ($dialog?.open) return;
 
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "c") {
       // 選択中のタスクブロックをコピー（最初にフォーカスされているものを対象）
-      const focused = _root.querySelector("[data-task-id]:focus, [data-task-id].focused");
+      const focused = [..._root.querySelectorAll("[data-task-id]:focus, [data-task-id].focused")].find(el => !el.closest('[hidden]'));
       if (focused) {
         const taskId = focused.getAttribute("data-task-id");
         _clipboard = Store.getAllTasks().find((t) => t.id === taskId) ?? null;
@@ -1576,7 +1603,7 @@ function _wireCopyPaste() {
 
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "x") {
       // 切り取り = コピー + 削除(単一予定のみUndo対応)
-      const focused = _root.querySelector("[data-task-id]:focus, [data-task-id].focused");
+      const focused = [..._root.querySelectorAll("[data-task-id]:focus, [data-task-id].focused")].find(el => !el.closest('[hidden]'));
       if (!focused) return;
       const taskId = focused.getAttribute("data-task-id");
       if (!taskId) return;
@@ -1616,7 +1643,7 @@ function _wireCopyPaste() {
     }
 
     if (!e.ctrlKey && !e.metaKey && e.key === "Delete") {
-      const focused = _root.querySelector("[data-task-id].focused");
+      const focused = [..._root.querySelectorAll("[data-task-id].focused")].find(el => !el.closest('[hidden]'));
       if (!focused) return;
       const taskId = focused.getAttribute("data-task-id");
       if (!taskId) return;
@@ -1628,7 +1655,7 @@ function _wireCopyPaste() {
   // タスクブロックをクリックでフォーカス可能にする
   document.addEventListener("click", (e) => {
     const block = e.target.closest("[data-task-id]");
-    if (block) {
+    if (block && !_root.hidden && _root.contains(block)) {
       _setFocusedTaskElement(block);
     }
   });

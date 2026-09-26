@@ -39,6 +39,7 @@ function createUpdateView(root, dialog, supported) {
     statuses: all('[data-update-status]'),
     checkButtons: all('[data-update-check]'),
     openButtons: all('[data-update-open]'),
+    entries: all('[data-update-entry]'),
     notes: dialog.querySelector('[data-update-notes]'),
     install: dialog.querySelector('[data-update-install]'),
     close: dialog.querySelector('[data-update-close]'),
@@ -51,11 +52,28 @@ function createUpdateView(root, dialog, supported) {
       view.statuses.forEach(el => { el.textContent = status; });
       view.checkButtons.forEach(el => { el.disabled = busy || !supported; });
       view.openButtons.forEach(el => {
-        el.hidden = !state.latest;
-        el.textContent = el.closest('[data-settings-dialog]') ? '設定を保存して更新' : '↑ アップデート';
-        el.title = state.latest ? `v${state.latest.version} の更新内容を見る` : '';
+        const entry = view.entries.includes(el);
+        el.hidden = !entry && !state.latest;
+        if (!entry) el.textContent = el.closest('[data-settings-dialog]') ? '設定を保存して更新'
+          : state.latest ? '更新あり' : busy ? '確認中…' : '更新を確認';
+        el.title = state.latest ? `v${state.latest.version} の更新内容を見る` : 'アプリの更新を確認する';
+        if (entry) {
+          el.classList.toggle('hasUpdate', Boolean(state.latest));
+          el.setAttribute('aria-label', state.latest ? `更新あり: ${el.title}` : busy ? '更新を確認中' : el.title);
+        }
         el.disabled = applying;
       });
+      const hasUpdate = Boolean(state.latest);
+      dialog.querySelector('#update-title').textContent = hasUpdate ? '新しいアップデートがあります' : 'アプリのアップデート';
+      dialog.querySelector('.updateIntro').textContent = hasUpdate
+        ? 'TaskCalendar+ を最新のバージョンに更新できます。' : '現在のバージョンと更新の有無を確認できます。';
+      for (const selector of ['.updateNotesHeading', '.updateSafetyNote', '.updateLatestVersion']) {
+        dialog.querySelector(selector).hidden = !hasUpdate;
+      }
+      const arrow = dialog.querySelector('.updateVersionComparison [aria-hidden]');
+      if (arrow) arrow.hidden = !hasUpdate;
+      view.install.hidden = !hasUpdate;
+      view.close.textContent = hasUpdate ? 'あとで' : '閉じる';
       view.latest.forEach(el => { el.textContent = state.latest ? `v${state.latest.version}` : '—'; });
       view.notes.textContent = state.latest?.notes || '';
       view.install.disabled = !supported || !state.latest || busy;
@@ -103,6 +121,7 @@ export async function initAppUpdater(Store, root = document, bridge = window.__T
     const settings = el.closest('[data-settings-dialog]');
     if (settings?.open && !await settings._wsdCore?.saveSettings()) return;
     view.show();
+    if (view.entries.includes(el) && supported && !controller.state.latest) await controller.check();
   }));
   view.install.addEventListener('click', () => { void controller.install(); });
   view.close.addEventListener('click', () => dialog.close());

@@ -1,0 +1,13 @@
+{
+  "src-tauri/src/ai.rs": "264e44a2901ed63266a08c60957e1ee7deceedaf54e99b227208af86e7188791",
+  "src-tauri/src/ai_cli.rs": "5d6541221be2e72a01ab5ce4e2a769f5c75282dd4a3f2265d3bac32a850f392e",
+  "src-tauri/src/ai_models.rs": "132e38787a359cd0e8f86c0aa54af611d20a5a026c056b1ecc2a77fb0640e533",
+  "src-tauri/src/api.rs": "583185486be157077248061b914df54e12b0c20ad98e48cb07db59acf8066974",
+  "src-tauri/src/calendar.rs": "50c55304b0bfaceae0077143f6894f74e79b6e5c11f11de2fdbb78e342796ea1",
+  "src-tauri/src/db.rs": "94e29cbbb1e370dad42b2488ba3e83c7e0dee97046e8d4ab01744caf69580753",
+  "src-tauri/src/mcp.rs": "1b2e65754cb99c408b49d27a9a5669b5b33c11223670356238b8ae3583b0cac1",
+  "src-tauri/src/outlook.rs": "f1f24b2b3bdcce330ec1bc8c17dbf5f9f9417f29bc333894b919b2fc59123a92",
+  "src-tauri/src/repositories.rs": "9c6df99d531ea3671a7f82fab31f2338d9ba21c1552dce24c51ab4d26784d762",
+  "src-tauri/src/ui_preferences.rs": "d9b0321d9ddb0f88c682791b2c4d697c3db4bc619fc699705801cc9c1700f097",
+  "src-tauri/src/updater.rs": "b1b0f563987c66c0caf09edaeb25b34da5a2a38cd782589de4e823b33554b5c2"
+}

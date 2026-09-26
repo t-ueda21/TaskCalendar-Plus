@@ -1016,15 +1016,19 @@ export function normalizeHexColor(value, fallback = DEFAULT_TAG_COLOR) {
 
 // ── 3画面(カレンダー・タスク一覧・AIモード)で共通の部品 ─────────────
 
-/** サイドバーの開閉ボタン(「◀ サイド」「▶ サイド」)。 */
+/** サイドバーの開閉ボタン。アイコンと文字を別要素のまま更新する。 */
 export function wireSidebarToggle(root) {
   root.querySelector("[data-sidebar-toggle]")?.addEventListener("click", (e) => {
     const layout = root.querySelector(".layout");
     const btn = e.currentTarget;
     if (!layout || !(btn instanceof HTMLButtonElement)) return;
     const collapsed = layout.classList.toggle("sidebar-collapsed");
-    btn.textContent = collapsed ? "▶ サイド" : "◀ サイド";
+    btn.querySelector("[data-sidebar-chevron]")?.setAttribute(
+      "d", collapsed ? "m13 9 3 3-3 3" : "m16 9-3 3 3 3",
+    );
+    btn.setAttribute("aria-expanded", String(!collapsed));
     btn.title = collapsed ? "サイドバーを開く" : "サイドバーを折りたたむ";
+    btn.setAttribute("aria-label", btn.title);
   });
 }
 
