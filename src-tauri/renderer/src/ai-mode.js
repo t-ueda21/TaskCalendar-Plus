@@ -43,8 +43,8 @@ const WELCOME_MESSAGE = [
 const SETUP_MESSAGE = [
   "AIモードを使うには、AIの接続先の設定が必要です。",
   "",
-  "⚙設定 →「基本」→「AI」で「Claude Code / Codex と連携する」をオンにし、接続先を選んでください。",
-  "このPCに Claude Code または Codex がインストール・ログイン済みである必要があります。",
+  "⚙設定 →「基本」→「AI」で接続先とモデルを設定してください。",
+  "Claude Code / Codex、または起動済みの Ollama / LM Studio を使えます。",
 ].join("\n");
 
 let _settings = Store.getSettings();
@@ -367,13 +367,14 @@ function _renderModelStatus() {
   if (!$.modelStatus) return;
   if (!isAiConfigured()) {
     $.modelStatus.textContent = "AI: 未設定（⚙設定 → 基本 → AI）";
-    $.modelStatus.title = "設定画面の「AI」で Claude Code / Codex との連携をオンにすると使えます";
+    $.modelStatus.title = "設定画面の「AI」で接続先とモデルを設定すると使えます";
     return;
   }
   const provider = String(_settings.aiProvider);
   const label = Store.AI_PROVIDER_LABELS[provider] ?? provider;
-  const model = String((provider === "codex" ? _settings.aiCodexModel : _settings.aiClaudeModel) ?? "").trim() || "既定";
-  const effort = String((provider === "codex" ? _settings.aiCodexEffort : _settings.aiClaudeEffort) ?? "").trim();
+  const modelKey = { "claude-code": "aiClaudeModel", codex: "aiCodexModel", ollama: "aiOllamaModel", lmstudio: "aiLmStudioModel" }[provider];
+  const model = String(_settings[modelKey] ?? "").trim() || "既定";
+  const effort = String((provider === "codex" ? _settings.aiCodexEffort : provider === "claude-code" ? _settings.aiClaudeEffort : "") ?? "").trim();
   const used = getLastUsedModel();
   $.modelStatus.textContent = `AI: ${label} / ${model}${effort ? ` / effort: ${effort}` : ""}${used && used !== model ? `（実行: ${used}）` : ""}`;
   $.modelStatus.title = $.modelStatus.textContent;

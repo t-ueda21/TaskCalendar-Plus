@@ -1,4 +1,4 @@
-//! AIエージェント(Claude Code / Codex)向けの MCP サーバー(Streamable HTTP の JSON-RPC)。
+//! AIエージェント向けの MCP サーバーと、ローカルAIにも共通の道具の定義・実行。
 //!
 //! AIモードのチャット1回ごとにセッションを発行し、CLIはこのサーバーの道具で予定を調べたり、
 //! 予定の作成・変更・削除を「提案」したりする。道具はDBへ書き込まない。提案はセッションごとに
@@ -56,7 +56,7 @@ fn contains_ci(haystack: &str, needle: &str) -> bool {
 
 // ── 道具の定義 ────────────────────────────────────────────────
 
-fn tool_definitions() -> Value {
+pub(crate) fn tool_definitions() -> Value {
     let date = json!({ "type": "string", "description": "YYYY-MM-DD" });
     let time = json!({ "type": "string", "description": "HH:MM(24時間表記)" });
     json!([
@@ -495,7 +495,7 @@ fn propose_delete(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, 
     add_proposal(ctx, p)
 }
 
-fn call_tool(ctx: &McpContext, name: &str, args: &Value) -> Result<Value, String> {
+pub(crate) fn call_tool(ctx: &McpContext, name: &str, args: &Value) -> Result<Value, String> {
     let data = load(ctx.conn)?;
     match name {
         "get_context" => Ok(get_context(ctx, &data)),

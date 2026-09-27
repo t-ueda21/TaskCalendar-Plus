@@ -1,6 +1,7 @@
 // 設定画面共通のモデル選択。候補の再取得でも、編集中・保存済みの値を保持する。
 const states = new WeakMap();
-const MANUAL = '__manual_model__';
+export const MANUAL_MODEL = '__manual_model__';
+const MANUAL = MANUAL_MODEL;
 
 function picker(dialog, provider) {
   let providers = states.get(dialog);
@@ -20,13 +21,16 @@ function picker(dialog, provider) {
 }
 
 function render(state, current, manualMode = false) {
-  const { select, manual } = state;
-  const options = [new Option('既定を使用（CLIにおまかせ）', '')];
-  for (const model of state.models) {
+  renderModelChoices(state.select, state.manual, state.models, current, manualMode);
+}
+
+export function renderModelChoices(select, manual, models, current, manualMode = false, placeholder = '既定を使用（CLIにおまかせ）') {
+  const options = [new Option(placeholder, '')];
+  for (const model of models) {
     const label = model.label === model.id ? model.label : `${model.label}（${model.id}）`;
     options.push(new Option(label, model.id));
   }
-  if (current && !state.models.some(m => m.id === current)) options.push(new Option(`${current}（現在の設定）`, current));
+  if (current && !models.some(m => m.id === current)) options.push(new Option(`${current}（現在の設定）`, current));
   options.push(new Option('モデル名を手入力…', MANUAL));
   select.replaceChildren(...options);
   select.value = manualMode ? MANUAL : current;

@@ -21,6 +21,8 @@ export const AI_PROVIDER_LABELS = {
   none: "使わない",
   "claude-code": "Claude Code",
   codex: "Codex",
+  ollama: "Ollama",
+  lmstudio: "LM Studio",
 };
 const DEFAULT_APP_ICON_SIZE = 24;
 
@@ -70,6 +72,10 @@ const DEFAULT_SETTINGS = {
   aiCodexEffort:       "low",
   aiClaudeModel:       "",
   aiCodexModel:        "",
+  aiOllamaEndpoint:    "http://localhost:11434/v1",
+  aiOllamaModel:       "",
+  aiLmStudioEndpoint:  "http://localhost:1234/v1",
+  aiLmStudioModel:     "",
   appIconUrl:          "",
   appIconSize:         DEFAULT_APP_ICON_SIZE,
   weatherLocationKey:  "tokyo",
@@ -164,6 +170,8 @@ function _normalizeSettings(settingsLike) {
   merged.aiCodexEffort = _normalizeEffort("codex", merged.aiCodexEffort);
   merged.aiClaudeModel = _normalizeShortText(merged.aiClaudeModel);
   merged.aiCodexModel = _normalizeShortText(merged.aiCodexModel);
+  for (const key of ["aiOllamaModel", "aiLmStudioModel"]) merged[key] = _normalizeShortText(merged[key]);
+  for (const key of ["aiOllamaEndpoint", "aiLmStudioEndpoint"]) merged[key] = String(merged[key] ?? "").trim().slice(0, 2048) || DEFAULT_SETTINGS[key];
   merged.appIconUrl = _normalizeAppIconUrl(merged.appIconUrl);
   merged.appIconSize = _normalizeAppIconSize(merged.appIconSize);
   merged.monthTagOrders = _normalizeMonthTagOrders(merged.monthTagOrders);

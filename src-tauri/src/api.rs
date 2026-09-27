@@ -136,6 +136,8 @@ pub fn build_router(state: AppState) -> Router {
             axum::routing::post(outlook_auto_sync),
         )
         .route("/api/ai/chat", axum::routing::post(ai_chat))
+        .route("/api/ai/local/models", axum::routing::post(ai_local_models))
+        .route("/api/ai/local/test", axum::routing::post(ai_local_test))
         .route(
             "/mcp/{session}",
             axum::routing::post(mcp_post)
@@ -613,18 +615,24 @@ async fn ai_chat(State(state): State<AppState>, headers: HeaderMap, body: Bytes)
         .unwrap_or_default();
     let format = body.get("format").filter(|v| !v.is_null()).cloned();
     let agent = body.get("agent").and_then(|v| v.as_bool()).unwrap_or(false);
-    let ai = {
+    let settings = {
         let conn = lock_conn(&state);
-        let settings = repo::settings_get(&conn)
+        repo::settings_get(&conn)
             .ok()
             .flatten()
-            .unwrap_or(Value::Null);
-        crate::ai::AiSettings::from_settings(&settings)
+            .unwrap_or(Value::Null)
     };
+    if let Some(local) = crate::ai_local::LocalSettings::from_settings(&settings) {
+        return match crate::ai_local::chat(&state, &local, messages, format.as_ref(), agent).await {
+            Ok(reply) => json_ok(reply),
+            Err(error) => json_err(StatusCode::SERVICE_UNAVAILABLE, error),
+        };
+    }
+    let ai = crate::ai::AiSettings::from_settings(&settings);
     let Some(kind) = ai.provider else {
         return json_err(
             StatusCode::SERVICE_UNAVAILABLE,
-            "AIの接続先が設定されていません。設定画面の「AI」で「Claude Code / Codex と連携する」をオンにし、接続先を選んでください。",
+            "AIの接続先が設定されていません。設定画面の「AI」で接続先を選んでください。Claude Code / Codex を使う場合は連携もオンにしてください。",
         );
     };
     let program_override = match kind {
@@ -765,6 +773,36 @@ async fn ai_detect(State(state): State<AppState>) -> Response {
         ),
     );
     json_ok(json!({ "claudeCode": claude, "codex": codex }))
+}
+
+#[derive(serde::Deserialize)]
+struct LocalAiRequest {
+    provider: String,
+    endpoint: String,
+    #[serde(default)]
+    model: String,
+}
+
+async fn ai_local_models(body: Bytes) -> Response {
+    let input: LocalAiRequest = match parse_body(&body) {
+        Ok(value) => value,
+        Err(response) => return *response,
+    };
+    match crate::ai_local::models(&input.provider, &input.endpoint).await {
+        Ok(result) => json_ok(result),
+        Err(error) => json_err(StatusCode::SERVICE_UNAVAILABLE, error),
+    }
+}
+
+async fn ai_local_test(body: Bytes) -> Response {
+    let input: LocalAiRequest = match parse_body(&body) {
+        Ok(value) => value,
+        Err(response) => return *response,
+    };
+    match crate::ai_local::test_connection(&input.provider, &input.endpoint, &input.model).await {
+        Ok(result) => json_ok(result),
+        Err(error) => json_err(StatusCode::SERVICE_UNAVAILABLE, error),
+    }
 }
 
 async fn ai_models(State(state): State<AppState>, Path(provider): Path<String>) -> Response {

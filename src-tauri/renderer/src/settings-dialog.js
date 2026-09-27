@@ -26,6 +26,7 @@ import {
 } from "./ui-utils.js";
 import { _renderTagManager, buildHslPicker } from "./tag-manager.js";
 import { loadSelectedModels, populateModelSelection, readModelSelection } from "./ai-model-picker.js";
+import { LOCAL_AI_PROVIDERS, populateLocalAiSettings, readLocalAiSettings, validateSelectedLocalAi, describeLocalAiImport, validateLocalAiImport } from "./local-ai-settings.js";
 import { applyUiColor, populateUiColor, readUiColor, wireUiColorPicker } from "./ui-color-picker.js";
 
 // ── 設定ダイアログ共通ヘルパー(3画面(calendar/tasks/ai-mode)で共用) ──
@@ -67,7 +68,16 @@ function syncAiProviderPanels(settingsDialog) {
     panel.hidden = panel.getAttribute("data-ai-provider-panel") !== provider;
   });
   const note = settingsDialog.querySelector("[data-ai-privacy-note]");
-  if (note) note.hidden = provider === "none";
+  if (note) {
+    note.hidden = provider === "none";
+    note.textContent = LOCAL_AI_PROVIDERS[provider]
+      ? "予定・メモの内容は指定したエンドポイントに送信します。このPC内で使う場合は localhost の接続先とローカルモデルを選んでください。"
+      : "予定のタイトル・時刻・メモ・気づきメモの内容が、選んだAIサービスへ送信されます。";
+  }
+  const detect = settingsDialog.querySelector("[data-ai-detect-btn]");
+  if (detect) detect.hidden = Boolean(LOCAL_AI_PROVIDERS[provider]);
+  const cliNote = settingsDialog.querySelector("[data-ai-cli-note]");
+  if (cliNote) cliNote.hidden = Boolean(LOCAL_AI_PROVIDERS[provider]);
   loadSelectedModels(settingsDialog);
 }
 
@@ -85,6 +95,7 @@ function populateAiProviderSettings(settingsDialog, settings) {
   setValue("[name='aiCodexEffort']", settings?.aiCodexEffort);
   const detectResult = settingsDialog.querySelector("[data-ai-detect-result]");
   if (detectResult) detectResult.hidden = true;
+  populateLocalAiSettings(settingsDialog, settings);
   syncAiProviderPanels(settingsDialog);
 }
 
@@ -97,6 +108,7 @@ function readAiProviderSettings(settingsDialog) {
     aiClaudeEffort: value("[name='aiClaudeEffort']"),
     aiCodexModel: readModelSelection(settingsDialog, "codex"),
     aiCodexEffort: value("[name='aiCodexEffort']"),
+    ...readLocalAiSettings(settingsDialog),
   };
 }
 
@@ -301,12 +313,16 @@ function bindSettingsTransfer(settingsDialog, Store) {
     let parsed;
     try {
       parsed = parseSettingsImport(await file.text(), { allowedSettingKeys: Object.keys(Store.getSettings()) });
+      validateLocalAiImport(parsed.settings, Store.getSettings());
     } catch (e) {
       alert(e?.message || "設定ファイルの読み込みに失敗しました。");
       return;
     }
     const settingCount = Object.keys(parsed.settings).length;
-    const details = describeSensitiveImportSettings(parsed.settings, Store.AI_PROVIDER_LABELS ?? {});
+    const details = [
+      ...describeSensitiveImportSettings(parsed.settings, Store.AI_PROVIDER_LABELS ?? {}),
+      ...describeLocalAiImport(parsed.settings, Store.getSettings()),
+    ];
     const message = [
       `設定${settingCount}項目とタグ${parsed.tags.length}件を取り込みます。現在の設定は上書きされます。`,
       ...(details.length ? ["", "次の設定が含まれています。内容を確認してください。", ...details] : []),
@@ -714,7 +730,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   let savingSettings = false;
   let dialogSession = 0;
   const saveSettings = async () => {
-    if (savingSettings) return false;
+    if (savingSettings || !validateSelectedLocalAi(settingsDialog)) return false;
     const savingSession = dialogSession;
     const onAfterSave = getConfig().onAfterSave;
     const current = Store.getSettings();

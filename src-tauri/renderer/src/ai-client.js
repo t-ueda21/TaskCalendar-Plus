@@ -1,13 +1,14 @@
 /**
  * ai-client.js
  *
- * AI(Claude Code / Codex)の呼び出し。実体はRust側の /api/ai/chat(ai_cli.rs)。
+ * AIの呼び出し。実体はRust側の /api/ai/chat（CLIまたはローカルAPI）。
  * - callAi: 道具なしの1回の呼び出し(日次サマリーなど)
  * - chatWithAgent: AIモードのエージェント。アプリのMCPサーバーの道具で予定を調べ、
  *   予定の作成・変更・削除は「提案」として返す(確定は画面のカードで行う)。
  */
 
 import * as Store from "./store.js";
+import { localAiConfig, validateLocalAi } from "./local-ai-settings.js";
 
 // Claude Code / Codex はCLIの起動と、道具を使いながらの推論に時間がかかる(Rust側は170秒で打ち切る)。
 const AI_TIMEOUT_MS = 180_000;
@@ -27,6 +28,8 @@ export class AiError extends Error {
 /** AIの接続先が設定され、連携がオンになっているか。 */
 export function isAiConfigured() {
   const s = Store.getSettings();
+  const local = localAiConfig(s);
+  if (local) return !validateLocalAi(local);
   return s?.aiCliEnabled === true && ["claude-code", "codex"].includes(String(s?.aiProvider ?? ""));
 }
 
@@ -42,7 +45,7 @@ export function cancelAi() {
 
 async function _request(body) {
   if (!isAiConfigured()) {
-    throw new AiError("AIの接続先が設定されていません。⚙設定 →「基本」→「AI」で、Claude Code / Codex との連携をオンにして接続先を選んでください。", { unavailable: true });
+    throw new AiError("AIの接続先が設定されていません。⚙設定 →「基本」→「AI」で接続先とモデルを設定してください。", { unavailable: true });
   }
   const controller = new AbortController();
   _abortController = controller;

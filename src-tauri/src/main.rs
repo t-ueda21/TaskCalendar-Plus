@@ -3,6 +3,7 @@
 
 mod ai;
 mod ai_cli;
+mod ai_local;
 mod ai_models;
 mod api;
 mod calendar;
@@ -19,7 +20,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::{Manager, WindowEvent};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
-// AIは Claude Code / Codex だけを使う(設定画面の aiCliEnabled / aiProvider で選ぶ)。実行ファイルは
+// AIは Claude Code / Codex または Ollama / LM Studio を使う(aiProvider で選ぶ)。CLI実行ファイルは
 // PATHから探すが、環境変数 TCPLUS_CLAUDE_PATH / TCPLUS_CODEX_PATH で指定もできる。
 
 /// 組み込みHTTP APIの合言葉(起動ごとに生成)。画面へはこのコマンドでだけ渡す。

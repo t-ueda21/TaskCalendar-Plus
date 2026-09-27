@@ -396,13 +396,13 @@
 
             <section class="settingsSection">
               <div class="settingsSectionLabel">AI</div>
-              <div class="settingsSectionSub">AIモード・日次サマリーで使うAIの接続先です。このPCにインストール・ログイン済みの Claude Code または Codex を使います。</div>
+              <div class="settingsSectionSub">AIモード・日次サマリーで使うAIの接続先です。Claude Code / Codex、または Ollama / LM Studio に接続できます。</div>
               <label class="uiToggle" for="cfg-ai-cli-enabled">
                 <input id="cfg-ai-cli-enabled" name="aiCliEnabled" type="checkbox" class="uiToggleInput" role="switch" data-ai-cli-enabled />
                 <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
                 <span class="themeToggleLabel">Claude Code / Codex と連携する</span>
               </label>
-              <div class="settingsTagHint">
+              <div class="settingsTagHint" data-ai-cli-note>
                 オンにすると、このPCにインストール・ログイン済みの Claude Code または Codex を、AIモード・日次サマリーの実行時に呼び出せるようになります（既定はオフ）。
                 呼び出すたびに、予定のタイトル・時刻・メモ・気づきメモの内容が Anthropic（Claude Code）または OpenAI（Codex）へ送信され、ご自身の契約の利用枠を消費します。
                 呼び出し時はファイル操作・コマンド実行などのツールを無効にし、ご自身の設定やMCPサーバーは読み込みません。業務で使う場合は、所属組織のルールも確認してください。
@@ -414,6 +414,8 @@
                     <option value="none">使わない</option>
                     <option value="claude-code">Claude Code</option>
                     <option value="codex">Codex</option>
+                    <option value="ollama">Ollama</option>
+                    <option value="lmstudio">LM Studio</option>
                   </select>
                   <button class="btn" type="button" data-ai-detect-btn title="Claude Code / Codex がこのPCで使えるか確認します">検出</button>
                 </div>
@@ -468,6 +470,47 @@
                     <option value="xhigh">xhigh（丁寧・遅い）</option>
                   </select>
                 </div>
+              </div>
+
+              <div class="localAiProvider" data-ai-provider-panel="ollama" hidden>
+                <div class="settingsTagHint">Ollamaのサーバーを起動して、使用するモデルを用意してください。Claude Code / Codex の連携スイッチは不要です。</div>
+                <div class="settingsInlineRow settingsInlineRowWide">
+                  <label class="settingsInlineLabel" for="cfg-ollama-endpoint">接続URL</label>
+                  <input id="cfg-ollama-endpoint" name="aiOllamaEndpoint" type="url" data-local-ai-endpoint placeholder="http://localhost:11434/v1" spellcheck="false" />
+                </div>
+                <div class="settingsInlineRow settingsInlineRowWide settingsModelRow">
+                  <label class="settingsInlineLabel" for="cfg-ollama-model">モデル</label>
+                  <select id="cfg-ollama-model" name="aiOllamaModel" data-local-ai-model data-ai-model-select aria-describedby="ollama-model-status"><option value="">モデルを選択してください</option></select>
+                  <button class="btn" type="button" data-local-ai-action="models">再取得</button>
+
+                </div>
+                <div class="settingsInlineRow settingsInlineRowWide">
+                  <input type="text" data-local-ai-manual data-ai-model-manual aria-label="Ollamaのモデル名を手入力" placeholder="モデル名を入力" hidden />
+                </div>
+                <div class="localAiActions">
+                  <button class="btn" type="button" data-local-ai-action="test">接続テスト</button>
+                </div>
+                <div class="settingsTagHint" id="ollama-model-status" data-local-ai-status role="status" aria-live="polite"></div>
+              </div>
+              <div class="localAiProvider" data-ai-provider-panel="lmstudio" hidden>
+                <div class="settingsTagHint">LM Studioのサーバーを起動して、使用するモデルを用意してください。Claude Code / Codex の連携スイッチは不要です。</div>
+                <div class="settingsInlineRow settingsInlineRowWide">
+                  <label class="settingsInlineLabel" for="cfg-lmstudio-endpoint">接続URL</label>
+                  <input id="cfg-lmstudio-endpoint" name="aiLmStudioEndpoint" type="url" data-local-ai-endpoint placeholder="http://localhost:1234/v1" spellcheck="false" />
+                </div>
+                <div class="settingsInlineRow settingsInlineRowWide settingsModelRow">
+                  <label class="settingsInlineLabel" for="cfg-lmstudio-model">モデル</label>
+                  <select id="cfg-lmstudio-model" name="aiLmStudioModel" data-local-ai-model data-ai-model-select aria-describedby="lmstudio-model-status"><option value="">モデルを選択してください</option></select>
+                  <button class="btn" type="button" data-local-ai-action="models">再取得</button>
+
+                </div>
+                <div class="settingsInlineRow settingsInlineRowWide">
+                  <input type="text" data-local-ai-manual data-ai-model-manual aria-label="LM Studioのモデル名を手入力" placeholder="モデル名を入力" hidden />
+                </div>
+                <div class="localAiActions">
+                  <button class="btn" type="button" data-local-ai-action="test">接続テスト</button>
+                </div>
+                <div class="settingsTagHint" id="lmstudio-model-status" data-local-ai-status role="status" aria-live="polite"></div>
               </div>
 
               <div class="settingsTagHint" data-ai-privacy-note hidden>予定のタイトル・時刻・メモ・気づきメモの内容が、選んだAIサービスへ送信されます。</div>

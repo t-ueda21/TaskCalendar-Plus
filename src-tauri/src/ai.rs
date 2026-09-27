@@ -1,7 +1,7 @@
 //! AIの接続先の選択と、AIエージェントへの指示(system prompt)。
 //!
-//! AIは利用者のPCにインストール・ログイン済みの Claude Code / Codex だけを使う(`ai_cli.rs`)。
-//! 「Claude Code / Codex と連携する」(aiCliEnabled、既定オフ)をオンにし、接続先(aiProvider)を選んだときだけ呼び出す。
+//! CLI接続はインストール・ログイン済みの Claude Code / Codex を使う(`ai_cli.rs`)。
+//! CLIは aiCliEnabled(既定オフ)の同意が必要。Ollama / LM Studio の設定と通信は `ai_local.rs` が扱う。
 
 use crate::ai_cli::CliKind;
 use serde_json::Value;

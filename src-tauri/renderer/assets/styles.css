@@ -3533,3 +3533,7 @@ button:focus-visible,
 .shortcutTable tbody th { font-weight: 400; }
 .shortcutTable kbd { font: inherit; font-variant-numeric: tabular-nums; }
 .shortcutContext { display: block; margin-top: 3px; color: var(--muted); font-size: var(--font-caption); }
+
+.localAiProvider:not([hidden]) { display: grid; gap: 8px; }
+.localAiActions { display: flex; align-items: center; gap: 8px; }
+.localAiProvider .btn { white-space: nowrap; }

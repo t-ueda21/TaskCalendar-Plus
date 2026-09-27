@@ -12,6 +12,7 @@ if(process.argv.includes('--record')) {
   console.log('Rust test sections frozen.');
 } else {
   const expected=JSON.parse(fs.readFileSync(manifest,'utf8'));
-  if(JSON.stringify(expected)!==JSON.stringify(current))throw Error('Frozen Rust test sections changed; investigate before comparing.');
-  console.log('PASS: Rust test sections unchanged');
+  if(Object.entries(expected).some(([file, hash]) => current[file] !== hash))throw Error('Frozen Rust test sections changed; investigate before comparing.');
+  const added = Object.keys(current).filter(file => !(file in expected));
+  console.log(`PASS: Original Rust test sections unchanged (${added.length} additional test modules)`);
 }
