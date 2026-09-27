@@ -79,8 +79,8 @@
             <h2 class="calendarTitleBar calendarWeatherTitleBar">
               <span class="calendarTitleLeft">
                 <button class="btn primary" type="button" data-go-today>今日に戻る</button>
-                <button class="btn titleNavBtn" type="button" data-shift-prev aria-label="前の日">◀</button>
-                <button class="btn titleNavBtn" type="button" data-shift-next aria-label="次の日">▶</button>
+                <button class="btn titleNavBtn" type="button" data-shift-prev aria-label="前の日"><span aria-hidden="true">◀</span><span data-nav-label>前日</span></button>
+                <button class="btn titleNavBtn" type="button" data-shift-next aria-label="次の日"><span data-nav-label>翌日</span><span aria-hidden="true">▶</span></button>
                 <span class="small titleShiftLabel"><strong data-view-date>----</strong></span>
               </span>
               <span class="weatherChip" data-calendar-day-weather>天気取得中...</span>
@@ -197,8 +197,8 @@
             <h2 class="calendarTitleBar calendarWeatherTitleBar">
               <span class="calendarTitleLeft">
                 <button class="btn primary" type="button" data-list-today>今日に戻る</button>
-                <button class="btn titleNavBtn" type="button" data-task-day-prev aria-label="前の日">◀</button>
-                <button class="btn titleNavBtn" type="button" data-task-day-next aria-label="次の日">▶</button>
+                <button class="btn titleNavBtn" type="button" data-task-day-prev aria-label="前の日"><span aria-hidden="true">◀</span><span data-nav-label>前日</span></button>
+                <button class="btn titleNavBtn" type="button" data-task-day-next aria-label="次の日"><span data-nav-label>翌日</span><span aria-hidden="true">▶</span></button>
                 <span class="small titleShiftLabel"><strong data-task-day-label>----</strong></span>
               </span>
               <span class="weatherChip" data-task-day-weather>天気取得中...</span>
@@ -287,8 +287,8 @@
             <h2 class="calendarTitleBar">
               <span class="calendarTitleLeft">
                 <button class="btn primary" type="button" data-ai-today>今日に戻る</button>
-                <button class="btn titleNavBtn" type="button" data-ai-day-prev aria-label="前の日">◀</button>
-                <button class="btn titleNavBtn" type="button" data-ai-day-next aria-label="次の日">▶</button>
+                <button class="btn titleNavBtn" type="button" data-ai-day-prev aria-label="前の日"><span aria-hidden="true">◀</span><span data-nav-label>前日</span></button>
+                <button class="btn titleNavBtn" type="button" data-ai-day-next aria-label="次の日"><span data-nav-label>翌日</span><span aria-hidden="true">▶</span></button>
                 <span class="small titleShiftLabel"><strong data-ai-day-label>----</strong></span>
               </span>
             </h2>
@@ -332,6 +332,7 @@
         <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="tags">タグ管理</button>
         <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="outlook">Outlook</button>
         <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="about">説明</button>
+        <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="shortcuts">ショートカット</button>
       </div>
       <div class="uiColorPicker" data-ui-color-picker role="group" aria-label="UIカラー">
         <div class="uiColorPresets" data-ui-color-presets></div>
@@ -695,6 +696,78 @@
             </div>
           </section>
         </section>
+        <section class="settingsTabPanel" data-settings-tab-panel="shortcuts" hidden>
+          <section class="settingsSection">
+            <h3 class="settingsSectionLabel">カレンダー・タスク一覧</h3>
+            <p class="settingsSectionSub">予定を選択してから操作します。文字入力中やダイアログ表示中は、予定のショートカットは使えません。</p>
+            <table class="shortcutTable" aria-label="カレンダー・タスク一覧のキー操作">
+              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+              <tbody>
+                <tr><th scope="row"><kbd>Ctrl + C</kbd></th><td>予定をコピー<span class="shortcutContext">カレンダーで選択中の予定</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + X</kbd></th><td>予定を切り取り<span class="shortcutContext">カレンダーで選択中の1件</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + V</kbd></th><td>予定を貼り付け<span class="shortcutContext">カレンダーの選択日に、繰り返しなしで複製</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + ドラッグ</kbd></th><td>予定を複製して移動<span class="shortcutContext">カレンダーの予定をドラッグ</span></td></tr>
+                <tr><th scope="row"><kbd>Delete</kbd></th><td>予定を削除<span class="shortcutContext">カレンダー・タスク一覧で選択中の予定</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + Z</kbd></th><td>操作を元に戻す<span class="shortcutContext">カレンダーの予定操作。繰り返しの一括作成・一括編集は対象外</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + Y / Ctrl + Shift + Z</kbd></th><td>操作をやり直す<span class="shortcutContext">カレンダーで元に戻した操作</span></td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="settingsSection">
+            <h3 class="settingsSectionLabel">AI・気づきメモ</h3>
+            <p class="settingsSectionSub">日本語の変換確定中のEnterでは、AIメッセージを送信しません。</p>
+            <table class="shortcutTable" aria-label="AI・気づきメモのキー操作">
+              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+              <tbody>
+                <tr><th scope="row"><kbd>Ctrl + Enter</kbd></th><td>メッセージを送信<span class="shortcutContext">AIモードの入力欄</span></td></tr>
+                <tr><th scope="row"><kbd>Enter</kbd></th><td>改行／メッセージを送信<span class="shortcutContext">AIモード。「Enterで送信」がOFFなら改行、ONなら送信（初期値OFF）</span></td></tr>
+                <tr><th scope="row"><kbd>Shift + Enter</kbd></th><td>改行<span class="shortcutContext">AIモード。「Enterで送信」がONでも改行</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + Enter</kbd></th><td>気づきメモを保存<span class="shortcutContext">タスク一覧の「その日の気づき・思ったこと」</span></td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="settingsSection">
+            <h3 class="settingsSectionLabel">表示倍率</h3>
+            <p class="settingsSectionSub">アプリ全体の文字や表示の大きさを調整します。</p>
+            <table class="shortcutTable" aria-label="表示倍率のキー操作">
+              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+              <tbody>
+                <tr><th scope="row"><kbd>Ctrl + ＋ / Ctrl + ＝ / Ctrl + ；</kbd></th><td>拡大<span class="shortcutContext">どの画面でも使用可。日本語配列ではCtrl + ；も使用可</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + −</kbd></th><td>縮小<span class="shortcutContext">どの画面でも使用可</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + 0</kbd></th><td>標準倍率に戻す<span class="shortcutContext">100%に戻す</span></td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="settingsSection">
+            <h3 class="settingsSectionLabel">月選択・時刻入力</h3>
+            <p class="settingsSectionSub">ミニカレンダーの月名を押すと、1〜12月の選択画面が開きます。</p>
+            <table class="shortcutTable" aria-label="月選択・時刻入力のキー操作">
+              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+              <tbody>
+                <tr><th scope="row"><kbd>← / → / ↑ / ↓</kbd></th><td>月の選択位置を移動<span class="shortcutContext">月選択画面。上下は4か月分移動</span></td></tr>
+                <tr><th scope="row"><kbd>Home / End</kbd></th><td>1月／12月へ移動<span class="shortcutContext">月選択画面</span></td></tr>
+                <tr><th scope="row"><kbd>Enter / Space</kbd></th><td>選択中の月を開く<span class="shortcutContext">月のボタンにフォーカスがあるとき</span></td></tr>
+                <tr><th scope="row"><kbd>Esc</kbd></th><td>日付一覧へ戻る<span class="shortcutContext">月選択画面</span></td></tr>
+                <tr><th scope="row"><kbd>↑ / ↓</kbd></th><td>時刻を1分進める／戻す<span class="shortcutContext">予定の開始・終了などの時刻入力欄</span></td></tr>
+              </tbody>
+            </table>
+          </section>
+          <section class="settingsSection">
+            <h3 class="settingsSectionLabel">入力・共通操作</h3>
+            <p class="settingsSectionSub">操作する入力欄やボタンにフォーカス（選択枠）がある状態で使います。</p>
+            <table class="shortcutTable" aria-label="入力・共通操作のキー操作">
+              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+              <tbody>
+                <tr><th scope="row"><kbd>Enter</kbd></th><td>予定を保存<span class="shortcutContext">予定の編集画面。メモ欄では改行</span></td></tr>
+                <tr><th scope="row"><kbd>Enter</kbd></th><td>設定を保存<span class="shortcutContext">設定の入力欄。複数行の入力欄では改行</span></td></tr>
+                <tr><th scope="row"><kbd>Enter</kbd></th><td>タグを追加／名前の編集を確定<span class="shortcutContext">タグ追加欄では追加、タグ一覧では編集を確定</span></td></tr>
+                <tr><th scope="row"><kbd>Tab / Shift + Tab</kbd></th><td>次／前の操作部品へ移動<span class="shortcutContext">入力欄・ボタンなど</span></td></tr>
+                <tr><th scope="row"><kbd>Enter / Space</kbd></th><td>ボタンやスイッチを操作<span class="shortcutContext">選択中の操作部品</span></td></tr>
+                <tr><th scope="row"><kbd>Esc</kbd></th><td>ダイアログ・メニューを閉じる<span class="shortcutContext">設定や予定の編集、タグのメニューなど</span></td></tr>
+              </tbody>
+            </table>
+          </section>
+        </section>
       </div>
 
       <footer class="settingsFooter">
@@ -732,8 +805,8 @@
                     <button class="miniCalToggle" type="button" data-mini-calendar-toggle aria-expanded="true" aria-label="ミニカレンダーを折りたたむ" title="ミニカレンダーを折りたたむ">▼</button>
                     <h2 class="title"><button class="miniCalMonthLabel" type="button" data-mini-month-label aria-expanded="false" title="月を選択">2026年4月</button></h2>
                     <div class="miniCalHeaderArrows">
-                      <button class="btn titleNavBtn" type="button" data-mini-month-prev aria-label="前の月">↑</button>
-                      <button class="btn titleNavBtn" type="button" data-mini-month-next aria-label="次の月">↓</button>
+                      <button class="btn titleNavBtn" type="button" data-mini-month-prev aria-label="前の月"><span aria-hidden="true">↑</span><span data-nav-label>前月</span></button>
+                      <button class="btn titleNavBtn" type="button" data-mini-month-next aria-label="次の月"><span data-nav-label>翌月</span><span aria-hidden="true">↓</span></button>
                     </div>
                   </div>
                 </div>

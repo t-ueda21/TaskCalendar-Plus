@@ -726,11 +726,17 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 .titleNavBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
   min-width: 32px;
   height: 28px;
-  padding: 0;
+  padding: 0 8px;
   line-height: 1;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
+  white-space: nowrap;
 }
 
 .aiModelChip {
@@ -762,13 +768,15 @@ aside .panelBody::-webkit-scrollbar {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 28px;
   padding: 4px 10px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--surface-3);
   color: var(--muted);
   font-size: var(--font-caption);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .weatherChip.loading {
@@ -3503,3 +3511,25 @@ button:focus-visible,
 }
 .settingsProjectLink { margin: 0; }
 .settingsProjectLink a { color: var(--accent-strong); text-underline-offset: 3px; }
+
+/* Settings help uses the same typography and colors as the settings controls. */
+[data-settings-tab-panel="shortcuts"] .settingsSectionLabel,
+[data-settings-tab-panel="shortcuts"] .settingsSectionSub { margin: 0; }
+.shortcutTable {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--font-body);
+}
+.shortcutTable th, .shortcutTable td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.shortcutTable th:first-child { width: 38%; }
+.shortcutTable thead { color: var(--muted); }
+.shortcutTable tbody th { font-weight: 400; }
+.shortcutTable kbd { font: inherit; font-variant-numeric: tabular-nums; }
+.shortcutContext { display: block; margin-top: 3px; color: var(--muted); font-size: var(--font-caption); }

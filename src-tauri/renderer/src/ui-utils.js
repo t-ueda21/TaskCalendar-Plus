@@ -408,6 +408,11 @@ export function setupMiniCalendar({ containerEl, monthLabelEl, prevBtn, nextBtn,
     }
     prevBtn?.setAttribute('aria-label', choosingMonth ? '前の年' : '前の月');
     nextBtn?.setAttribute('aria-label', choosingMonth ? '次の年' : '次の月');
+    for (const [button, label] of [[prevBtn, choosingMonth ? '前年' : '前月'], [nextBtn, choosingMonth ? '翌年' : '翌月']]) {
+      const text = button?.querySelector('[data-nav-label]');
+      if (text) text.textContent = label;
+      if (button) button.title = button.getAttribute('aria-label');
+    }
   }
 
   prevBtn?.addEventListener("click", () => {

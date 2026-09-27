@@ -80,6 +80,6 @@ if (phase === 'before') {
   const quote = value => '"' + String(value ?? '').replaceAll('"','""') + '"';
   const columns = ['id','feature','source','required','preconditions','steps','expected','notes'];
   const csv = [columns.join(','), ...definitions.sort((a,b)=>a.id.localeCompare(b.id)).map(row=>columns.map(column=>quote(row[column])).join(','))].join('\n')+'\n';
-  fs.writeFileSync('docs/refactor/2026-09-27-case-matrix.csv', csv, {flag:'wx'});
+  fs.writeFileSync(run + '/case-matrix.csv', csv, {flag:'wx'});
 }
 console.log(JSON.stringify({phase,required:cases.filter(row=>row.required).length,passed:cases.filter(row=>row.required&&row.status==='passed').length,notRun:cases.filter(row=>row.status==='not-run').length,metrics:metrics.length}));

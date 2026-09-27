@@ -1,75 +1,34 @@
 # Release maintenance
 
-Windows x64 releases use a per-user Tauri NSIS installer and Tauri updater signatures. Windows Authenticode signing is intentionally absent. Keep the application identifier, updater public key, and per-user data directory stable across releases.
+Windows x64 uses a per-user Tauri NSIS installer with updater signatures. Windows Authenticode signing is intentionally absent. Keep the application identifier, public key, and data location stable.
 
-## Prepare a release
+## Prepare and build
 
-1. Set the same stable version in `src-tauri/Cargo.toml` and `src-tauri/tauri.conf.json`; update the package entry in `Cargo.lock`.
-2. Add user-facing notes in `docs/releases/vX.Y.Z.md` and update `CHANGELOG.md`. If controls or wording changed, update the README and capture the current app with isolated sample data. Keep historical release screenshots unchanged.
-3. Run `node scripts/release-manifest.mjs --check`, Rust and JavaScript tests, renderer syntax checks, and Clippy. Test the packaged application with the native UI suites and check data compatibility with the previous public version.
-4. Commit the tested sources, push `main`, and push a matching `vX.Y.Z` tag. Do not move an existing tag to different sources. Check the CI result for the exact release commit.
+1. Match versions in `src-tauri/Cargo.toml`, its `Cargo.lock` package entry, and `src-tauri/tauri.conf.json`.
+2. Update `CHANGELOG.md`, `docs/releases/vX.Y.Z.md`, and the README/screenshots when relevant. Keep only the current release notes in main; old notes and screenshots remain available in Git tags and GitHub Releases. Keep temporary plans, test reports, and comparison images in ignored `out/`.
+3. Run `node scripts/release-manifest.mjs --check`, Rust and JavaScript tests, renderer syntax checks, and Clippy. Test the actual packaged app with isolated data and verify compatibility with the previous version.
+4. Commit the tested sources and push main with a matching version tag. Never move a published tag. Require CI success for that exact commit.
 
-The workflow in `.github/workflows/release.yml` tests the tagged sources, builds and signs the NSIS installer, generates `latest.json`, and creates a **draft** release. A successful workflow does not itself publish an update.
+`.github/workflows/release.yml` builds, signs, and creates a **draft**, not a published update. It requires `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Preserve the original recovery key outside the repository; never print, commit, archive, or replace it for an ordinary release.
 
-## Build with GitHub Actions or locally
-
-GitHub Actions is the normal build path. It uses these secrets:
-
-- `TAURI_SIGNING_PRIVATE_KEY`: the original updater private key.
-- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: its password, if set.
-
-The original recovery key is stored outside the repository in the maintainer's `.tauri/taskcalendar-plus/` directory. Never print it, commit it, or include it in verification archives. Existing installations trust the committed public key, so do not replace the signing key for an ordinary release.
-
-A locally built installer is also acceptable when it is built from the same tested tag and verified before publication. If a release workflow for that tag is running, cancel it and wait until cancellation completes before manually uploading assets, so two writers cannot replace each other's files.
-
-On the release machine, load the original signing key into the environment above without displaying it, then run from the repository root:
+A verified local build is also supported:
 
 ```powershell
 npx --yes @tauri-apps/cli@2.11.5 build --ci --bundles nsis -- --locked
 node scripts/release-manifest.mjs
 ```
 
-Use `src-tauri/target` as the target directory; the manifest script expects the NSIS bundle under `src-tauri/target/release/bundle/nsis`. Remove signing secrets from the build process environment afterward. If the CLI version changes, confirm it against the release workflow and test that version before using it.
+Use `src-tauri/target` as the target directory and scope signing secrets to the build process. If uploading locally built assets, cancel the duplicate release workflow and wait for cancellation before uploading.
 
-Both build paths must produce exactly these distribution assets:
+## Publish and verify
 
-- `TaskCalendar+_<version>_x64-setup.exe`
-- The corresponding `.exe.sig`
-- `latest.json`, pointing to that version's installer URL
+1. Verify the installer against the committed public key, including rejection of modified bytes. Compare bundled renderer files with the release sources. Record hashes, commands, and results under `out/`.
+2. Upload exactly the tested installer, its `.exe.sig`, and `latest.json` to the draft. Confirm remote hashes match and notes match `docs/releases/vX.Y.Z.md`.
+3. Publish as the latest stable release when authorized. Never overwrite published assets.
+4. Download the feed and installer without authentication; verify version, notes, URL, checksum, and signature. Check that the previous native app detects the update and the new app reports no newer version.
 
-## Verify the candidate
+Production feed: `https://github.com/t-ueda21/TaskCalendar-Plus/releases/latest/download/latest.json`
 
-Verify the installer signature with the committed public key, and confirm that modified installer bytes are rejected. Compare the bundled renderer files with the tagged sources. Record the artifact SHA-256, version, source commit, commands, and results in a release verification report.
+Packaged-app tests and update detection do **not** prove installation/restart behavior. Test a complete installer upgrade only in an isolated Windows environment, including installation registration and shortcuts. State any skipped checks. Never use normal user data for release tests.
 
-Keep different kinds of verification explicit:
-
-- **Packaged app check:** extract the real installer and run its application with an isolated data directory and WebView2 profile.
-- **Data compatibility check:** open synthetic data saved by the previous public app in the new app; compare task IDs and fields, tags, settings, notes, and summaries.
-- **Installer upgrade check:** install the old and new NSIS packages in an isolated Windows test environment and verify the installed app and preserved data. Extraction alone does not verify installer behavior.
-- **Native updater check:** check the public feed from the previous app. Detecting a version is distinct from downloading, installing, and restarting. When testing the full update, also verify the restorable before-update backup.
-
-Never use the maintainer's normal task database for these tests. An installer test must also isolate installation registration and shortcuts; changing only the data directory is insufficient. Report skipped or unavailable checks explicitly, including whether automatic installation was left to the user.
-
-## Publish and verify the public update
-
-1. Create or inspect the draft for the existing tag. Upload only the tested installer, its signature, and `latest.json`.
-2. Verify that uploaded asset hashes match the tested files and that release notes match `docs/releases/vX.Y.Z.md`.
-3. Publish the draft as the latest stable release after release authorization. Neither committing source nor pushing a tag is publication.
-4. Without authentication, download the latest feed and installer. Check the version, release notes, URL, checksum, and signature. Confirm that the previous native app detects the update and that the new version reports no newer version.
-5. Record public verification results and any cancelled duplicate workflow in `docs/releases/vX.Y.Z-verification.md`.
-
-The release page and in-app notes come from the same notes file. If notes change before publication, regenerate `latest.json` and update the draft body together. Editing only the GitHub body does not change in-app notes. Do not overwrite assets of an already published version.
-
-Only published releases in the public repository are accessible to the unauthenticated updater. The production endpoint is:
-
-```text
-https://github.com/t-ueda21/TaskCalendar-Plus/releases/latest/download/latest.json
-```
-
-## In-app behavior
-
-The toolbar always shows **Side / Fetch / Update / Settings** with icons and labels. Update is highlighted when a newer version is available. Startup checking defaults to ON and can be disabled in settings; a found update opens its notes after any editor closes.
-
-Installation is an explicit user action. The app verifies the downloaded signature, writes a restorable JSON backup under the existing data directory's `backups` folder, then launches the installer. Failed signature verification or backup creation aborts installation. Database migration and compatibility remain the application's responsibility.
-
-Current user instructions are in the [README](../README.md). The [v0.1.7 verification record](releases/v0.1.7-verification.md) shows the actual local-build path, checks performed, and remaining limits for that release.
+The app checks signatures and creates a restorable backup before installing; failure of either step aborts installation. When changing notes before publication, regenerate `latest.json` and update the draft body together. See the [README](../README.md) for user instructions.

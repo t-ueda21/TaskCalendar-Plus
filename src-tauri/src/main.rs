@@ -87,10 +87,11 @@ fn set_autostart_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), Str
 //
 // トレイアイコンの左クリックは常にウィンドウを表示+最前面化する
 // (非表示中はshow、表示中でも他ウィンドウの裏に隠れていれば前面に出す)。
-// メニュー(リロード/再起動/閉じる)は右クリックのみで開く
+// メニュー(最小化/リロード/再起動/閉じる)は右クリックのみで開く
 // (show_menu_on_left_clickは常にfalse固定、右クリックでのメニュー表示は
 // tauriのトレイアイコン標準動作に任せる)。
 const TRAY_ICON_ID: &str = "main-tray";
+const TRAY_MENU_MINIMIZE: &str = "minimize";
 const TRAY_MENU_RELOAD: &str = "reload";
 const TRAY_MENU_RESTART: &str = "restart";
 const TRAY_MENU_QUIT: &str = "quit";
@@ -114,6 +115,7 @@ fn ensure_tray(app: &tauri::AppHandle, static_root: &std::path::Path) -> Result<
         .ok_or("tray icon is unavailable")?;
     let icon = tauri::image::Image::from_path(&icon_path).map_err(|e| e.to_string())?;
     let menu = MenuBuilder::new(app)
+        .text(TRAY_MENU_MINIMIZE, "最小化")
         .text(TRAY_MENU_RELOAD, "リロード")
         .text(TRAY_MENU_RESTART, "再起動")
         .text(TRAY_MENU_QUIT, "閉じる")
@@ -124,6 +126,11 @@ fn ensure_tray(app: &tauri::AppHandle, static_root: &std::path::Path) -> Result<
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
+            TRAY_MENU_MINIMIZE => {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.minimize();
+                }
+            }
             TRAY_MENU_RELOAD => {
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.reload();

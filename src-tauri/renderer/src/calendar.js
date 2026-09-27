@@ -540,7 +540,6 @@ function _wireToolbar() {
   $viewModeSelect?.addEventListener("change", () => {
     _viewMode = $viewModeSelect.value;
     _applyViewMode(_viewMode);
-    _updateShiftLabels();
     updateNowLine(_granularity, _viewMode);
   });
 
@@ -584,6 +583,7 @@ function _applyViewMode(mode) {
   _renderWeekTasks();
   void _renderCalendarWeather();
   _updateDateLabel();
+  _updateShiftLabels();
   setTimeout(_scrollToWorkStart, 0);
 }
 
@@ -633,6 +633,10 @@ function _updateShiftLabels() {
   $shiftPrev && ($shiftPrev.title = prev);
   $shiftNext?.setAttribute("aria-label", next);
   $shiftNext && ($shiftNext.title = next);
+  for (const [button, label] of [[$shiftPrev, _viewMode === "week" ? "前週" : "前日"], [$shiftNext, _viewMode === "week" ? "翌週" : "翌日"]]) {
+    const text = button?.querySelector('[data-nav-label]');
+    if (text) text.textContent = label;
+  }
 }
 
 function _scrollToNow() {
