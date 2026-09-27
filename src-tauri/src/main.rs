@@ -128,7 +128,7 @@ fn ensure_tray(app: &tauri::AppHandle, static_root: &std::path::Path) -> Result<
         .on_menu_event(|app, event| match event.id().as_ref() {
             TRAY_MENU_MINIMIZE => {
                 if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.minimize();
+                    let _ = window.hide();
                 }
             }
             TRAY_MENU_RELOAD => {

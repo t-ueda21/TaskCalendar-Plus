@@ -106,3 +106,15 @@ writing.resolve();
 await new Promise(resolve => setImmediate(resolve));
 assert.equal(rapidNative.preferences.zoom, 1.7, 'rapid zoom keys apply sequential relative changes');
 console.log('Native UI preference bridge: port change, legacy import, failed-write retry, and queued zoom passed.');
+
+const reloadPage = launch('http://127.0.0.1:30213', { preferences: { theme: 'light', zoom: 1 } });
+let reloadCount = 0;
+reloadPage.window.location.reload = () => { reloadCount += 1; };
+const reloadKey = (overrides = {}) => reloadPage.handlers.get('keydown')({ key: 'r', ctrlKey: true, altKey: false, metaKey: false, shiftKey: false, preventDefault() {}, ...overrides });
+reloadKey();
+assert.equal(reloadCount, 1, 'Ctrl+R reloads exactly once');
+reloadKey({ ctrlKey: false });
+reloadKey({ altKey: true });
+reloadKey({ isComposing: true });
+assert.equal(reloadCount, 1, 'plain R, Alt modifiers and IME composition do not reload');
+console.log('Explicit Ctrl+R reload passed.');

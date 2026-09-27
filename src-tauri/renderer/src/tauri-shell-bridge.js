@@ -156,6 +156,11 @@
   document.addEventListener('keydown', function (event) {
     if (!event.ctrlKey || event.altKey || event.metaKey) return;
     var key = event.key;
+    if (key.toLowerCase() === 'r' && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
+      event.preventDefault();
+      window.location.reload();
+      return;
+    }
     // JIS配列では「+」がShift+;側にあり押しにくいため、Shift不要な「;」でも拡大できるようにする。
     if (key !== '+' && key !== '=' && key !== ';' && key !== '-' && key !== '0') return;
     event.preventDefault();
