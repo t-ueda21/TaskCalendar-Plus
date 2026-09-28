@@ -43,7 +43,7 @@ import { wireSettingsDialog, wireSideTagClickToSettings } from "./settings-dialo
 import {
   getWeatherByDate,
   getWeatherRange,
-  formatWeatherForDisplay,
+  renderWeatherInto,
   getWeatherLocationOptions,
 } from "./weather.js";
 
@@ -622,7 +622,7 @@ function _updateDateLabel() {
     const start = _businessOnly ? mon : addDays(mon, -1);
     $viewDateLabel.textContent = `${formatDateJP(start)} - ${formatDateJP(end)}`;
   } else {
-    $viewDateLabel.textContent = formatDateJP(_viewDate);
+    $viewDateLabel.textContent = formatDateJP(_viewDate, { withWeekday: true });
   }
 }
 
@@ -742,7 +742,7 @@ async function _renderCalendarWeather() {
 
     if ($calendarDayWeather) {
       $calendarDayWeather.classList.remove("loading");
-      $calendarDayWeather.textContent = formatWeatherForDisplay(selectedWeather);
+      renderWeatherInto($calendarDayWeather, selectedWeather);
     }
 
     DAY_META.forEach(({ key, offset }) => {
@@ -753,7 +753,7 @@ async function _renderCalendarWeather() {
 
       const dateKey = formatDateKey(addDays(mon, offset));
       const weather = weeklyRows?.[dateKey] ?? null;
-      weatherEl.textContent = formatWeatherForDisplay(weather, { withTemp: false });
+      renderWeatherInto(weatherEl, weather, { withTemp: false });
     });
   } catch (e) {
     console.warn("[calendar] weather rendering failed:", e);

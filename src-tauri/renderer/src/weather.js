@@ -7,6 +7,7 @@
 
 import { formatDateKey, parseLocalDate, _isDateKey } from "./ui-utils.js";
 import * as Store from "./store.js";
+import { createWeatherIcon } from "./weather-icons.js";
 
 const DEFAULT_LOCATION_KEY = "tokyo";
 // 都道府県庁所在地(北から都道府県コード順)。keyは設定に保存されるため変えない。
@@ -119,19 +120,19 @@ function _saveCache(locationKey) {
 }
 
 function _weatherInfoByCode(code) {
-  const n = Number(code);
-  if (n === 0) return { icon: "☀", text: "快晴" };
-  if (n === 1) return { icon: "🌤", text: "晴れ" };
-  if (n === 2) return { icon: "⛅", text: "晴れ時々曇り" };
-  if (n === 3) return { icon: "☁", text: "曇り" };
-  if (n === 45 || n === 48) return { icon: "🌫", text: "霧" };
-  if (n >= 51 && n <= 57) return { icon: "🌦", text: "霧雨" };
-  if (n >= 61 && n <= 67) return { icon: "🌧", text: "雨" };
-  if (n >= 71 && n <= 77) return { icon: "❄", text: "雪" };
-  if (n >= 80 && n <= 82) return { icon: "🌦", text: "にわか雨" };
-  if (n >= 85 && n <= 86) return { icon: "🌨", text: "にわか雪" };
-  if (n >= 95 && n <= 99) return { icon: "⛈", text: "雷雨" };
-  return { icon: "🌡", text: "不明" };
+  const n = code == null || code === "" ? NaN : Number(code);
+  if (n === 0) return { icon: "sun", text: "快晴" };
+  if (n === 1) return { icon: "sun-medium", text: "晴れ" };
+  if (n === 2) return { icon: "cloud-sun", text: "晴れ時々曇り" };
+  if (n === 3) return { icon: "cloud", text: "曇り" };
+  if (n === 45 || n === 48) return { icon: "cloud-fog", text: "霧" };
+  if (n >= 51 && n <= 57) return { icon: "cloud-drizzle", text: "霧雨" };
+  if (n >= 61 && n <= 67) return { icon: "cloud-rain", text: "雨" };
+  if (n >= 71 && n <= 77) return { icon: "snowflake", text: "雪" };
+  if (n >= 80 && n <= 82) return { icon: "cloud-sun-rain", text: "にわか雨" };
+  if (n >= 85 && n <= 86) return { icon: "cloud-snow", text: "にわか雪" };
+  if (n >= 95 && n <= 99) return { icon: "cloud-lightning", text: "雷雨" };
+  return { icon: "thermometer", text: "不明" };
 }
 
 function _toNumberOrNull(value) {
@@ -147,7 +148,7 @@ function _buildRecord(dateKey, weatherCode, tempMaxC, tempMinC) {
 
   return {
     date: dateKey,
-    weatherCode: Number.isFinite(Number(weatherCode)) ? Number(weatherCode) : null,
+    weatherCode: weatherCode != null && weatherCode !== "" && Number.isFinite(Number(weatherCode)) ? Number(weatherCode) : null,
     weatherText: info.text,
     icon: info.icon,
     tempMaxC: max,
@@ -277,16 +278,26 @@ export function getWeatherLocationOptions() {
 export function formatWeatherForDisplay(record, { withTemp = true } = {}) {
   if (!record) return "天気情報なし";
 
-  const icon = String(record.icon ?? "🌡");
   const text = String(record.weatherText ?? "不明");
-  if (!withTemp) return `${icon} ${text}`;
+  if (!withTemp) return text;
 
   const max = Number(record.tempMaxC);
   const min = Number(record.tempMinC);
   if (Number.isFinite(max) && Number.isFinite(min)) {
-    return `${icon} ${text} ${max.toFixed(1)}℃/${min.toFixed(1)}℃`;
+    return `${text} ${max.toFixed(1)}℃/${min.toFixed(1)}℃`;
   }
-  return `${icon} ${text}`;
+  return text;
+}
+
+/** Render from the weather code so existing cached emoji are replaced immediately. */
+export function renderWeatherInto(element, record, options = {}) {
+  const doc = element.ownerDocument;
+  const text = doc.createTextNode(formatWeatherForDisplay(record, options));
+  if (!record) {
+    element.replaceChildren(text);
+    return;
+  }
+  element.replaceChildren(createWeatherIcon(_weatherInfoByCode(record.weatherCode).icon, doc), text);
 }
 
 export async function getWeatherByDate(dateKey, { force = false } = {}) {

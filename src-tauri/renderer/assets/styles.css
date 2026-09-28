@@ -783,6 +783,19 @@ aside .panelBody::-webkit-scrollbar {
   color: var(--muted);
 }
 
+.weatherIcon {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin-right: 4px;
+  vertical-align: -4px;
+}
+
+.weatherChip .weatherIcon {
+  margin-right: 0;
+}
+
 .panel .content {
   padding: 6px;
 }

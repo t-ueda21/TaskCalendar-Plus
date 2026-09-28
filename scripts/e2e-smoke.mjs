@@ -84,6 +84,72 @@ try {
   const shown = await evaluate(`[...document.querySelectorAll('#viewRoot > .view')].filter((v) => !v.hidden).map((v) => v.dataset.view)`);
   check('起動時にカレンダー画面が表示される', JSON.stringify(shown) === '["calendar"]', JSON.stringify(shown));
 
+  const weekdayLabels = await evaluate(`(async () => {
+    const ui = await import('/src/ui-utils.js');
+    const labels = {};
+    for (const [view, selector] of [['tasks','[data-task-day-label]'],['ai','[data-ai-day-label]'],['calendar','[data-view-date]']]) {
+      ui.syncViewDate('2026-09-28');
+      document.querySelector('[data-nav-target="'+view+'"]').click();
+      await new Promise(r=>setTimeout(r,200));
+      const root = document.querySelector('.view[data-view="'+view+'"]');
+      if (view === 'calendar') {
+        const mode = root.querySelector('[data-viewmode]');
+        mode.value = 'day'; mode.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+      labels[view] = root.querySelector(selector).textContent;
+    }
+    const root = document.querySelector('.view[data-view="calendar"]');
+    root.querySelector('[data-shift-next]').click();
+    labels.next = root.querySelector('[data-view-date]').textContent;
+    root.querySelector('[data-shift-prev]').click();
+    labels.previous = root.querySelector('[data-view-date]').textContent;
+    return labels;
+  })()`);
+  check('日付ナビに曜日を表示し、前日・翌日で更新する',
+    ['tasks','ai','calendar','previous'].every(key=>weekdayLabels[key]==='2026年09月28日（月）')
+      && weekdayLabels.next==='2026年09月29日（火）', JSON.stringify(weekdayLabels));
+
+  const weatherIcons = await evaluate(`(async () => {
+    const {renderWeatherInto} = await import('/src/weather.js');
+    const codes = [0,1,2,3,45,51,61,71,80,85,95,999];
+    const gallery = document.createElement('div');
+    gallery.id = 'weather-test-gallery';
+    gallery.style.cssText = 'position:fixed;inset:0;z-index:99999;display:grid;grid-template-columns:repeat(3,1fr);align-content:center;gap:18px;padding:24px;background:var(--panel);color:var(--text)';
+    const labels=['快晴','晴れ','晴れ時々曇り','曇り','霧','霧雨','雨','雪','にわか雨','にわか雪','雷雨','不明'];
+    for (const [index,code] of codes.entries()) {
+      const chip = document.createElement('span'); chip.className = 'weatherChip';
+      renderWeatherInto(chip, {weatherCode:code,weatherText:labels[index],icon:'⛅',tempMaxC:24,tempMinC:18});
+      gallery.appendChild(chip);
+    }
+    document.body.appendChild(gallery);
+    const originalTheme = document.documentElement.dataset.theme;
+    const results = {};
+    for (const theme of ['light','dark']) {
+      document.documentElement.dataset.theme = theme;
+      results[theme+'Details'] = [...gallery.querySelectorAll('svg')].map(svg=>{
+        const box=svg.getBoundingClientRect(), shape=svg.getBBox();
+        return {width:box.width,height:box.height,shapeWidth:shape.width,shapeHeight:shape.height,stroke:getComputedStyle(svg).stroke,color:getComputedStyle(svg.parentElement).color};
+      });
+      // WebView2 returns fractional CSS pixels under Windows display scaling.
+      results[theme] = results[theme+'Details'].every(x=>Math.abs(x.width-18)<0.01&&Math.abs(x.height-18)<0.01&&x.shapeWidth>0&&x.shapeHeight>0&&x.stroke===x.color);
+    }
+    results.count = gallery.querySelectorAll('svg').length;
+    document.documentElement.dataset.theme = originalTheme || 'light';
+    return results;
+  })()`);
+  check('12種類の天気SVGがライト・ダークで文字色に追従する', weatherIcons.count===12&&weatherIcons.light&&weatherIcons.dark, JSON.stringify(weatherIcons));
+  if (process.env.TCPLUS_E2E_SCREENSHOT_DIR) {
+    fs.mkdirSync(process.env.TCPLUS_E2E_SCREENSHOT_DIR, {recursive:true});
+    const theme = await evaluate('document.documentElement.dataset.theme');
+    for (const appearance of ['light','dark']) {
+      await evaluate(`document.documentElement.dataset.theme='${appearance}'`);
+      const capture = await send('Page.captureScreenshot', {format:'png'});
+      fs.writeFileSync(path.join(process.env.TCPLUS_E2E_SCREENSHOT_DIR, 'weather-'+appearance+'.png'), Buffer.from(capture.result.data, 'base64'));
+    }
+    await evaluate(`document.documentElement.dataset.theme=${JSON.stringify(theme)}`);
+  }
+  await evaluate('document.getElementById("weather-test-gallery").remove()');
+
   const api = await evaluate(`(async () => {
     const withToken = (await fetch('/api/tasks')).status;
     const withoutToken = await new Promise((res) => { const x = new XMLHttpRequest(); x.open('GET', '/api/tasks'); x.onload = () => res(x.status); x.send(); });
@@ -652,7 +718,7 @@ try {
           return {left:r.left,right:r.right,mid:r.y+r.height/2,height:r.height,icon:!!el.querySelector('svg'),iconWidth:el.querySelector('svg')?.getBoundingClientRect().width};
         });
         return {ordered:rects[0].right<=rects[1].left && rects[1].right<=rects[2].left && rects[2].right<=rects[3].left,
-          sameHeight:rects.every(r=>r.height===34), iconSize:rects.every(r=>r.iconWidth===16),
+          sameHeight:rects.every(r=>Math.abs(r.height-34)<0.01), iconSize:rects.every(r=>Math.abs(r.iconWidth-16)<0.01),
           sameRow:Math.max(...rects.map(r=>r.mid))-Math.min(...rects.map(r=>r.mid))<2,
           visible:rects.every(r=>r.right<=innerWidth&&r.left>=0), icons:rects.every(r=>r.icon),
           noHeaderIcons:!document.querySelector('.header [data-update-entry]')};
