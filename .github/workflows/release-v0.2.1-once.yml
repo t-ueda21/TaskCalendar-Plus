@@ -1,0 +1,90 @@
+name: One-shot v0.2.1 Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/release-v0.2.1-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      RELEASE_TAG: v0.2.1
+      TARGET_SHA: cc1de3829467edbf121a3301340b0ca73c08cba8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Validate version
+        run: node scripts/release-manifest.mjs --check
+
+      - name: Test
+        shell: pwsh
+        run: |
+          cargo test --locked --manifest-path src-tauri/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem scripts/test-* -File | ForEach-Object {
+            node $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Test failed: $($_.Name)" }
+          }
+
+      - name: Build signed updater installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx --yes @tauri-apps/cli@2.11.5 build --ci --bundles nsis -- --locked
+
+      - name: Create update feed
+        run: node scripts/release-manifest.mjs
+
+      - name: Create, upload and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $notesPath = "docs/releases/$env:RELEASE_TAG.md"
+          $existing = gh release view $env:RELEASE_TAG --json isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if (-not ($existing | ConvertFrom-Json).isDraft) { throw 'Refusing to overwrite a published release' }
+            gh release edit $env:RELEASE_TAG --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } else {
+            gh release create $env:RELEASE_TAG --target $env:TARGET_SHA --draft --title "TaskCalendar+ $env:RELEASE_TAG" --notes-file $notesPath
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ("v$version" -ne $env:RELEASE_TAG) { throw "Version mismatch: v$version != $env:RELEASE_TAG" }
+
+          $installer = @(Get-ChildItem src-tauri/target/release/bundle/nsis -File -Filter "*_${version}_x64-setup.exe")
+          if ($installer.Count -ne 1) { throw 'Expected one installer for the current version' }
+
+          $assets = @(
+            $installer[0].FullName,
+            ($installer[0].FullName + '.sig'),
+            'src-tauri/target/release/bundle/nsis/latest.json'
+          )
+          gh release upload $env:RELEASE_TAG @assets --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          gh release edit $env:RELEASE_TAG --draft=false
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
