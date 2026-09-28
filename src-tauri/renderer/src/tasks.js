@@ -39,7 +39,7 @@ import { summarizeDay, shouldSkipDailySummary } from "./ai-memory.js";
 import { isAiConfigured } from "./ai-client.js";
 import {
   getWeatherByDate,
-  formatWeatherForDisplay,
+  renderWeatherInto,
   getWeatherLocationOptions,
 } from "./weather.js";
 
@@ -465,7 +465,7 @@ async function _renderTaskDayWeather(dateKey) {
     const weather = await getWeatherByDate(dateKey);
     if (token !== _dayWeatherRenderToken || _root.hidden) return;
     $dayWeather.classList.remove("loading");
-    $dayWeather.textContent = formatWeatherForDisplay(weather);
+    renderWeatherInto($dayWeather, weather);
   } catch (e) {
     console.warn("[tasks] weather rendering failed:", e);
     if (token !== _dayWeatherRenderToken || _root.hidden) return;
@@ -586,7 +586,7 @@ function _selectDate(date) {
   if ($dayInsightReply) {
     $dayInsightReply.textContent = "この日の思ったことや気づいたことを入力して保存すると、今日のサマリーへ直接反映します。";
   }
-  if ($dayLabel) $dayLabel.textContent = formatDateJP(_selectedDate);
+  if ($dayLabel) $dayLabel.textContent = formatDateJP(_selectedDate, { withWeekday: true });
   _miniCalInst?.highlightDate(formatDateKey(_selectedDate));
   _miniCalInst?.navigateToMonth(_selectedDate.getFullYear(), _selectedDate.getMonth());
   _renderInsightMeta(dateKey || formatDateKey(_selectedDate));

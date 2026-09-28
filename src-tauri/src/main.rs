@@ -124,6 +124,7 @@ fn ensure_tray(app: &tauri::AppHandle, static_root: &std::path::Path) -> Result<
         .map_err(|e| e.to_string())?;
     TrayIconBuilder::with_id(TRAY_ICON_ID)
         .icon(icon)
+        .tooltip("TaskCalendar+")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {

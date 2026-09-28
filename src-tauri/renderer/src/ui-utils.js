@@ -40,8 +40,9 @@ export function formatYearMonth(date) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
 }
 
-export function formatDateJP(date) {
-  return `${date.getFullYear()}年${pad2(date.getMonth() + 1)}月${pad2(date.getDate())}日`;
+export function formatDateJP(date, { withWeekday = false } = {}) {
+  const label = `${date.getFullYear()}年${pad2(date.getMonth() + 1)}月${pad2(date.getDate())}日`;
+  return withWeekday ? `${label}（${"日月火水木金土"[date.getDay()]}）` : label;
 }
 
 function formatNow(date) {
