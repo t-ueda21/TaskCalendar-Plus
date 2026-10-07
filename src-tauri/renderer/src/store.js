@@ -1140,6 +1140,11 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
       id: current?.id ?? genId(), date,
       createdAt: current?.createdAt ?? nowIso, updatedAt: nowIso,
     };
+    if (!current) {
+      delete updated.outlookOccurrenceKey;
+      delete updated.outlookSeriesId;
+      delete updated.meetingUrl;
+    }
     _maybeNormalizeClock(sharedPatch, updated);
     if (!validateTask(updated)) return null;
     upserts.push(updated);

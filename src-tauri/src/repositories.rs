@@ -967,11 +967,11 @@ pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id:
     for event in events {
         if let Some(external_key) = event.outlook_occurrence_key.strip_prefix("tcplus:") {
             use rusqlite::OptionalExtension;
-            let owner = conn.query_row("SELECT l.task_id,EXISTS(SELECT 1 FROM tasks WHERE id=l.task_id),COALESCE((SELECT status FROM outlook_jobs WHERE task_id=l.task_id),'done') FROM outlook_links l WHERE l.external_key=?1",params![external_key],|row|Ok((row.get::<_,String>(0)?,row.get::<_,bool>(1)?,row.get::<_,String>(2)?))).optional()?;
-            if let Some((id, exists, status)) = owner {
-                if !exists || status != "done" { continue; }
-                conn.execute("UPDATE tasks SET outlook_occurrence_key=?2,outlook_series_id=?3 WHERE id=?1",params![id,event.outlook_occurrence_key,event.outlook_series_id])?;
-            }
+            let owner = conn.query_row("SELECT task_id FROM outlook_links WHERE external_key=?1",params![external_key],|row|row.get::<_,String>(0)).optional()?;
+            // App-created tasks are locally authoritative. Importing a calendar is
+            // not a request to change or delete them, even after their write is done.
+            // This also makes delayed fetch responses unable to roll back an Upsert.
+            if owner.is_some() { continue; }
         }
         accepted_events.push(event.clone());
     }
@@ -981,7 +981,7 @@ pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id:
     {
         let mut stmt = conn.prepare(
             "SELECT id, title, date, is_all_day, start_time, end_time, memo, outlook_occurrence_key, outlook_series_id, meeting_url,
-                EXISTS(SELECT 1 FROM outlook_jobs WHERE task_id=tasks.id AND status <> 'done')
+                EXISTS(SELECT 1 FROM outlook_jobs WHERE task_id=tasks.id AND status <> 'done'), outlook_enabled
              FROM tasks WHERE (date >= ?1 AND date <= ?2)
                 OR (outlook_occurrence_key IS NOT NULL AND outlook_series_id IS NOT NULL AND outlook_series_id <> '')",
         )?;
@@ -998,6 +998,7 @@ pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id:
             let series_id: Option<String> = row.get(8)?;
             let meeting_url: Option<String> = row.get(9)?;
             let pending_outbound: bool = row.get(10)?;
+            let app_managed: bool = row.get(11)?;
             let sig = signature(
                 &title,
                 &date,
@@ -1009,7 +1010,7 @@ pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id:
             rows.push(ExistingRow {
                 id,
                 title,
-                in_range: !pending_outbound && range.contains_task(&date, if is_all_day_int != 0 { None } else { start_time.as_deref() }),
+                in_range: !app_managed && !pending_outbound && range.contains_task(&date, if is_all_day_int != 0 { None } else { start_time.as_deref() }),
                 signature: sig,
                 key: occurrence_key.unwrap_or_default(),
                 series_id: series_id.unwrap_or_default(),

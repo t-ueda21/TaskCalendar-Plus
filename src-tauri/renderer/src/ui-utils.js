@@ -300,7 +300,8 @@ function buildMiniCalendarCells(containerEl, year, month, holidayMap, onDateSele
     if (holidayName) cls += " holiday";
     if (dateKey === todayKey) cls += " today";
 
-    const el = document.createElement("div");
+    const el = document.createElement("button");
+    el.type = 'button';
     el.className = cls;
     el.setAttribute("data-date", dateKey);
     el.style.cursor = "pointer";

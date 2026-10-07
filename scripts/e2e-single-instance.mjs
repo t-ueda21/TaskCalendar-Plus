@@ -16,6 +16,10 @@ try {
   assert.equal(first.exitCode,null,'original instance is retained');
   first.kill();await sleep(1500);third=launch();await sleep(3000);
   assert.equal(third.exitCode,null,'application can restart after original process exits');
+  third.kill();await sleep(1500);
+  const pair=[launch(),launch()];await sleep(3500);
+  assert.equal(pair.filter(child=>child.exitCode===null).length,1,'simultaneous startup retains exactly one instance');
+  for(const child of pair)if(child.exitCode===null)child.kill();
   console.log('PASS: second instance exits, original retained, lock released on exit');
 } finally {
   for(const child of [first,second,third])if(child&&child.exitCode===null)child.kill();

@@ -30,7 +30,7 @@ import { getWeatherLocationOptions } from "./weather.js";
 const HISTORY_TURNS = 12; // AIに渡す直近の会話の数
 const WEEKDAYS = weekdayLabels();
 
-const WELCOME_MESSAGE = [
+const WELCOME_MESSAGE = () => [
   translate('ui.86ce342e4a'),
   "",
   translate('ui.02b863889f'),
@@ -41,7 +41,7 @@ const WELCOME_MESSAGE = [
   translate('ui.c73927c87c'),
 ].join("\n");
 
-const SETUP_MESSAGE = [
+const SETUP_MESSAGE = () => [
   translate('ui.75470d60bd'),
   "",
   translate('ui.e86898bcbd'),
@@ -309,7 +309,7 @@ function _renderChatHistory() {
   $.chatLog.replaceChildren();
   const rows = Store.getAiChatHistory(_activeDateKey);
   if (!rows.length) {
-    _appendMessage({ role: "assistant", text: isAiConfigured() ? WELCOME_MESSAGE : SETUP_MESSAGE });
+    _appendMessage({ role: "assistant", text: isAiConfigured() ? WELCOME_MESSAGE() : SETUP_MESSAGE() });
     return;
   }
   rows.forEach((row) => _appendMessage({ role: row.role, text: row.text, proposals: row.proposals, id: row.id, dateKey: _activeDateKey }));
@@ -327,7 +327,7 @@ async function _send() {
   const dateKey = _activeDateKey;
 
   if (!isAiConfigured()) {
-    _appendMessage({ role: "assistant", text: SETUP_MESSAGE });
+    _appendMessage({ role: "assistant", text: SETUP_MESSAGE() });
     return;
   }
 

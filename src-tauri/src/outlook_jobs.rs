@@ -134,4 +134,21 @@ mod tests {
         crate::repositories::outlook_sync_in_range(&conn,&[],"",range).unwrap();
         assert_eq!(crate::repositories::tasks_list(&conn).unwrap().len(),1);
     }
+    #[test]
+    fn inbound_fetch_never_deletes_or_rolls_back_app_managed_records() {
+        let conn = Connection::open_in_memory().unwrap(); crate::db::migrate(&conn,"2026-10").unwrap();
+        crate::repositories::settings_set(&conn,&json!({"outlookWriteCalendarName":"Calendar B"})).unwrap();
+        let input=serde_json::from_value(json!({"id":"a","title":"New local state","date":"2026-10-07","startTime":"15:00","endTime":"16:00","outlookEnabled":true})).unwrap();
+        crate::repositories::tasks_insert(&conn,input).unwrap();
+        let key: String=conn.query_row("SELECT external_key FROM outlook_links WHERE task_id='a'",[],|row|row.get(0)).unwrap();
+        conn.execute("UPDATE tasks SET outlook_occurrence_key=?1,outlook_series_id='series' WHERE id='a'",params![format!("tcplus:{key}")]).unwrap();
+        conn.execute("UPDATE outlook_jobs SET status='done'",[]).unwrap();
+        let old=crate::outlook::OutlookEvent{title:"Old fetched state".into(),date:"2026-10-07".into(),start_time:Some("15:00".into()),end_time:Some("16:00".into()),location:String::new(),is_all_day:false,outlook_series_id:"series".into(),outlook_occurrence_key:format!("tcplus:{key}"),is_recurring:false,recurrence:json!({"type":"none"}),meeting_url:None};
+        let range=crate::outlook::OutlookSyncRange::dates("2026-10-07","2026-10-07").unwrap();
+        crate::repositories::outlook_sync_in_range(&conn,&[old],"",range).unwrap();
+        assert_eq!(crate::repositories::tasks_list(&conn).unwrap()[0].title,"New local state","a delayed snapshot after completed Upsert cannot roll back local state");
+        crate::repositories::outlook_sync_in_range(&conn,&[],"",range).unwrap();
+        assert_eq!(crate::repositories::tasks_list(&conn).unwrap().len(),1,"fetching another calendar or moving remote event out of range cannot delete an app-owned record");
+        assert_eq!(list(&conn).unwrap()[0]["status"],"done","read-side reconciliation must not enqueue outbound mutation");
+    }
 }

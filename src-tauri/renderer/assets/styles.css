@@ -3152,6 +3152,8 @@ label.uiToggle { position: relative; width: fit-content; }
 .sideWorkTotals > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; align-items: baseline; }
 .sideWorkTotals strong { font-variant-numeric: tabular-nums; }
 .miniToday { grid-column: 1 / -1; width: 100%; margin-top: 4px; }
+.mini button.d { font: inherit; color: inherit; cursor: pointer; padding: 0; }
+.mini button.d:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
 .transferWrite, .transferRead { padding: 12px 0; }
 .transferWrite { border-bottom: 1px solid var(--border); }
 .transferWrite h3, .transferRead h3 { font-size: var(--font-body); margin: 0 0 8px; }

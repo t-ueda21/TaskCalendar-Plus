@@ -87,6 +87,11 @@ assert.equal(new Set(Store.getAllTasks().map((task) => task.recurrence.groupId))
 
 await reset();
 const lone = await Store.createTask({ ...base, recurrence: { type: 'daily', until: '2026-09-03' } });
+for(const row of db.tasks) { row.outlookEnabled=true;row.outlookOccurrenceKey='remote-'+row.id;row.outlookSeriesId='series-'+row.id;row.meetingUrl='https://example.com/meeting'; }
+await Store.refreshTasks();
+await Store.updateTaskWithMode(lone.id,{recurrence:{type:'daily',until:'2026-09-04'}},'series');
+const addedRemote = Store.getAllTasks().find(row=>row.date==='2026-09-04');
+assert.ok(!addedRemote.outlookOccurrenceKey&&!addedRemote.outlookSeriesId&&!addedRemote.meetingUrl,'new recurrence date must get independent external identity');
 for (const row of Store.getAllTasks().filter((row) => row.id !== lone.id)) await Store.deleteTask(row.id);
 await Store.updateTaskWithMode(lone.id, { recurrence: { type: 'weekly', until: '2026-09-22' } }, 'series');
 assert.deepEqual(dates(), ['2026-09-01', '2026-09-08', '2026-09-15', '2026-09-22']);
