@@ -158,6 +158,12 @@ export async function captureGallery(h,output) {
   await page.keyboard.press('Escape');await page.locator('[data-settings-dialog]').waitFor({state:'hidden'});
   await page.waitForFunction(async()=>{const S=await import('/src/store.js'),C=await import('/src/ui-colors.js');const root=document.documentElement;return root.dataset.theme==='dark'&&Object.entries(C.buildUiPalette(S.getSettings().uiAccentColor,true)).every(([key,value])=>root.style.getPropertyValue(key)===value);});
   await shot('tasks-dark');
+  await page.locator('[data-view="tasks"] [data-task-id="task-plan"]').click({button:'right'});
+  await page.locator('.taskTagContextMenu').waitFor({state:'visible'});await shot('tasks-context-dark');await page.keyboard.press('Escape');
+  await page.locator('nav.nav [data-nav-target="calendar"]').click();
+  await page.locator('[data-view="calendar"] [data-viewmode]').selectOption('day');
+  await page.locator('[data-view="calendar"] [data-task-id="task-plan"]:visible').click({button:'right'});
+  await page.locator('.taskTagContextMenu').waitFor({state:'visible'});await shot('calendar-context-dark');await page.keyboard.press('Escape');
   fs.writeFileSync(path.join(output,'gallery.json'),JSON.stringify({...h.meta,captured,states},null,2));return captured;
 }
 

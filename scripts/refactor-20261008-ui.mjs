@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import { openHarness, fixture } from './refactor-20261008-harness.mjs';
+import { runContextMenuContracts } from './refactor-20261008-context-menu.mjs';
 
 const root=path.resolve(process.argv[2]||'.');
 const output=path.resolve(process.argv[3]||'out/refactor-20261008/ui-contract-probe');
@@ -152,6 +153,7 @@ try{
       assert.equal(await p.locator('html').getAttribute('lang'),locale);assert.match(await p.locator('nav.nav').innerText(),new RegExp(label));assert.match(await tasks().locator('[data-task-id="task-plan"]').innerText(),/計画を整理/);
     }
   });
+  await runContextMenuContracts(h,run);
   cases.push({id:'UI-NO-NATIVE-DIALOG',description:'No browser alert/confirm/prompt emitted during required flows',required:true,status:browserDialogs.length?'failed':'passed',evidence:'cases.json'});
   cases.push({id:'UI-NO-UNEXPECTED-ERRORS',description:'No uncaught renderer errors or unsupported synthetic API calls',required:true,status:h.pageErrors.length||h.unexpectedRequests.length?'failed':'passed',errors:h.pageErrors,requests:h.unexpectedRequests,evidence:'harness-environment.json'});
   write();if(cases.some(row=>row.status!=='passed'))process.exitCode=1;

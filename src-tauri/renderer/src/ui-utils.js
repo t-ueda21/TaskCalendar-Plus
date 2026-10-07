@@ -15,7 +15,7 @@
 import { setupPicker } from "./mini-calendar-picker.js";
 import { getHolidaysInMonth } from "./holidays.js";
 import { getCompanyHolidaysInMonthMap } from "./company-holidays.js";
-import { t as translate, formatDuration, formatDate, getLocale, th as translateHtml, weekdayLabels } from './i18n.js';
+import { t as translate, formatDuration, getLocale, th as translateHtml, weekdayLabels } from './i18n.js';
 
 // ── 文字列フォーマット ─────────────────────────────────
 /** 新しいタグの既定の色。 */
@@ -1086,4 +1086,79 @@ export function ensureTaskTagMenu() {
   });
 
   return menu;
+}
+
+/** メニューの描画と配置を共通化する。タグ更新の待ち方とUndoは呼び出し側で維持する。 */
+export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clientY, onEdit, onDelete, onTagSelect }) {
+  menu.innerHTML = "";
+
+  const addActionItem = (label, onClick, { danger = false } = {}) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "taskTagContextItem";
+    if (danger) btn.classList.add("danger");
+    btn.textContent = label;
+    btn.addEventListener("click", async () => {
+      await onClick();
+      hideTaskTagMenu();
+    });
+    menu.appendChild(btn);
+  };
+
+  addActionItem(translate('ui.11f9049dda'), onEdit);
+  addActionItem(translate('ui.fdc17259a9'), async () => {
+    await onDelete("single");
+  }, { danger: true });
+  if (seriesCount > 1) {
+    addActionItem(translate('ui.2a4fe5975d', { p0: (seriesCount) }), async () => {
+      await onDelete("series");
+    }, { danger: true });
+  }
+
+  const sep = document.createElement("div");
+  sep.className = "taskTagContextSeparator";
+  menu.appendChild(sep);
+
+  const title = document.createElement("div");
+  title.className = "taskTagContextTitle";
+  title.textContent = translate('ui.4400fedd36');
+  menu.appendChild(title);
+
+  const addItem = (label, value, color = "", active = false) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "taskTagContextItem";
+    if (active) btn.classList.add("active");
+    btn.textContent = label;
+
+    if (value) {
+      const swatch = document.createElement('span'); swatch.className = 'contextTagSwatch';
+      swatch.style.background = normalizeHexColor(color, DEFAULT_TAG_COLOR); swatch.setAttribute('aria-hidden', 'true');
+      btn.prepend(swatch); btn.setAttribute('aria-pressed', String(active));
+    }
+
+    btn.addEventListener("click", () => onTagSelect(value));
+    menu.appendChild(btn);
+  };
+
+  addItem(translate('ui.af1cc864e3'), "", "", !task.tagId);
+  tags.forEach((tag) => addItem(tag.name, tag.id, tag.color, tag.id === task.tagId));
+
+  if (tags.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "taskTagContextEmpty";
+    empty.textContent = translate('ui.9ffd96ece9');
+    menu.appendChild(empty);
+  }
+
+  menu.hidden = false;
+  menu.style.left = "0px";
+  menu.style.top = "0px";
+
+  const rect = menu.getBoundingClientRect();
+  const margin = 8;
+  const left = Math.max(margin, Math.min(clientX, window.innerWidth - rect.width - margin));
+  const top = Math.max(margin, Math.min(clientY, window.innerHeight - rect.height - margin));
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
 }

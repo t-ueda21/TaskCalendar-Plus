@@ -220,4 +220,4 @@ Windows 10／11（64ビット）とMicrosoft Edge WebView2ランタイムが必�
 
 Windowsのコード署名は付けていないため、ダウンロードや初回起動時にWindowsの警告が表示される場合があります。会社のPCでは、管理者の設定により実行できない場合があります。
 
-[変更履歴](CHANGELOG.md) ・ [MIT License](LICENSE)
+[変更履歴](CHANGELOG.md) ・ [2回目のリファクタリング結果](docs/reviews/v3.0.0-refactor-pass2.md) ・ [MIT License](LICENSE)

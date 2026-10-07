@@ -51,18 +51,18 @@ if(mode==='verify'){
   contract.requiredCases=required.map(row=>({id:row.id,description:row.description??row.id}));
   contract.rendererBaselineSha256=rendererFingerprint(root).sha256;
   fs.writeFileSync(path.join(run,'contract.json'),JSON.stringify(contract,null,2)+'\n',{flag:'wx'});
+  const caseRows=[...checks.cases.map(row=>({...row,evidence:'before-checks/'+row.evidence})),...ui.cases.map(row=>({...row,evidence:'before-ui-tests/'+row.evidence})),...contract.not_run];
+  fs.writeFileSync(path.join(run,'before-cases.json'),JSON.stringify({cases:caseRows},null,2)+'\n',{flag:'wx'});
+  const columns=['id','required','status','description','evidence','reason'];const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
+  fs.writeFileSync(path.join(run,'case-matrix.csv'),[columns.join(','),...caseRows.map(row=>columns.map(key=>quote(row[key])).join(','))].join('\n')+'\n',{flag:'wx'});
   const guardPaths=fs.readdirSync(path.join(root,'scripts')).filter(file=>/^test-.*\.(mjs|js)$/.test(file)||/^refactor-20261008-.*\.(mjs|json)$/.test(file)).map(file=>'scripts/'+file);
-  guardPaths.push(path.relative(root,path.join(run,'contract.json')).replaceAll('\\','/'));
+  for(const file of ['contract.json','before-cases.json','case-matrix.csv'])guardPaths.push(path.relative(root,path.join(run,file)).replaceAll('\\','/'));
   for(const directory of ['before-checks','before-ui-tests','before-ui','before-benchmark','before-source']){
     guardPaths.push(...walk(path.join(run,directory)).map(file=>path.relative(root,file).replaceAll('\\','/')));
   }
   const guards={schema_version:1,createdAt:new Date().toISOString(),files:Object.fromEntries(guardPaths.sort().map(file=>[file,hashFile(path.join(root,file))])),rustTestSections:rustTests()};
   fs.writeFileSync(path.join(run,'frozen-guards.json'),JSON.stringify(guards,null,2)+'\n',{flag:'wx'});
-  const caseRows=[...checks.cases.map(row=>({...row,evidence:'before-checks/'+row.evidence})),...ui.cases.map(row=>({...row,evidence:'before-ui-tests/'+row.evidence})),...contract.not_run];
-  fs.writeFileSync(path.join(run,'before-cases.json'),JSON.stringify({cases:caseRows},null,2)+'\n',{flag:'wx'});
-  const columns=['id','required','status','description','evidence','reason'];const quote=value=>'"'+String(value??'').replaceAll('"','""')+'"';
-  fs.writeFileSync(path.join(run,'case-matrix.csv'),[columns.join(','),...caseRows.map(row=>columns.map(key=>quote(row[key])).join(','))].join('\n')+'\n',{flag:'wx'});
-  const baseline={schema_version:1,frozenAt:contract.frozenAt,designer:'/root/baseline_a',guardSha256:hashFile(path.join(run,'frozen-guards.json')),contractSha256:hashFile(path.join(run,'contract.json')),sourceManifestSha256:hashFile(path.join(run,'before-source/manifest.json')),rendererSha256:contract.rendererBaselineSha256,requiredCases:required.length,passedCases:required.length,notRun:caseRows.filter(row=>row.status==='not-run').length,metrics:16,samplesPerMetric:7,source:'before-source/source',checks:'before-checks/checks.json',uiTests:'before-ui-tests/cases.json',screenshots:'before-ui',measurements:'before-benchmark/metrics.json',originalRequests:contract.request_sources};
+  const baseline={schema_version:1,frozenAt:contract.frozenAt,designer:contract.design_agent,guardSha256:hashFile(path.join(run,'frozen-guards.json')),contractSha256:hashFile(path.join(run,'contract.json')),sourceManifestSha256:hashFile(path.join(run,'before-source/manifest.json')),rendererSha256:contract.rendererBaselineSha256,requiredCases:required.length,passedCases:required.length,notRun:caseRows.filter(row=>row.status==='not-run').length,metrics:16,samplesPerMetric:7,source:'before-source/source',checks:'before-checks/checks.json',uiTests:'before-ui-tests/cases.json',screenshots:'before-ui',measurements:'before-benchmark/metrics.json',originalRequests:contract.request_sources};
   fs.writeFileSync(path.join(run,'frozen-baseline.json'),JSON.stringify(baseline,null,2)+'\n',{flag:'wx'});
   console.log(JSON.stringify(baseline));
 }else throw Error('Mode must be freeze or verify');

@@ -11,7 +11,6 @@ import { showAppAlert, showAppConfirm, chooseRecurrenceScope } from './app-dialo
  */
 
 import * as Store from "./store.js";
-import { buildUiPalette } from "./ui-colors.js";
 import {
   pad2,
   escHtml,
@@ -34,12 +33,12 @@ import {
   normalizeBreaks,
   getCombinedHolidaysInMonth,
   normalizeHexColor,
-  DEFAULT_TAG_COLOR,
   wireSidebarToggle,
   renderSideSummaries,
   wireMonthTagPopup,
   ensureTaskTagMenu,
   hideTaskTagMenu,
+  renderTaskTagMenu,
 } from "./ui-utils.js";
 import { renderTimeGrid, positionTaskBlock, ROW_HEIGHT, updateNowLine } from "./time-grid.js";
 import { wireSettingsDialog, wireSideTagClickToSettings } from "./settings-dialog.js";
@@ -324,83 +323,18 @@ function _openTaskTagMenu(task, clientX, clientY, sourceEl = null) {
   const tags = _getDialogTagsForDateKey(task.date, task.tagId);
   const seriesCount = Store.getTaskSeriesCount(task);
 
-  menu.innerHTML = "";
-
-  const addActionItem = (label, onClick, { danger = false } = {}) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "taskTagContextItem";
-    if (danger) btn.classList.add("danger");
-    btn.textContent = label;
-    btn.addEventListener("click", async () => {
-      await onClick();
-      hideTaskTagMenu();
-    });
-    menu.appendChild(btn);
-  };
-
-  addActionItem(translate('ui.11f9049dda'), async () => {
-    openEditDialog($dialog, task, _getDialogTagsForDateKey(task.date, task.tagId));
-  });
-  addActionItem(translate('ui.fdc17259a9'), async () => {
-    await _deleteTaskByChoice(task.id, "single");
-  }, { danger: true });
-  if (seriesCount > 1) {
-    addActionItem(translate('ui.2a4fe5975d', { p0: (seriesCount) }), async () => {
-      await _deleteTaskByChoice(task.id, "series");
-    }, { danger: true });
-  }
-
-  const sep = document.createElement("div");
-  sep.className = "taskTagContextSeparator";
-  menu.appendChild(sep);
-
-  const title = document.createElement("div");
-  title.className = "taskTagContextTitle";
-  title.textContent = translate('ui.4400fedd36');
-  menu.appendChild(title);
-
-  const addItem = (label, value, color = "", active = false) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "taskTagContextItem";
-    if (active) btn.classList.add("active");
-    btn.textContent = label;
-
-    if (value) {
-      const swatch = document.createElement('span'); swatch.className = 'contextTagSwatch';
-      swatch.style.background = normalizeHexColor(color, DEFAULT_TAG_COLOR); swatch.setAttribute('aria-hidden', 'true');
-      btn.prepend(swatch); btn.setAttribute('aria-pressed', String(active));
-    }
-
-    btn.addEventListener("click", () => {
+  renderTaskTagMenu(menu, {
+    task, tags, seriesCount, clientX, clientY,
+    onEdit: async () => {
+      openEditDialog($dialog, task, _getDialogTagsForDateKey(task.date, task.tagId));
+    },
+    onDelete: (mode) => _deleteTaskByChoice(task.id, mode),
+    onTagSelect: (value) => {
       _recordAction({ type: "update", taskId: task.id, before: { tagId: task.tagId }, after: { tagId: value } });
       Store.updateTask(task.id, { tagId: value });
       hideTaskTagMenu();
-    });
-    menu.appendChild(btn);
-  };
-
-  addItem(translate('ui.af1cc864e3'), "", "", !task.tagId);
-  tags.forEach((tag) => addItem(tag.name, tag.id, tag.color, tag.id === task.tagId));
-
-  if (tags.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "taskTagContextEmpty";
-    empty.textContent = translate('ui.9ffd96ece9');
-    menu.appendChild(empty);
-  }
-
-  menu.hidden = false;
-  menu.style.left = "0px";
-  menu.style.top = "0px";
-
-  const rect = menu.getBoundingClientRect();
-  const margin = 8;
-  const left = Math.max(margin, Math.min(clientX, window.innerWidth - rect.width - margin));
-  const top = Math.max(margin, Math.min(clientY, window.innerHeight - rect.height - margin));
-  menu.style.left = `${left}px`;
-  menu.style.top = `${top}px`;
+    },
+  });
 }
 
 // ── DOM refs（初期化後に取得） ─────────────────────────

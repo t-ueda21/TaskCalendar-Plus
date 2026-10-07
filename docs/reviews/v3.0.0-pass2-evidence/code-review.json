@@ -1,0 +1,31 @@
+{
+  "verifier": "/root/refactor2_verify",
+  "reviewedAt": "2026-10-07T18:45:55.477819+00:00",
+  "method": "C read the complete three-file implementation diff, current callers/helper, frozen context-menu assertions, and import references; C did not edit application or frozen tests.",
+  "files": [
+    "src-tauri/renderer/src/calendar.js",
+    "src-tauri/renderer/src/tasks.js",
+    "src-tauri/renderer/src/ui-utils.js"
+  ],
+  "observations": [
+    {
+      "file": "src-tauri/renderer/src/calendar.js",
+      "summary": "重複する右クリック描画を共通関数へ移動。ensure→focus→タグ取得、編集時のタグ再取得、Undo記録→更新開始→即時closeを保持。未参照importを整理。"
+    },
+    {
+      "file": "src-tauri/renderer/src/tasks.js",
+      "summary": "重複描画を共通関数へ移動。行フォーカスと編集時のタグ再取得、タグ更新をawaitした後のclose、単発/繰り返し削除の対象を保持。"
+    },
+    {
+      "file": "src-tauri/renderer/src/ui-utils.js",
+      "summary": "メニューDOM・項目順・textContent・色/aria/active・タグなし/空表示・8px境界配置を共通化。既存ensure/hideと外側クリック/scroll/resize/Escape処理は不変。"
+    }
+  ],
+  "additionalFindings": [
+    "新しいrenderTaskTagMenuは内部renderer用の関数で、既存公開exportを削除していない。HTTP/native API、Store export、永続化形式、ID、CSS/HTML、翻訳辞書は変更していない。",
+    "削除したbuildUiPalette importは両画面で未参照。ui-colorsは両画面が使うStoreから引き続き読み込まれる。formatDateもui-utilsでは未参照でi18n import自体は残っている。",
+    "呼出し側callbackにcalendarの即時closeとUndo、tasksのawait後closeの差が残る。固定TAG-TIMINGケースで保留したPUT中の状態と解除後データをCが再実行し、calendarのUndo/Redoも成功した。",
+    "保存した前後208ファイルの差は上記3アプリファイルだけ。固定された試験・資産・設定・そのほかのアプリファイルは同一。"
+  ],
+  "issues": []
+}
