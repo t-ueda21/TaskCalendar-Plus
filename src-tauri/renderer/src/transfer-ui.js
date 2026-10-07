@@ -3,6 +3,7 @@ import { bindValidatedFile,parseBackupFile } from './transfer-file.js';
 import { describeLocalAiImport,validateLocalAiImport } from './local-ai-settings.js';
 import { formatDateKey } from './ui-utils.js';
 import { t as translate } from './i18n.js';
+import { showAppAlert, showAppConfirm } from './app-dialogs.js';
 
 export function wireTransferUi(dialog,Store,{downloadJsonFile,describeSensitiveImportSettings}) {
   const find=selector=>dialog.querySelector(selector);
@@ -25,18 +26,19 @@ export function wireTransferUi(dialog,Store,{downloadJsonFile,describeSensitiveI
     let running=false;
     button.addEventListener('click',async()=>{
       const data=files.get();if(running||!data)return;
+      running=true;
       const details=[...describeSensitiveImportSettings(data.settings,Store.AI_PROVIDER_LABELS??{}),...describeLocalAiImport(data.settings,Store.getSettings())];
       const message=translate(settings?'transfer.confirmSettings':'transfer.confirmRestore')+(details.length?`\n\n${details.join('\n')}`:'');
-      if(!confirm(message))return;
-      running=true;files.busy(true);busyDialog(true);status.textContent=translate('transfer.importing');
+      if(!await showAppConfirm(message,{danger:!settings,confirmLabel:translate(settings?'ui.f13f3cc089':'ui.d0ce767bc4')})){running=false;return;}
+      files.busy(true);busyDialog(true);status.textContent=translate('transfer.importing');
       try {
         if(settings) {
           const result=await Store.applySettingsImport(data);files.clear();dialog.close();
-          alert(translate('transfer.settingsDone',{settings:result.settingKeys,created:result.createdTags,existing:result.existingTags}));
+          await showAppAlert(translate('transfer.settingsDone',{settings:result.settingKeys,created:result.createdTags,existing:result.existingTags}));
         } else {
           const response=await fetch('/api/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
           const result=await response.json();if(!response.ok)throw Error(result.error||translate('transfer.failed'));
-          alert(translate('transfer.restored'));window.location.reload();
+          await showAppAlert(translate('transfer.restored'));window.location.reload();
         }
       } catch(error) {status.textContent=String(error.message??error);}
       finally {running=false;busyDialog(false);files.busy(false);}

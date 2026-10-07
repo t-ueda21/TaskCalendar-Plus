@@ -1,4 +1,5 @@
 import { t as translate, th as translateHtml } from './i18n.js';
+import { showAppConfirm } from './app-dialogs.js';
 /**
  * tag-manager.js — 設定ダイアログのタグ管理(月ごとのタグの並び・色・予算)と色の選択ポップアップ
  */
@@ -84,11 +85,23 @@ export function _renderTagManager(dlg, Store, tagMgrMonth) {
       await saveOrder();
     });
 
-    const dragHandle = document.createElement("span");
+    const dragHandle = document.createElement("button");
+    dragHandle.type = 'button';
     dragHandle.className = "settingsTagDragHandle";
-    dragHandle.setAttribute("aria-hidden", "true");
+    dragHandle.setAttribute('aria-label', translate('ui.01605357a7') + ': ' + tag.name);
     dragHandle.textContent = "⠿";
     dragHandle.title = translate('ui.01605357a7');
+    dragHandle.addEventListener('keydown', async event => {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+      event.preventDefault();
+      event.stopPropagation();
+      const sibling = event.key === 'ArrowUp' ? row.previousElementSibling : row.nextElementSibling;
+      if (!sibling?.matches('[data-tag-row]')) return;
+      if (event.key === 'ArrowUp') listEl.insertBefore(row, sibling);
+      else listEl.insertBefore(sibling, row);
+      await saveOrder();
+      listEl.querySelector(`[data-tag-row="${tag.id}"] .settingsTagDragHandle`)?.focus();
+    });
 
     const colorField = document.createElement("div");
     colorField.className = "hslPicker";
@@ -97,6 +110,7 @@ export function _renderTagManager(dlg, Store, tagMgrMonth) {
     nameEl.type  = "text";
     nameEl.value = tag.name;
     nameEl.className = "settingsTagInput";
+    nameEl.setAttribute('aria-label', translate('ui.a0e69d6faf') + ': ' + tag.name);
     nameEl.addEventListener("blur", () => {
       const v = nameEl.value.trim();
       if (v && v !== tag.name) Store.updateTag(tag.id, { name: v });
@@ -123,6 +137,8 @@ export function _renderTagManager(dlg, Store, tagMgrMonth) {
 
     const maxInput = makeBudgetInput(tag.budgetMaxMinutes);
     const minInput = makeBudgetInput(tag.budgetMinMinutes);
+    maxInput.setAttribute('aria-label', translate('ui.38229718b2') + ': ' + tag.name);
+    minInput.setAttribute('aria-label', translate('ui.cf20e6cfc6') + ': ' + tag.name);
 
     const syncMinEnabled = () => {
       const maxIsEmpty = maxInput.value.trim() === "";
@@ -155,13 +171,13 @@ export function _renderTagManager(dlg, Store, tagMgrMonth) {
     delBtn.textContent = "✕";
     delBtn.title = translate('ui.bd6dc69e2d', { p0: (tag.name) });
     delBtn.addEventListener("click", async () => {
-      if (!confirm(translate('ui.d33b3810a5', { p0: (tag.name) }))) return;
-      try {
-        await Store.removeTagFromMonth(tagMgrMonth, tag.id);
-      } catch (e) {
-        console.error("[settings] removeTagFromMonth failed:", e);
-      }
+      const confirmed = await showAppConfirm(translate('ui.d33b3810a5', { p0: (tag.name) }), {
+        danger: true, confirmLabel: translate('dialog.remove'),
+        onConfirm: () => Store.removeTagFromMonth(tagMgrMonth, tag.id),
+      });
+      if (!confirmed) return;
       _renderTagManager(dlg, Store, tagMgrMonth);
+      dlg.querySelector('[data-new-tag-name]')?.focus({ preventScroll: true });
     });
 
     row.append(dragHandle, colorField, nameEl, minInput, maxInput, delBtn);
@@ -296,6 +312,9 @@ export function buildHslPicker(container, initialColor = DEFAULT_TAG_COLOR, onCo
 
   function updateTrigger() {
     trigger.style.background = selectedColor;
+    trigger.title = translate('ui.df5c4c0450');
+    trigger.setAttribute('aria-label', translate('ui.57b05322d6') + ': ' + selectedColor);
+    popup.setAttribute('aria-label', translate('ui.bb80a52a07'));
   }
 
   function positionPopup() {
@@ -324,13 +343,25 @@ export function buildHslPicker(container, initialColor = DEFAULT_TAG_COLOR, onCo
       btn.className = "hslSwatch" + (color === selectedColor ? " selected" : "");
       btn.style.setProperty("--swatch-color", color);
       btn.setAttribute("aria-selected", color === selectedColor ? "true" : "false");
-      btn.addEventListener("click", (e) => {
+      btn.setAttribute('role', 'option');
+      btn.setAttribute('aria-label', translate('ui.57b05322d6') + ': ' + color);
+      btn.title = color;
+      btn.tabIndex = color === selectedColor ? 0 : -1;
+      btn.addEventListener("click", async (e) => {
         e.stopPropagation();
         selectedColor = color;
         updateTrigger();
         buildSwatches();
         closePopup();
-        onCommit?.(selectedColor);
+        const tagId = container.closest('[data-tag-row]')?.dataset.tagRow;
+        trigger.focus({ preventScroll: true });
+        try { await onCommit?.(selectedColor); }
+        finally {
+          if (document.activeElement === document.body || document.activeElement === trigger) {
+            const target = trigger.isConnected ? trigger : dialogEl?.querySelector(`[data-tag-row="${tagId}"] .hslTrigger`);
+            target?.focus({ preventScroll: true });
+          }
+        }
       });
       popup.appendChild(btn);
     });
@@ -341,6 +372,7 @@ export function buildHslPicker(container, initialColor = DEFAULT_TAG_COLOR, onCo
     popup.hidden = false;
     trigger.setAttribute("aria-expanded", "true");
     positionPopup();
+    popup.querySelector('.hslSwatch.selected')?.focus({ preventScroll: true });
 
     outsideHandler = (e) => {
       if (e.target === trigger || popup.contains(e.target)) return;
@@ -354,8 +386,20 @@ export function buildHslPicker(container, initialColor = DEFAULT_TAG_COLOR, onCo
     };
     keyHandler = (e) => {
       if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
         closePopup();
         trigger.focus();
+      } else if (popup.contains(e.target)) {
+        const buttons = [...popup.querySelectorAll('.hslSwatch')];
+        const index = buttons.indexOf(e.target);
+        const columns = buttons.filter(button => Math.abs(button.offsetTop - buttons[0].offsetTop) < 1).length;
+        const next = { ArrowLeft: index - 1, ArrowRight: index + 1, ArrowUp: index - columns, ArrowDown: index + columns, Home: 0, End: buttons.length - 1 }[e.key];
+        if (index < 0 || next === undefined) return;
+        e.preventDefault();
+        const target = buttons[Math.max(0, Math.min(buttons.length - 1, next))];
+        buttons.forEach(button => { button.tabIndex = button === target ? 0 : -1; });
+        target?.focus();
       }
     };
 
@@ -393,7 +437,7 @@ export function buildHslPicker(container, initialColor = DEFAULT_TAG_COLOR, onCo
     closePopup();
     popup.remove();
     if (dialogEl) {
-      dialogEl.removeEventListener("close", closePopup);
+      dialogEl.removeEventListener("close", onDialogClose);
       dialogEl.removeEventListener("cancel", closePopup);
     }
     container.innerHTML = "";
@@ -409,8 +453,9 @@ export function buildHslPicker(container, initialColor = DEFAULT_TAG_COLOR, onCo
 
   // ダイアログが閉じたときはポップアップも閉じる
   const dialogEl = container.closest("dialog");
+  const onDialogClose = () => { if (!dialogEl?.open) closePopup(); };
   if (dialogEl) {
-    dialogEl.addEventListener("close", closePopup);
+    dialogEl.addEventListener("close", onDialogClose);
     dialogEl.addEventListener("cancel", closePopup);
   }
 

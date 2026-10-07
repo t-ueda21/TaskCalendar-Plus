@@ -24,6 +24,17 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install isolated renderer test browser
+        shell: pwsh
+        run: |
+          $testDependencies = Join-Path $env:RUNNER_TEMP 'tcplus-test-dependencies'
+          npm install --prefix $testDependencies --no-package-lock --no-save playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $testModules = Join-Path $testDependencies 'node_modules'
+          "TCPLUS_TEST_NODE_MODULES=$testModules" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          node (Join-Path $testModules 'playwright/cli.js') install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: cargo test
         run: cargo test --manifest-path src-tauri/Cargo.toml
 

@@ -1,0 +1,1013 @@
+{
+  "cases": [
+    {
+      "id": "node-test-ai-personalization.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-ai-personalization.mjs.log"
+    },
+    {
+      "id": "node-test-ai-safety.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-ai-safety.mjs.log"
+    },
+    {
+      "id": "node-test-ai-settings-guidance-20261008.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-ai-settings-guidance-20261008.mjs.log"
+    },
+    {
+      "id": "node-test-app-updater.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-app-updater.mjs.log"
+    },
+    {
+      "id": "node-test-calendar-integrity.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-calendar-integrity.mjs.log"
+    },
+    {
+      "id": "node-test-holidays.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-holidays.mjs.log"
+    },
+    {
+      "id": "node-test-i18n-rendering.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-i18n-rendering.mjs.log"
+    },
+    {
+      "id": "node-test-i18n.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-i18n.mjs.log"
+    },
+    {
+      "id": "node-test-local-ai-settings.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-local-ai-settings.mjs.log"
+    },
+    {
+      "id": "node-test-markdown.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-markdown.mjs.log"
+    },
+    {
+      "id": "node-test-mini-calendar.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-mini-calendar.mjs.log"
+    },
+    {
+      "id": "node-test-modern-settings.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-modern-settings.mjs.log"
+    },
+    {
+      "id": "node-test-native-settings.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-native-settings.mjs.log"
+    },
+    {
+      "id": "node-test-recurrence.js",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-recurrence.js.log"
+    },
+    {
+      "id": "node-test-settings-transfer.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-settings-transfer.mjs.log"
+    },
+    {
+      "id": "node-test-task-performance.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-task-performance.mjs.log"
+    },
+    {
+      "id": "node-test-task-selection.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-task-selection.mjs.log"
+    },
+    {
+      "id": "node-test-transfer-file.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-transfer-file.mjs.log"
+    },
+    {
+      "id": "node-test-ui-colors.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-ui-colors.mjs.log"
+    },
+    {
+      "id": "node-test-weather-current-day.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-weather-current-day.mjs.log"
+    },
+    {
+      "id": "node-test-work-time.mjs",
+      "required": true,
+      "status": "passed",
+      "evidence": "node-test-work-time.mjs.log"
+    },
+    {
+      "id": "javascript-syntax",
+      "required": true,
+      "status": "passed",
+      "evidence": "javascript-syntax.log"
+    },
+    {
+      "id": "rust:ai::tests::agent_prompt_contains_today",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai::tests::effort_defaults_to_low_but_empty_means_cli_default",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai::tests::personality_and_language_apply_without_replacing_app_rules",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai::tests::provider_requires_opt_in",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::claude_args_disable_tools_settings_and_mcp",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::codex_args_read_only_ephemeral_and_stdin",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::parse_claude_output_prefers_structured_output",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::parse_claude_output_reports_errors",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::parse_codex_model_reads_header_line",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::resolve_program_uses_override",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::split_messages_labels_multiple_turns_and_defaults_system",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::split_messages_uses_single_turn_as_is_and_joins_system",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::strict_schema_requires_all_and_makes_optional_nullable",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_cli::tests::version_parsing_and_comparison",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::agent_uses_shared_read_and_proposal_tools_without_mutating_tasks",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::both_providers_discover_models_and_complete_synthetic_tool_roundtrip",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::daily_json_schema_reaches_server_and_invalid_json_is_rejected",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::disconnected_http_client_cancels_generation_and_removes_session",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::endpoint_normalization_preserves_explicit_base_and_rejects_secrets",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::failed_chat_discards_pending_proposal_and_oversized_response",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::http_errors_invalid_models_and_auth_guard_are_explicit",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::local_provider_settings_are_independent_from_cli_consent",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::malformed_reply_and_arguments_fail_with_session_cleanup",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::text_only_and_rejected_tools_remain_connected_but_not_tool_capable",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::timeout_and_dropped_future_remove_session_without_holding_db_lock",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_local::tests::unknown_tool_returns_error_to_model_and_round_limit_cleans_up",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_models::tests::claude_discovery_reads_initialize_models_without_a_user_prompt",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_models::tests::codex_discovery_initializes_and_reads_all_pages_without_starting_a_thread",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_models::tests::custom_codex_provider_or_catalog_is_not_advertised_for_default_execution",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_models::tests::discovery_reports_protocol_error_and_bounds_a_hung_cli",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ai_models::tests::model_choices_filter_hidden_duplicates_and_invalid_rows",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::ai_chat_reports_claude_code_error_result",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::ai_chat_returns_503_when_provider_is_not_configured",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::ai_chat_uses_claude_code_cli_when_selected",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::ai_chat_uses_codex_cli_output_when_selected",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::ai_detect_reports_versions_and_missing_cli",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::ai_memory_kind_whitelist_and_crud",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::backup_round_trip_replaces_all_data",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::batch_accepts_large_existing_task_payloads",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::batch_is_atomic_and_checks_every_revision",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::batch_restores_and_edits_midnight_ending_task",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::batch_restores_outlook_overnight_task_without_changing_its_fields",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::batch_rolls_back_when_later_upsert_violates_unique_outlook_key",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::deleting_last_tag_removes_it_and_clears_task_tag",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::explicit_empty_tag_id_is_preserved_not_defaulted",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::guard_rejects_foreign_host_and_origin_even_for_static_files",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::guard_rejects_missing_or_wrong_token",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::guard_rejects_non_json_post",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::guarded_put_and_delete_reject_stale_revision",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::loopback_authority_parsing",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::mcp_endpoint_requires_token_and_active_session",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::model_discovery_rejects_unknown_provider_and_reports_missing_cli",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::recurring_update_rolls_back_when_an_occurrence_cannot_be_inserted",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::recurring_update_saves_original_and_occurrences_together",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::restore_accepts_valid_backup_larger_than_default_two_megabytes",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::restore_rejects_invalid_file_without_changing_data",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::restore_rejects_missing_collections_and_bad_ai_memory_before_deleting",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::runtime_returns_app_version",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::settings_round_trip",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::static_serving_root_redirect_and_not_found",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::tags_create_update_and_reassign_on_delete",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::tags_created_in_the_same_instant_get_distinct_ids",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::task_etag_tracks_all_mutations_but_not_rollback_or_migration",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::task_without_tag_id_field_is_saved_without_tag",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::tasks_crud_round_trip",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::unmatched_api_route_returns_404_json_and_non_get_static_is_405",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:api::tests::weather_cache_round_trip_and_invalid_key",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:calendar::tests::business_days_respect_week_days_holidays_and_company_holidays",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:calendar::tests::duration_excludes_breaks_not_counted_as_work",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:calendar::tests::holidays_match_renderer_rules",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:calendar::tests::month_bounds_handle_year_end",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:db::tests::creates_all_expected_tables",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:db::tests::dedupes_pre_existing_duplicate_outlook_rows_before_index_creation",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:db::tests::null_outlook_occurrence_key_allows_multiple_rows",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:db::tests::outlook_occurrence_key_unique_index_rejects_duplicates",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:db::tests::seeds_month_tag_order_only_once",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:db::tests::seeds_no_default_tags",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:locale::tests::language_is_explicit_or_windows_ui_with_japanese_fallback",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:mcp::tests::initialize_list_and_notifications",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:mcp::tests::invalid_proposals_are_errors",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:mcp::tests::month_status_budgets_and_capacity",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:mcp::tests::proposals_are_recorded_but_not_written",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:mcp::tests::search_and_summarize_use_break_aware_minutes",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook::current_time_excludes_past_starts",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook::live_tests::live_connect_and_fetch_events_from_real_outlook",
+      "required": false,
+      "status": "not-run",
+      "evidence": "rust.log",
+      "reason": "Live Outlook integration is intentionally excluded"
+    },
+    {
+      "id": "rust:outlook::managed_appointments_preserve_body_as_task_memo",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook::sync_range_tests::bounded_collector_requires_normal_end_and_never_returns_partial_results",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook::sync_range_tests::cancelled_and_deleted_occurrences_are_removed_without_touching_other_tasks",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook::sync_range_tests::cancelled_meeting_statuses_are_excluded_and_unknown_status_aborts",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook::sync_range_tests::custom_calendar_lookup_never_falls_back_on_missing_or_error",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook::sync_range_tests::fetching_again_in_the_afternoon_preserves_morning_and_ongoing_events",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook::sync_range_tests::range_includes_current_time_and_the_last_day",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook::sync_range_tests::snapshot_keeps_its_fetch_dates_across_midnight_and_year_end",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook_jobs::tests::enabled_task_queues_updates_and_retains_deleted_identity",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook_jobs::tests::inbound_fetch_never_deletes_or_rolls_back_app_managed_records",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook_jobs::tests::local_only_task_does_not_queue_and_migration_is_idempotent",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:outlook_jobs::tests::pending_local_edit_is_not_overwritten_or_deleted_by_inbound_sync",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::json_map_contract_tests::json_maps_keep_invalid_json_null_and_separate_storage_keys",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::json_map_contract_tests::json_maps_propagate_database_and_row_conversion_errors",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::complete_empty_snapshot_removes_only_outlook_rows",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::content_match_against_keyless_manual_task_is_skipped_without_backfilling_key",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::deletes_task_no_longer_present_in_outlook",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::inserts_new_event_on_first_sync",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::manually_created_task_without_occurrence_key_is_never_deleted",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::moved_single_event_keeps_task_id_and_custom_tag",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::outside_window_keyed_event_is_retained_when_absent_from_current_snapshot",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::second_sync_with_same_event_is_skipped_not_duplicated",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::single_event_moved_into_window_keeps_id_and_tag",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:repositories::outlook_sync_tests::updates_content_when_occurrence_key_matches_but_title_changed",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ui_preferences::tests::failed_write_can_be_retried_without_losing_current_state",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ui_preferences::tests::malformed_file_can_be_replaced_after_load_error",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ui_preferences::tests::persists_theme_and_zoom_across_loads",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:ui_preferences::tests::rejects_invalid_values_without_overwriting_saved_preferences",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:updater::tests::backup_failure_is_an_error_not_permission_to_install",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "rust:updater::tests::backup_is_restorable_and_does_not_overwrite_previous_backups",
+      "required": true,
+      "status": "passed",
+      "evidence": "rust.log"
+    },
+    {
+      "id": "clippy",
+      "required": true,
+      "status": "passed",
+      "evidence": "clippy.log"
+    },
+    {
+      "id": "UI-BOOT",
+      "description": "Bootstrap uses expected fixture IDs and locale",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-WORK-TOTALS",
+      "description": "Only tagged work contributes; daily sidebar retains tags without total/overtime",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-TASK-FILTER",
+      "description": "Tag filtering shows exact IDs and clearing restores all tasks",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-MULTISELECT",
+      "description": "Ctrl toggles and Shift selects the chronological range in list and calendar",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-SELECTION-PRUNE",
+      "description": "Filtering and changing date removes hidden selections",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-BULK-SAVE",
+      "description": "Bulk changes only enabled fields on selected task IDs",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-BULK-FAILURE",
+      "description": "Failed bulk request changes nothing, keeps dialog open and permits retry",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-BULK-STALE",
+      "description": "Stale bulk snapshots preserve concurrent edits and other selected tasks",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-TAGLESS-BADGE",
+      "description": "Task-list tagless badge is visible and aligned; editor retains tagless choice",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-EDIT-CANCEL",
+      "description": "Cancelling an edited task preserves the complete API snapshot",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-EDIT-SAVE",
+      "description": "Saving changes only the targeted task fields",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-CREATE",
+      "description": "Creating a task preserves IDs and persists user-provided values",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-DELETE-CONFIRM",
+      "description": "In-app deletion confirmation cancels safely and deletes only the confirmed task",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-TITLE",
+      "description": "Double-click creation has a blank title without the former suffix",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-MINI",
+      "description": "Disclosure, month/year pickers, wheel navigation and no picker overflow",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-SETTINGS-PAGES",
+      "description": "Purpose-specific setting pages show one panel and preserve cancel/save",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-LOCALES",
+      "description": "English and Korean render translated controls while task text is preserved",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-NO-NATIVE-DIALOG",
+      "description": "No browser alert/confirm/prompt emitted during required flows",
+      "required": true,
+      "status": "passed",
+      "evidence": "cases.json"
+    },
+    {
+      "id": "UI-NO-UNEXPECTED-ERRORS",
+      "description": "No uncaught renderer errors or unsupported synthetic API calls",
+      "required": true,
+      "status": "passed",
+      "errors": [],
+      "requests": [],
+      "evidence": "harness-environment.json"
+    }
+  ],
+  "notRun": [
+    {
+      "id": "rust:outlook::live_tests::live_connect_and_fetch_events_from_real_outlook",
+      "required": false,
+      "status": "not-run",
+      "evidence": "rust.log",
+      "reason": "Live Outlook integration is intentionally excluded"
+    },
+    {
+      "id": "NATIVE-APP",
+      "required": false,
+      "status": "not-run",
+      "reason": "Native app/WebView2 launch prohibited due reported account lockouts; renderer browser contract is not native E2E"
+    },
+    {
+      "id": "LIVE-OUTLOOK",
+      "required": false,
+      "status": "not-run",
+      "reason": "No real Outlook COM read or write; ignored Rust live test remains excluded"
+    },
+    {
+      "id": "LIVE-AI",
+      "required": false,
+      "status": "not-run",
+      "reason": "No live model/CLI requests; unit/API mock behavior only"
+    },
+    {
+      "id": "LIVE-UPDATER",
+      "required": false,
+      "status": "not-run",
+      "reason": "No update network, signing trust changes or installation"
+    },
+    {
+      "id": "LIVE-WINDOWS",
+      "required": false,
+      "status": "not-run",
+      "reason": "No autostart, tray, default browser or Windows settings changes"
+    },
+    {
+      "id": "NATIVE-PERFORMANCE",
+      "required": false,
+      "status": "not-run",
+      "reason": "Startup, CPU and memory of native app/WebView2 excluded; measured renderer/store operation latency only"
+    }
+  ]
+}

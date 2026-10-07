@@ -1,0 +1,17 @@
+const codes=['ja','en','ko','zh-CN','zh-TW','es','fr','de','pt'];
+const rows=[
+ ['batch.count','{count}件選択中','{count} selected','{count}개 선택','已选择{count}项','已選取{count}項','{count} seleccionadas','{count} sélectionnées','{count} ausgewählt','{count} selecionadas'],
+ ['batch.edit','一括変更','Edit selected','일괄 변경','批量编辑','批次編輯','Editar selección','Modifier la sélection','Auswahl bearbeiten','Editar seleção'],
+ ['batch.clear','選択解除','Clear selection','선택 해제','取消选择','取消選取','Quitar selección','Effacer la sélection','Auswahl aufheben','Limpar seleção'],
+ ['batch.hint','変更する項目だけ選んでください。選択した予定だけに反映します。','Choose only the fields to change. Only selected tasks are updated.','변경할 항목만 선택하세요. 선택한 일정에만 적용됩니다.','只选择要修改的字段。仅更新所选任务。','只選取要修改的欄位。僅更新所選任務。','Elige solo los campos que cambiarán. Solo se actualizan las tareas seleccionadas.','Choisissez uniquement les champs à modifier. Seules les tâches sélectionnées sont mises à jour.','Nur zu ändernde Felder auswählen. Nur ausgewählte Aufgaben werden geändert.','Escolha apenas os campos a alterar. Só as tarefas selecionadas serão atualizadas.'],
+ ['batch.tag','タグを変更','Change tag','태그 변경','更改标签','變更標籤','Cambiar etiqueta','Changer le tag','Tag ändern','Alterar etiqueta'],
+ ['batch.date','日付を変更','Change date','날짜 변경','更改日期','變更日期','Cambiar fecha','Changer la date','Datum ändern','Alterar data'],
+ ['batch.memo','メモを変更','Change notes','메모 변경','更改备注','變更備註','Cambiar notas','Changer les notes','Notizen ändern','Alterar notas'],
+ ['batch.apply','{count}件に適用','Apply to {count} tasks','{count}개에 적용','应用到{count}项','套用至{count}項','Aplicar a {count} tareas','Appliquer à {count} tâches','Auf {count} Aufgaben anwenden','Aplicar a {count} tarefas'],
+ ['batch.saved','{count}件を更新しました','Updated {count} tasks','{count}개를 변경했습니다','已更新{count}项','已更新{count}項','Se actualizaron {count} tareas','{count} tâches mises à jour','{count} Aufgaben aktualisiert','{count} tarefas atualizadas'],
+ ['batch.saving','保存中…','Saving…','저장 중…','正在保存…','正在儲存…','Guardando…','Enregistrement…','Speichern…','Salvando…'],
+ ['batch.invalid','変更する項目と値を確認してください。','Check the selected fields and values.','변경할 항목과 값을 확인하세요.','请检查所选字段和值。','請檢查所選欄位和值。','Comprueba los campos y valores seleccionados.','Vérifiez les champs et valeurs sélectionnés.','Ausgewählte Felder und Werte prüfen.','Verifique os campos e valores selecionados.'],
+ ['batch.instances','繰り返し予定も、選択した回だけを変更します。','For repeating tasks, only the selected occurrences change.','반복 일정도 선택한 회차만 변경합니다.','重复任务也仅修改所选的日程。','重複任務也僅修改所選的行程。','En tareas repetidas, solo cambian las apariciones seleccionadas.','Pour les tâches répétées, seules les occurrences sélectionnées changent.','Bei Wiederholungen ändern sich nur die ausgewählten Termine.','Em tarefas repetidas, apenas as ocorrências selecionadas mudam.'],
+ ['batch.shortcuts','Ctrl：個別選択・解除 / Shift：範囲選択','Ctrl: toggle selection / Shift: select range','Ctrl: 개별 선택·해제 / Shift: 범위 선택','Ctrl：单选或取消 / Shift：范围选择','Ctrl：單選或取消 / Shift：範圍選取','Ctrl: alternar selección / Mayús: seleccionar rango','Ctrl : sélection individuelle / Maj : plage','Strg: einzeln auswählen / Umschalt: Bereich','Ctrl: seleção individual / Shift: intervalo'],
+];
+export default Object.fromEntries(codes.map((code,index)=>[code,Object.fromEntries(rows.map(([key,...values])=>[key,values[index]]))]));

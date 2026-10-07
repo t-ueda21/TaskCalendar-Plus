@@ -22,8 +22,6 @@ export function setupPicker({ containerEl,monthLabelEl,prevBtn,nextBtn,onDateSel
         containerEl.appendChild(button);
       }
     }
-    const today=document.createElement('button');today.type='button';today.className='miniToday btn';today.dataset.miniToday='';today.textContent=translate('common.today');
-    today.addEventListener('click',()=>{const date=new Date();state=createMiniCalendarState(date);selected=formatDateKey(date);render();onDateSelect?.(date);});containerEl.appendChild(today);
     if(monthLabelEl) {
       monthLabelEl.textContent=state.mode==='years'?`${yearChoices(state)[0]}–${yearChoices(state).at(-1)}`:state.mode==='months'?String(state.pickerYear):new Intl.DateTimeFormat(getLocale(),{year:'numeric',month:'long'}).format(new Date(state.year,state.month,1));
       monthLabelEl.dataset.yearmonth=`${state.year}-${String(state.month+1).padStart(2,'0')}`;
@@ -35,6 +33,21 @@ export function setupPicker({ containerEl,monthLabelEl,prevBtn,nextBtn,onDateSel
     }
   }
   prevBtn?.addEventListener('click',()=>{state=movePicker(state,-1);render();});nextBtn?.addEventListener('click',()=>{state=movePicker(state,1);render();});
+  let wheelDelta = 0, lastWheelAt = 0, lastWheelMoveAt = -Infinity;
+  (containerEl.closest('.miniCalSticky') ?? containerEl).addEventListener('wheel', event => {
+    if (event.ctrlKey || event.metaKey || !expanded()) return;
+    event.preventDefault();
+    const now = performance.now();
+    if (now - lastWheelAt > 250) wheelDelta = 0;
+    lastWheelAt = now;
+    const delta = event.deltaY || event.deltaX;
+    wheelDelta += delta * (event.deltaMode === 1 ? 24 : event.deltaMode === 2 ? 120 : 1);
+    if (Math.abs(wheelDelta) < 60 || now - lastWheelMoveAt < 160) return;
+    state = movePicker(state, Math.sign(wheelDelta));
+    wheelDelta = 0;
+    lastWheelMoveAt = now;
+    render();
+  }, { passive: false });
   monthLabelEl?.addEventListener('click',()=>{state=expanded()?advancePicker(state):{...state,mode:'months'};expand(true);render();containerEl.querySelector('[aria-pressed="true"]')?.focus({preventScroll:true});});
   (containerEl.closest('.miniCalSticky')??containerEl).addEventListener('keydown',event=>{
     if(state.mode==='days') {

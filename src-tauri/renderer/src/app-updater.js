@@ -115,6 +115,7 @@ export async function initAppUpdater(Store, root = document, bridge = window.__T
   const view = createUpdateView(root, dialog, supported);
   view.current.forEach(el => { el.textContent = `v${info.currentVersion || '—'}`; });
   controller.subscribe(view.render);
+  root.addEventListener('tcplus:language', () => view.render(controller.state));
   const notifyAtStartup = createStartupNotice(root, controller, view, hasOpenEditor);
 
   view.checkButtons.forEach(el => el.addEventListener('click', () => { void controller.check(); }));

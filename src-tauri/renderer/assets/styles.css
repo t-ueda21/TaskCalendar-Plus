@@ -227,6 +227,9 @@ body {
 a { color: inherit; text-decoration: none; }
 
 .container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   width: 100%;
   height: 100%;
   max-width: none;
@@ -378,6 +381,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .toolbar {
+  min-width: 0;
   margin-top: 6px;
   display: flex;
   align-items: center;
@@ -409,6 +413,8 @@ a { color: inherit; text-decoration: none; }
   overflow-x: auto;
   scrollbar-width: thin;
 }
+
+.toolbar .left > * { flex-shrink: 0; white-space: nowrap; }
 
 .control {
   display: inline-flex;
@@ -520,7 +526,8 @@ a { color: inherit; text-decoration: none; }
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 6px 8px;
-  height: calc(100% - 146px);
+  height: auto;
+  min-height: 0;
   transition: grid-template-columns 0.25s ease;
 }
 
@@ -539,6 +546,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .layout > .panel {
+  min-width: 0;
+  min-height: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -595,7 +604,7 @@ aside .panelBody::-webkit-scrollbar {
 
 .miniCalHeader {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 32px minmax(0, 1fr);
   align-items: center;
   gap: 6px;
   width: 100%;
@@ -660,7 +669,7 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 .miniCalToggle {
-  width: 48px;
+  width: 32px;
   height: 28px;
   flex-shrink: 0;
   padding: 0;
@@ -2002,8 +2011,11 @@ dialog.settingsDialog[open] {
 }
 
 @media (max-width: 1080px) {
-  .layout { grid-template-columns: 1fr; }
-  .tasksContentLayout { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: 230px minmax(0, 1fr); }
+  .tasksContentLayout { display: flex; flex-direction: column; overflow-y: auto; }
+  .tasksMainColumn { height: auto; flex: 0 0 auto; grid-template-rows: auto auto auto; }
+  .tasksMainColumn .tableWrap { min-height: 140px; max-height: 300px; }
+  .tasksRightColumn { display: flex; flex-direction: column; overflow: visible; flex: 0 0 auto; }
 }
 
 @media (max-width: 1200px) {
@@ -2018,9 +2030,20 @@ dialog.settingsDialog[open] {
 
 @media (max-width: 760px) {
   .nav {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  .header { padding: 10px 12px; gap: 8px; }
+  .headerNavigation { flex: 1; }
+  .clock { width: 100%; justify-content: flex-start; }
+  .toolbar { height: auto; min-height: 62px; flex-wrap: wrap; }
+  .toolbar .left { width: 100%; }
+  .toolbar .right { margin-left: auto; }
 }
+
+.tableSortButton { appearance: none; border: 0; background: transparent; color: inherit; font: inherit; padding: 0; white-space: nowrap; cursor: pointer; }
+.tableSortButton:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.settingsTagDragHandle { border: 0; background: transparent; padding: 0; color: var(--muted); font: inherit; }
+.settingsTagDragHandle:focus-visible { outline: 2px solid var(--accent); }
 
 /* ── 本実装追加スタイル ── */
 
@@ -2035,6 +2058,8 @@ dialog.settingsDialog[open] {
 .taskTagBadge {
   display: inline-flex;
   align-items: center;
+  min-height: 24px;
+  vertical-align: middle;
   max-width: min(100%, 180px);
   min-width: 0;
   padding: 1px 10px;
@@ -2046,6 +2071,8 @@ dialog.settingsDialog[open] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.taskTagBadge.isUntagged { color: var(--muted); background: var(--panel2); border-color: var(--border-strong); }
 
 /* テーブル: タスクタイトルセル */
 .taskTitleCell {
@@ -2198,7 +2225,7 @@ th[data-sort]:hover { background: var(--accent-soft); }
 
 .aiLayout {
   margin-top: 6px;
-  height: calc(100% - 146px);
+  height: auto;
 }
 
 .aiModePanel {
@@ -3151,7 +3178,6 @@ label.uiToggle { position: relative; width: fit-content; }
 .sideWorkTotals { display: grid; gap: 6px; padding: 10px 0; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
 .sideWorkTotals > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; align-items: baseline; }
 .sideWorkTotals strong { font-variant-numeric: tabular-nums; }
-.miniToday { grid-column: 1 / -1; width: 100%; margin-top: 4px; }
 .mini button.d { font: inherit; color: inherit; cursor: pointer; padding: 0; }
 .mini button.d:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
 .transferWrite, .transferRead { padding: 12px 0; }
@@ -3432,6 +3458,48 @@ label.uiToggle { position: relative; width: fit-content; }
 
 .copySummaryBtn:hover {
   opacity: 1;
+}
+
+.taskSelectionBar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex-shrink:0; padding:10px 14px; border-bottom:1px solid var(--border); background:var(--accent-soft); }
+.taskSelectionBar [data-selection-count] { font-weight:600; font-variant-numeric:tabular-nums; }
+.taskSelectionBar [data-selection-status] { color:var(--success); font-size:var(--font-caption); }
+.taskBlock.isTaskSelected, .allDayTask.isTaskSelected { outline:2px solid var(--accent); outline-offset:-2px; box-shadow:inset 0 0 0 3px var(--panel); }
+tr.isTaskSelected { background:var(--accent-soft); outline:2px solid var(--accent); outline-offset:-2px; }
+.bulkTaskDialog { width:min(600px,calc(100vw - 32px)); }
+.bulkTaskDialog header h2 { margin:0; font-size:var(--font-title); }
+.bulkTaskDialog header p { margin:5px 0 0; color:var(--muted); }
+.bulkTaskDialog form { display:grid; gap:18px; padding:20px 24px; }
+.bulkField { display:grid; gap:8px; }
+.bulkField > label { display:flex; align-items:center; gap:8px; font-weight:600; }
+.bulkField input[type=date], .bulkField select, .bulkField textarea { width:100%; min-width:0; min-height:38px; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--radius-sm); }
+.bulkField :disabled { opacity:0.55; }
+.bulkHint { color:var(--muted); font-size:var(--font-caption); margin:0; }
+.bulkError { color:var(--danger); margin:0; overflow-wrap:anywhere; }
+.bulkError:empty { display:none; }
+
+/* Task editing shares the spacing, controls and surfaces of the new dialogs. */
+[data-task-dialog] { width:min(640px,calc(100vw - 32px)); max-height:calc(100vh - 40px); border-radius:18px; }
+[data-task-dialog][open] { display:flex; flex-direction:column; }
+[data-task-dialog] > header { flex-shrink:0; padding:22px 24px; font-size:18px; font-weight:650; background:var(--panel); }
+[data-task-dialog] > form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 20px; padding:22px 24px; overflow-y:auto; min-height:0; }
+[data-task-dialog] .formRow { display:flex; flex-direction:column; align-items:stretch; gap:8px; margin:0; min-width:0; }
+[data-task-dialog] .formRow > label:first-child { color:var(--muted); font-weight:600; }
+[data-task-dialog] .formRow:has([name=title]), [data-task-dialog] .formRow:has([name=tag]), [data-task-dialog] .formRow:has([name=repeat]), [data-task-dialog] .formRow:has([name=outlookEnabled]), [data-task-dialog] .formRow:has([name=memo]) { grid-column:1 / -1; }
+[data-task-dialog] .formRow:has([name=outlookEnabled]) { flex-direction:row; align-items:center; gap:20px; }
+[data-task-dialog] input:not([type=hidden]):not([type=checkbox]), [data-task-dialog] select, [data-task-dialog] textarea { width:100%; min-width:0; min-height:40px; padding:9px 12px; border:1px solid var(--border-strong); border-radius:9px; background:var(--panel); }
+[data-task-dialog] .timeStepperWrap { width:100%; }
+[data-task-dialog] .timeStepperWrap input { padding-right:34px; }
+[data-task-dialog] .timeStepperBtns { width:28px; right:3px; top:3px; bottom:3px; }
+[data-task-dialog] input:focus-visible, [data-task-dialog] textarea:focus-visible, [data-task-dialog] select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+[data-task-dialog] .btnGroup { gap:8px; }
+[data-task-dialog] .btnGroupItem { min-height:34px; }
+[data-task-dialog] > footer { flex-shrink:0; padding:16px 24px; background:var(--panel2); }
+[data-task-dialog] > footer .btn { min-height:38px; min-width:82px; }
+[data-task-dialog] .timePicker { border-radius:10px; padding:5px; box-shadow:var(--shadow-lg); }
+@media (max-width:520px) {
+  [data-task-dialog] > form { grid-template-columns:minmax(0,1fr); padding:18px; gap:16px; }
+  [data-task-dialog] .formRow { grid-column:1 / -1; }
+  [data-task-dialog] > header, [data-task-dialog] > footer { padding:16px 18px; }
 }
 
 @media (max-width: 700px) {

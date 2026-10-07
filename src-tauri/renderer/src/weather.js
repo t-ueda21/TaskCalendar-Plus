@@ -279,7 +279,9 @@ export function formatWeatherForDisplay(record, { withTemp = true } = {}) {
   if (!record) return translate('ui.5caed7fcdd');
 
   const icon = String(record.icon ?? "🌡");
-  const text = String(record.weatherText ?? translate('ui.bd5a8814a3'));
+  const text = record.weatherCode != null && Number.isFinite(Number(record.weatherCode))
+    ? _weatherInfoByCode(record.weatherCode).text
+    : String(record.weatherText ?? translate('ui.bd5a8814a3'));
   if (!withTemp) return `${icon} ${text}`;
 
   const max = Number(record.tempMaxC);

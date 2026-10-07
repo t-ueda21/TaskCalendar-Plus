@@ -1,7 +1,17 @@
 // Drive the real Tauri WebView2 with an isolated DB/profile, never the user's app data.
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawn} from 'node:child_process';
+import {DatabaseSync} from 'node:sqlite';
 export const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 export async function nativeApp({exe='src-tauri/target/debug/taskcalendar-plus.exe',port=9381,dataDir=fs.mkdtempSync(path.join(os.tmpdir(),'tcplus-v3-'))}={}) {
+  // Disable automatic background actions before bootstrap, not after ready.
+  fs.mkdirSync(dataDir,{recursive:true});
+  const fixtureDb=new DatabaseSync(path.join(dataDir,'tasks.db'));
+  try {
+    fixtureDb.exec('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+    const saved=fixtureDb.prepare("SELECT value FROM settings WHERE key='main'").get();
+    const settings={...(saved?JSON.parse(saved.value):{}),checkUpdatesOnStartup:false,outlookAutoSync:false,urlAutoOpenEnabled:false,trayEnabled:false,startMinimizedToTray:false};
+    fixtureDb.prepare("INSERT INTO settings (key,value) VALUES ('main',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(JSON.stringify(settings));
+  }finally{fixtureDb.close();}
   const child=spawn(path.resolve(exe),[],{windowsHide:true,stdio:'ignore',env:{...process.env,TCPLUS_DATA_DIR:dataDir,WEBVIEW2_USER_DATA_FOLDER:path.join(dataDir,'webview2'),WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:`--remote-debugging-port=${port}`}});
   let socket;const errors=[];let sequence=0;const pending=new Map();
   const close=async()=>{socket?.close();if(child.exitCode===null)child.kill();await delay(800);};

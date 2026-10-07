@@ -9,6 +9,18 @@ export function mountViewTemplates(root = document) {
     if (!(template instanceof HTMLTemplateElement)) {
       throw new Error('Shared view template is missing: ' + id);
     }
-    slot.replaceWith(template.content.cloneNode(true));
+    const content = template.content.cloneNode(true);
+    // Shared task forms must keep labels inside their own view's dialog.
+    const view = slot.closest('[data-view]')?.dataset.view;
+    if (view) {
+      const ids = new Map([...content.querySelectorAll('[id]')].map(node => [node.id, `${view}-${node.id}`]));
+      for (const node of content.querySelectorAll('[id]')) node.id = ids.get(node.id);
+      for (const node of content.querySelectorAll('[for],[aria-labelledby],[aria-describedby]')) {
+        for (const attribute of ['for', 'aria-labelledby', 'aria-describedby']) {
+          if (node.hasAttribute(attribute)) node.setAttribute(attribute, node.getAttribute(attribute).split(' ').map(id => ids.get(id) || id).join(' '));
+        }
+      }
+    }
+    slot.replaceWith(content);
   }
 }

@@ -876,11 +876,11 @@ async function createTask(data) {
 }
 
 // The server checks every revision and commits the complete change in one transaction.
-async function _batchTasks(upserts, deleted) {
+async function _batchTasks(upserts, deleted, expectedSnapshots = null) {
   const generation = _tasksGeneration;
   const currentById = new Map(_tasks.map((task) => [task.id, task]));
   const touched = [...upserts.filter((task) => currentById.has(task.id)), ...deleted];
-  const expected = [...new Map(touched.map((task) => [task.id, {
+  const expected = expectedSnapshots ? expectedSnapshots.map(task=>({id:task.id,updatedAt:task.updatedAt})) : [...new Map(touched.map((task) => [task.id, {
     id: task.id, updatedAt: currentById.get(task.id)?.updatedAt ?? task.updatedAt,
   }])).values()];
   const saved = await _api.post("/tasks/batch", {
@@ -895,6 +895,18 @@ async function _batchTasks(upserts, deleted) {
   }
   await _commitTaskMutation(generation, () => { _tasks = _backfillRecurrenceGroupIds(saved); });
   return _tasks.slice();
+}
+
+/** Apply only the selected instances, with the revisions captured by the editor. */
+async function updateTasksBatch(snapshots, patch) {
+  const {prepareBulkTasks} = await import('./task-selection.js');
+  const upserts = prepareBulkTasks(snapshots, patch);
+  if (upserts.some(task=>!validateTask(task))) throw new Error(translate('errors.generic'));
+  if ('tagId' in patch && patch.tagId && !_tags.some(tag=>tag.id===patch.tagId)) throw new Error(translate('errors.conflict'));
+  if (snapshots.some(task=>_tasks.find(row=>row.id===task.id)?.updatedAt!==task.updatedAt)) throw new Error(translate('errors.conflict'));
+  const saved = await _batchTasks(upserts, [], snapshots);
+  publish('task-bulk-changed', {ids:snapshots.map(task=>task.id)});
+  return saved;
 }
 
 /** Restore a previously deleted task without changing its identity or recurrence. */
@@ -1386,26 +1398,6 @@ function _breakOverlapMinutes(startMin, endMin) {
   ]));
 }
 
-// [start,end]区間から休憩時間帯と重なる部分を取り除いた残り区間の配列を返す
-// (休憩が区間の途中にある場合は2つに分割される)。countAsWork=trueの休憩は
-// 除外対象にしない。
-function _subtractBreaksFromInterval(startMin, endMin) {
-  const breaks = _excludedBreaks();
-  let segments = [[startMin, endMin]];
-  for (const b of breaks) {
-    const bs = timeToMinutes(b.start);
-    const be = timeToMinutes(b.end);
-    const next = [];
-    for (const [s, e] of segments) {
-      if (be <= s || bs >= e) { next.push([s, e]); continue; }
-      if (bs > s) next.push([s, bs]);
-      if (be < e) next.push([be, e]);
-    }
-    segments = next;
-  }
-  return segments;
-}
-
 // 休憩時間との重なりを除いた実質の工数(分)。タスク一覧の「工数」列・タグ別集計に使用する
 function taskDurationMinutes(task) {
   if (task.isAllDay || !task.startTime || !task.endTime) return 0;
@@ -1444,6 +1436,21 @@ function _mergeIntervalMinutes(intervals) {
   return total;
 }
 
+// 日次・月次とも、保存済みのタグがある予定だけを工数集計へ渡す。
+function _tasksWithKnownTags(tasks) {
+  const validTagIds = new Set(_tags.map((tag) => String(tag.id ?? "").trim()).filter(Boolean));
+  return tasks.filter(task => validTagIds.has(String(task.tagId ?? '').trim()));
+}
+
+function _sumTaskMinutesByTag(tasks) {
+  const byTag = new Map();
+  for (const task of tasks) {
+    const tagId = String(task.tagId ?? '').trim();
+    byTag.set(tagId, (byTag.get(tagId) ?? 0) + taskDurationMinutes(task));
+  }
+  return byTag;
+}
+
 /**
  * 日次集計: { total, byTag: Map<tagId, minutes> }
  * - byTag: タグ別の工数（並行作業はそのまま加算）
@@ -1451,20 +1458,8 @@ function _mergeIntervalMinutes(intervals) {
  */
 function calcDaySummary(dateKey) {
   if (_daySummaryCache.has(dateKey)) return _copySummary(_daySummaryCache.get(dateKey));
-  const tasks = getTasksByDate(dateKey);
-  const validTagIds = new Set(_tags.map((tag) => String(tag.id ?? "").trim()).filter(Boolean));
-  const byTag = new Map();
-  const intervals = [];
-  for (const t of tasks) {
-    const tagId = String(t.tagId ?? "").trim();
-    if (!tagId || !validTagIds.has(tagId)) continue;
-    const mins = taskDurationMinutes(t);
-    byTag.set(tagId, (byTag.get(tagId) ?? 0) + mins);
-    if (!t.isAllDay && t.startTime && t.endTime) {
-      intervals.push(..._subtractBreaksFromInterval(timeToMinutes(t.startTime), timeToMinutes(t.endTime)));
-    }
-  }
-  const result = { ...summarizeWork(tasks, _settings), byTag };
+  const tasks = _tasksWithKnownTags(getTasksByDate(dateKey));
+  const result = { ...summarizeWork(tasks, _settings), byTag: _sumTaskMinutesByTag(tasks) };
   _daySummaryCache.set(dateKey, result);
   return _copySummary(result);
 }
@@ -1475,21 +1470,8 @@ function calcDaySummary(dateKey) {
  */
 function calcMonthSummary(yearMonth) {
   if (_monthSummaryCache.has(yearMonth)) return _copySummary(_monthSummaryCache.get(yearMonth));
-  const tasks = getTasksByMonth(yearMonth);
-  const validTagIds = new Set(_tags.map((tag) => String(tag.id ?? "").trim()).filter(Boolean));
-  const byTag = new Map();
-  const intervalsByDate = new Map();
-  for (const t of tasks) {
-    const tagId = String(t.tagId ?? "").trim();
-    if (!tagId || !validTagIds.has(tagId)) continue;
-    const mins = taskDurationMinutes(t);
-    byTag.set(tagId, (byTag.get(tagId) ?? 0) + mins);
-    if (!t.isAllDay && t.startTime && t.endTime) {
-      const list = intervalsByDate.get(t.date) ?? [];
-      list.push(..._subtractBreaksFromInterval(timeToMinutes(t.startTime), timeToMinutes(t.endTime)));
-      intervalsByDate.set(t.date, list);
-    }
-  }
+  const tasks = _tasksWithKnownTags(getTasksByMonth(yearMonth));
+  const byTag = _sumTaskMinutesByTag(tasks);
   const workByDate = new Map();
   for (const task of tasks) {
     if (!workByDate.has(task.date)) workByDate.set(task.date, []);
@@ -1597,6 +1579,7 @@ export {
   createTask,
   restoreTask,
   updateTask,
+  updateTasksBatch,
   updateTaskWithMode,
   deleteTask,
   deleteTaskWithMode,

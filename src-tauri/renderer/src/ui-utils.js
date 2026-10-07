@@ -420,7 +420,7 @@ function _showTp(input) {
     if (hit) hitEl = btn;
   });
   requestAnimationFrame(() => {
-    if (hitEl) hitEl.scrollIntoView({ block: "center" });
+    if (hitEl) _tpPopup.scrollTop = Math.max(0, hitEl.offsetTop - (_tpPopup.clientHeight - hitEl.offsetHeight) / 2);
     else _tpPopup.scrollTop = 0;
   });
 }
@@ -488,6 +488,11 @@ export function setupTimePicker(input) {
   input.removeAttribute("list");         // datalist を無効化
   input.setAttribute("autocomplete", "off");
   input.addEventListener("focus", () => _showTp(input));
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && _tpActiveInput === input && _tpPopup?.style.display !== 'none') {
+      event.preventDefault();event.stopPropagation();_hideTp();
+    }
+  });
   input.addEventListener("blur",  () => setTimeout(() => {
     if (_tpActiveInput === input) _hideTp();
   }, 160));
@@ -708,6 +713,8 @@ export function getDialogTagsForDateKey(Store, dateKey, currentTagId, getFallbac
  * @param {{ startTime?: string, endTime?: string, date?: string, tags: Array }} opts
  */
 export function openCreateDialog(dialog, opts = {}) {
+  const deleteButton = dialog.querySelector('[data-delete]');
+  if (deleteButton) deleteButton.hidden = true;
   const titleEl = dialog.querySelector("[data-dialog-title]");
   if (titleEl) titleEl.textContent = opts.dialogTitle ?? translate('ui.d3dd6281b0');
 
@@ -736,7 +743,7 @@ export function openCreateDialog(dialog, opts = {}) {
 
   dialog.showModal();
   if (opts.focusTitle) {
-    requestAnimationFrame(() => dialog.querySelector("[name='title']")?.focus());
+    dialog.querySelector("[name='title']")?.focus({ preventScroll: true });
   }
 }
 
@@ -744,6 +751,8 @@ export function openCreateDialog(dialog, opts = {}) {
  * ダイアログを「編集」モードで開く。
  */
 export function openEditDialog(dialog, task, tags) {
+  const deleteButton = dialog.querySelector('[data-delete]');
+  if (deleteButton) deleteButton.hidden = false;
   const titleEl = dialog.querySelector("[data-dialog-title]");
   if (titleEl) titleEl.textContent = translate('ui.31894d4e1e');
 
@@ -774,7 +783,7 @@ export function openEditDialog(dialog, task, tags) {
 
   dialog.setAttribute("data-edit-id", task.id);
   dialog.showModal();
-  requestAnimationFrame(() => dialog.querySelector("[name='title']")?.focus());
+  dialog.querySelector("[name='title']")?.focus({ preventScroll: true });
 }
 
 /**
@@ -919,17 +928,31 @@ export function normalizeHexColor(value, fallback = DEFAULT_TAG_COLOR) {
 
 /** サイドバーの開閉ボタン。アイコンと文字を別要素のまま更新する。 */
 export function wireSidebarToggle(root) {
+  const compact = window.matchMedia('(max-width: 760px)');
+  let explicitChoice = null;
+  const setCollapsed = collapsed => {
+    const layout = root.querySelector('.layout'), btn = root.querySelector('[data-sidebar-toggle]');
+    if (!layout || !btn) return;
+    layout.classList.toggle('sidebar-collapsed', collapsed);
+    const sidebar = layout.querySelector('aside');
+    if (sidebar) {
+      if (collapsed && sidebar.contains(document.activeElement)) btn.focus();
+      sidebar.inert = collapsed;
+    }
+    btn.querySelector('[data-sidebar-chevron]')?.setAttribute('d', collapsed ? 'm13 9 3 3-3 3' : 'm16 9-3 3 3 3');
+    btn.setAttribute('aria-expanded', String(!collapsed));
+    btn.title = collapsed ? translate('ui.d545bd0c1e') : translate('ui.cd3379e939');
+    btn.setAttribute('aria-label', btn.title);
+  };
+  setCollapsed(compact.matches);
+  compact.addEventListener('change', () => { if (explicitChoice === null) setCollapsed(compact.matches); });
   root.querySelector("[data-sidebar-toggle]")?.addEventListener("click", (e) => {
     const layout = root.querySelector(".layout");
     const btn = e.currentTarget;
     if (!layout || !(btn instanceof HTMLButtonElement)) return;
-    const collapsed = layout.classList.toggle("sidebar-collapsed");
-    btn.querySelector("[data-sidebar-chevron]")?.setAttribute(
-      "d", collapsed ? "m13 9 3 3-3 3" : "m16 9-3 3 3 3",
-    );
-    btn.setAttribute("aria-expanded", String(!collapsed));
-    btn.title = collapsed ? translate('ui.d545bd0c1e') : translate('ui.cd3379e939');
-    btn.setAttribute("aria-label", btn.title);
+    const collapsed = !layout.classList.contains('sidebar-collapsed');
+    explicitChoice = collapsed;
+    setCollapsed(collapsed);
   });
 }
 
@@ -954,7 +977,7 @@ export function renderSideSummaries({ monthEl, dayEl, Store, dateKey, emptyText 
   if (dayEl) {
     const summary = Store.calcDaySummary(dateKey);
     const html = renderDaySummaryRowsHtml(tags, summary.byTag);
-    dayEl.innerHTML = totals(summary) + (html || (emptyText ? `<div class="small">${escHtml(emptyText.day)}</div>` : ""));
+    dayEl.innerHTML = html || (emptyText ? `<div class="small">${escHtml(emptyText.day)}</div>` : "");
   }
 }
 

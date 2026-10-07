@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "run_id": "refactor-20261008",
+  "coordinator_agent_id": "/root",
+  "design": {
+    "agent_id": "/root/baseline_a",
+    "owns": [
+      "behavior-contract",
+      "case-matrix",
+      "baseline-tests",
+      "fixtures",
+      "measurement-conditions",
+      "before-evidence"
+    ]
+  },
+  "implementation": {
+    "agent_id": "/root/refactor_b",
+    "owns": [
+      "application-refactoring",
+      "change-log",
+      "self-check-results"
+    ]
+  },
+  "verification": {
+    "agent_id": "/root/verification_c",
+    "owns": [
+      "independent-after-tests",
+      "after-measurements",
+      "ui-comparisons",
+      "final-verdict"
+    ]
+  },
+  "feature_stage": {
+    "agent_id": "/root",
+    "contributors": [
+      "/root",
+      "/root/refactor_b"
+    ],
+    "note": "Requested feature and issue fixes precede the separate behavior-preserving refactor baseline. B handles app modals and settings pages; parent handles selection, mini-calendar, tagless and summaries. C does not implement."
+  },
+  "handoffs": [
+    {
+      "at": "2026-10-07T16:52:07.403Z",
+      "from": "/root/baseline_a",
+      "to": [
+        "/root",
+        "/root/refactor_b",
+        "/root/verification_c"
+      ],
+      "artifacts": [
+        "contract.json",
+        "frozen-baseline.json",
+        "frozen-guards.json",
+        "case-matrix.csv",
+        "before-source/source.zip",
+        "before-checks",
+        "before-ui-tests",
+        "before-ui",
+        "before-benchmark"
+      ],
+      "baselineHash": "39eff9b402955b21d323da7b3db851fb697433eec13ea626e8c599ce80e34821",
+      "acceptance": "sent; recipients notified via collaboration messages"
+    },
+    {
+      "at": "2026-10-07T17:28:22.093Z",
+      "from": "/root/baseline_a",
+      "to": [
+        "/root",
+        "/root/refactor_b",
+        "/root/verification_c"
+      ],
+      "artifacts": [
+        "contract.json",
+        "frozen-baseline.json",
+        "frozen-guards.json",
+        "case-matrix.csv",
+        "before-source/source.zip",
+        "before-checks",
+        "before-ui-tests",
+        "before-ui",
+        "before-benchmark",
+        "capture-and-runtime-correction.json"
+      ],
+      "baselineHash": "ef74e6aebd30cdfc095595ae7969da9541e5942199be4222b543ffa1f0ec0707",
+      "acceptance": "sent; current root contains actual pre-refactor source with approved guidance correction; coordinator will reapply exact B refactor next"
+    }
+  ]
+}

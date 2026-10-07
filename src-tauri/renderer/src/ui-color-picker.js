@@ -21,6 +21,10 @@ export function populateUiColor(dialog, value) {
   applyUiColor(color);
   const picker = dialog.querySelector('[data-ui-color-picker]');
   if (!picker) return;
+  for (const preset of UI_COLOR_PRESETS) {
+    const button = picker.querySelector(`[data-ui-color="${preset.color}"]`);
+    if (button) { button.title = preset.name; button.setAttribute('aria-label', translate('ui.4d9e1a1996', { p0: preset.name })); }
+  }
   picker.querySelectorAll('[data-ui-color]').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.uiColor === color));
   });

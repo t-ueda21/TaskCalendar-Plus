@@ -1,4 +1,6 @@
 import { t as translate, th as translateHtml } from './i18n.js';
+import { wireTaskBatch } from './task-batch-ui.js';
+import { showAppAlert, showAppConfirm, chooseRecurrenceScope } from './app-dialogs.js';
 /**
  * calendar.js — カレンダーページのロジック
  *
@@ -261,30 +263,27 @@ function _getDialogTagsForDateKey(dateKey, currentTagId = "") {
 }
 
 // 繰り返し予定の削除範囲を選ばせる(Outlookの「これ以降の予定」相当)。1=このみ/2=すべて/3=今日以降すべて。
-function _chooseDeleteModeForTask(task) {
+async function _chooseDeleteModeForTask(task) {
   const count = Store.getTaskSeriesCount(task);
-  if (count <= 1) return "single";
-  const answer = window.prompt(translate('ui.4615c4d76e'), "1");
-  if (answer == null) return null; // キャンセル
-  const token = String(answer).trim();
-  if (token === "") return null; // 空入力は誤削除防止のため中止
-  if (token === "2" || /すべて|全て|全部|series/i.test(token)) return "series";
-  if (token === "3" || /今日以降|future/i.test(token)) return "future";
-  if (token === "1" || /これ|のみ|単一|single/i.test(token)) return "single";
-  return null; // 想定外の入力は安全側で中止
+  const message = task.title + '\n' + task.date;
+  if (count > 1) return chooseRecurrenceScope({title:translate('ui.e9653dc3ed'),message,operation:'delete'});
+  return await showAppConfirm(message, {title:translate('ui.e9653dc3ed'),confirmLabel:translate('ui.e9653dc3ed'),danger:true}) ? 'single' : null;
 }
 
 async function _deleteTaskByChoice(taskId, preferredMode = null) {
   const task = Store.getAllTasks().find((t) => t.id === taskId);
   if (!task) return;
-  const mode = preferredMode ?? _chooseDeleteModeForTask(task);
-  if (!mode) return;
+  const mode = preferredMode ?? await _chooseDeleteModeForTask(task);
+  if (!mode) return false;
+  if (preferredMode && !await showAppConfirm(task.title + '\n' + task.date, {title:translate('ui.e9653dc3ed'),confirmLabel:translate('ui.e9653dc3ed'),danger:true})) return false;
   // 繰り返し全体(series)の削除はUndo対象外(複数行の巻き戻しが複雑なため)。
   // 単一予定の削除(single)のみUndo/Redoに対応する。
-  await Store.deleteTaskWithMode(taskId, mode);
+  try { await Store.deleteTaskWithMode(taskId, mode); }
+  catch (error) { await showAppAlert(String(error?.message ?? error), {tone:'error'}); return false; }
   if (mode === "single") {
     _recordAction({ type: "delete", taskId, task });
   }
+  return true;
 }
 
 function _ensureTaskTimePreview() {
@@ -414,6 +413,7 @@ let $weekHeader, $weekAllDay, $weekBody, $weekTimes;
 let $sideMonthSummary, $sideDaySummary;
 let $calendarDayWeather;
 let _settingsDialogControl;
+let _batchControl;
 
 // ── 初期化 ────────────────────────────────────────────
 let _initialized = false;
@@ -463,6 +463,14 @@ export function init(rootEl) {
   });
 
   _wireDragDropTargets();
+  _batchControl = wireTaskBatch(_root, Store, {
+    orderedIds: () => {
+      const visible = new Set([..._root.querySelectorAll('[data-task-id]')].filter(node=>node.getClientRects().length&&!node.closest('[hidden]')).map(node=>node.dataset.taskId));
+      return Store.getAllTasks().filter(task=>visible.has(task.id)).sort((a,b)=>a.date.localeCompare(b.date)||(a.startTime??'00:00').localeCompare(b.startTime??'00:00')||a.id.localeCompare(b.id)).map(task=>task.id);
+    },
+    onFocus: id => _setFocusedTaskElement([..._root.querySelectorAll('[data-task-id]')].find(node=>node.dataset.taskId===id)??null),
+  });
+  Store.subscribe('task-bulk-changed', ({ids}) => { ids.forEach(taskId=>_forgetTaskHistory({taskId})); });
   setInterval(() => { if (!_root.hidden) updateNowLine(_granularity, _viewMode); }, 30_000);
 }
 
@@ -566,6 +574,7 @@ function _wireToolbar() {
 
 // ── ビュー管理 ─────────────────────────────────────────
 function _applyViewMode(mode) {
+  _batchControl?.clear();
   _setFocusedTaskElement(null);
   _setFocusedSlotElement(null);
   const dayView  = _root.querySelector("[data-view='day']");
@@ -584,6 +593,7 @@ function _applyViewMode(mode) {
 }
 
 function _setViewDate(date) {
+  _batchControl?.clear();
   _setFocusedTaskElement(null);
   _setFocusedSlotElement(null);
   _viewDate = new Date(date);
@@ -1102,7 +1112,7 @@ function _wireDialog() {
   const saveTask = async () => {
     if (_saving) return;
     const form = readDialogForm($dialog);
-    if (!form.title) { alert(translate('ui.f611575d37')); return; }
+    if (!form.title) { await showAppAlert(translate('ui.f611575d37'), {tone:'error'}); return; }
     const { editScope, ...taskPatch } = form;
     const mode = editScope || "single";
 
@@ -1134,7 +1144,7 @@ function _wireDialog() {
       }
       $dialog.close();
     } catch (error) {
-      alert(translate('ui.20817f47e9', { p0: (String(error?.message ?? error)) }));
+      await showAppAlert(translate('ui.20817f47e9', { p0: (String(error?.message ?? error)) }), {tone:'error'});
     } finally {
       _saving = false;
       if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.origText || translate('ui.a3030bf8f1'); }
@@ -1167,13 +1177,13 @@ function _wireDialog() {
   $dialog.querySelector("[data-delete]")?.addEventListener("click", async () => {
     const editId = $dialog.getAttribute("data-edit-id");
     if (editId) {
-      await _deleteTaskByChoice(editId);
-      $dialog.close();
+      if (await _deleteTaskByChoice(editId)) $dialog.close();
     }
   });
 
   $dialog.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter") return;
+    if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
+    if (e.target.closest('button')) return;
     if (e.target instanceof HTMLTextAreaElement) return;
     e.preventDefault();
     void saveTask();
@@ -1315,7 +1325,7 @@ function _wireSelectionColumn(colEl, slotsEl, getDateKey) {
     const em = Math.max(sm + _minTaskDurationMinutes(), yToSnap(bY, "end"));
     clearSel();
 
-    openCreateFromRange(sm, em, getDateKey(), translate('ui.f1e5133fc3'));
+    openCreateFromRange(sm, em, getDateKey());
   });
 
   colEl.addEventListener("pointercancel", () => {
@@ -1333,7 +1343,7 @@ function _wireSelectionColumn(colEl, slotsEl, getDateKey) {
     const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
     const sm = yToSnap(y, "start");
     const em = Math.min(1440, sm + _minTaskDurationMinutes());
-    openCreateFromRange(sm, em, getDateKey(), translate('ui.844b73007e'));
+    openCreateFromRange(sm, em, getDateKey());
   });
 }
 

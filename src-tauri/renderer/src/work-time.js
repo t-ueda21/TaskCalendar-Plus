@@ -13,7 +13,7 @@ export function mergeIntervals(intervals) {
   return result;
 }
 export function summarizeWork(tasks, settings) {
-  let segments = mergeIntervals(tasks.filter(task => !task.isAllDay).map(task => [minutes(task.startTime), minutes(task.endTime)]));
+  let segments = mergeIntervals(tasks.filter(task => !task.isAllDay && String(task.tagId ?? '').trim()).map(task => [minutes(task.startTime), minutes(task.endTime)]));
   const excluded = mergeIntervals((settings.breaks ?? []).filter(row => !row.countAsWork).map(row => [minutes(row.start), minutes(row.end)]));
   for (const [bs, be] of excluded) {
     segments = segments.flatMap(([s, e]) => be <= s || bs >= e ? [[s, e]] : [...(bs > s ? [[s, bs]] : []), ...(be < e ? [[be, e]] : [])]);

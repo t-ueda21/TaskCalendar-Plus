@@ -32,6 +32,8 @@ import { LANGUAGES, t as translate, applyTranslations, th as translateHtml } fro
 import { readPersonalization, populatePersonalization } from "./ai-personalization.js";
 import { wireOutlookSync as wireOutlookSyncV3 } from "./outlook-settings.js";
 import { wireTransferUi } from "./transfer-ui.js";
+import { showAppAlert, showAppConfirm } from './app-dialogs.js';
+import { prepareSettingsPages } from './settings-pages.js';
 
 // ── 設定ダイアログ共通ヘルパー(3画面(calendar/tasks/ai-mode)で共用) ──
 /**
@@ -174,7 +176,8 @@ function wireSettingsTabs(settingsDialog) {
   }
 
   const activate = (tabName) => {
-    const target = String(tabName || tabButtons[0]?.getAttribute("data-settings-tab") || "general");
+    const requested = String(tabName || 'general');
+    const target = tabButtons.some(button => button.dataset.settingsTab === requested) ? requested : 'general';
 
     tabButtons.forEach((btn) => {
       const active = btn.getAttribute("data-settings-tab") === target;
@@ -188,11 +191,20 @@ function wireSettingsTabs(settingsDialog) {
       panel.classList.toggle("isActive", active);
       panel.hidden = !active;
     });
+    settingsDialog.querySelector('.settingsDialogBody').scrollTop = 0;
   };
 
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       activate(btn.getAttribute("data-settings-tab"));
+    });
+    btn.addEventListener('keydown', event => {
+      const index = tabButtons.indexOf(btn);
+      const next = { ArrowDown: (index + 1) % tabButtons.length, ArrowUp: (index + tabButtons.length - 1) % tabButtons.length, ArrowRight: (index + 1) % tabButtons.length, ArrowLeft: (index + tabButtons.length - 1) % tabButtons.length, Home: 0, End: tabButtons.length - 1 }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      activate(tabButtons[next].dataset.settingsTab);
+      tabButtons[next].focus();
     });
   });
 
@@ -320,23 +332,25 @@ function bindCompanyHolidayImport(settingsDialog) {
   if (importBtn.dataset.holidaysImportBound === "1") return;
 
   importBtn.dataset.holidaysImportBound = "1";
+  importBtn.disabled = !fileEl.files?.length;
   fileEl.addEventListener("change", () => {
     const name = fileEl.files?.[0]?.name ?? null;
     if (fileNameEl) fileNameEl.textContent = name ?? translate('ui.a28710cc66');
+    importBtn.disabled = !fileEl.files?.length;
   });
 
   importBtn.addEventListener("click", async () => {
     const file = fileEl.files?.[0];
     if (!file) {
-      alert(translate('ui.48ec6e953a'));
+      await showAppAlert(translate('ui.48ec6e953a'));
       return;
     }
-
+    importBtn.disabled = true;
     try {
       const text = await file.text();
       const importedEntries = parseCompanyHolidayText(text);
       if (!importedEntries.length) {
-        alert(translate('ui.394a685552'));
+        await showAppAlert(translate('ui.394a685552'));
         return;
       }
 
@@ -345,10 +359,12 @@ function bindCompanyHolidayImport(settingsDialog) {
       inputEl.value = formatCompanyHolidayInputText(mergedEntries);
       fileEl.value = "";
       if (fileNameEl) fileNameEl.textContent = translate('ui.a28710cc66');
-      alert(translate('ui.5384f8a49c', { p0: (importedEntries.length) }));
+      await showAppAlert(translate('ui.5384f8a49c', { p0: (importedEntries.length) }));
     } catch (e) {
       console.warn(`[settings] company holiday import failed:`, e);
-      alert(translate('ui.8ca39f56b3'));
+      await showAppAlert(translate('ui.8ca39f56b3'), { tone: 'error' });
+    } finally {
+      importBtn.disabled = !fileEl.files?.length;
     }
   });
 }
@@ -408,6 +424,7 @@ function _wireThemeToggle(settingsDialog) {
 // onAfterSave/getTagMgrSeedDate等は「どの画面の⚙設定ボタンが押されたか」に応じて
 // state.activeConfigへ都度差し替える。
 function _wireSettingsDialogCore(settingsDialog, Store) {
+  prepareSettingsPages(settingsDialog);
   wireUiColorPicker(settingsDialog, Store);
   const timeValues = buildSettingsTimeValues(15);
   let _tagMgrMonth = formatYearMonth(new Date());
@@ -523,9 +540,10 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   };
 
   let savingSettings = false;
+  let confirmingSettings = false;
   let dialogSession = 0;
   const saveSettings = async () => {
-    if (savingSettings || !validateSelectedLocalAi(settingsDialog)) return false;
+    if (savingSettings || confirmingSettings || !validateSelectedLocalAi(settingsDialog)) return false;
     const savingSession = dialogSession;
     const onAfterSave = getConfig().onAfterSave;
     const current = Store.getSettings();
@@ -534,11 +552,15 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     const vendor = nextCliEnabled ? AI_CLI_VENDORS[nextProvider] : undefined;
     if (vendor && (nextProvider !== current.aiProvider || !current.aiCliEnabled)) {
       const label = Store.AI_PROVIDER_LABELS?.[nextProvider] ?? nextProvider;
-      const ok = confirm(
-        translate('ui.4bc3090c37', { p0: (label) })
-        + translate('ui.9a7c517e8d', { p0: (label), p1: (vendor) }),
-      );
-      if (!ok) return false;
+      confirmingSettings = true;
+      let ok;
+      try {
+        ok = await showAppConfirm(
+          translate('ui.4bc3090c37', { p0: (label) })
+          + translate('ui.9a7c517e8d', { p0: (label), p1: (vendor) }),
+        );
+      } finally { confirmingSettings = false; }
+      if (!ok || dialogSession !== savingSession || !settingsDialog.open) return false;
     }
     const patch = {
       uiLanguage: languageSelect?.value ?? current.uiLanguage,
@@ -575,7 +597,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
       onAfterSave?.(patch);
       return dialogSession === savingSession;
     } catch (error) {
-      alert(translate('ui.008379f02c', { p0: (String(error?.message ?? error)) }));
+      await showAppAlert(translate('ui.008379f02c', { p0: (String(error?.message ?? error)) }), { tone: 'error' });
       return false;
     } finally {
       savingSettings = false;
@@ -637,7 +659,8 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     renderTagManager();
     settingsDialog.showModal();
     requestAnimationFrame(() => {
-      settingsDialog.querySelector("[data-settings-save]")?.focus({ preventScroll: true });
+      settingsDialog.querySelector('.settingsDialogBody').scrollTop = 0;
+      settingsDialog.querySelector('[data-settings-tab][aria-selected="true"]')?.focus({ preventScroll: true });
     });
   };
 
@@ -672,7 +695,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   saveBtn?.addEventListener("click", saveSettings);
 
   settingsDialog.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter") return;
+    if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
     if (e.target.closest("button")) return;
     if (e.target instanceof HTMLTextAreaElement) return;
     if (e.target.closest("[data-tag-list]")) {
