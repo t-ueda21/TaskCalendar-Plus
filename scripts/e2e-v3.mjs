@@ -68,4 +68,3 @@ try {
   check('no uncaught runtime exceptions',app.errors.length===0);
   fs.writeFileSync(output+'/native-e2e.json',JSON.stringify({checks,mocks:['AI preview HTTP model response','Outlook fetch UI response'],liveOutlookWrites:false,dimensions:'native default; additional 720x900 CSS viewport',dataDir:app.dataDir},null,2));
 } finally {await app?.close();await new Promise(resolve=>mock.close(resolve));}
-
