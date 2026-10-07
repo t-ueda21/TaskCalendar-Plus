@@ -569,7 +569,7 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 /* calendar panel uses fixed header areas + scrolling gridWrap */
-.panel[aria-label="カレンダー本体"] .panelBody {
+.panel[data-calendar-panel] .panelBody {
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -594,7 +594,8 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 .miniCalHeader {
-  display: flex;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
   align-items: center;
   gap: 6px;
   width: 100%;
@@ -602,6 +603,7 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 .miniCalHeader > h2 {
+  grid-column: 2;
   flex: 1;
   min-width: 0;
   padding: 0;
@@ -683,7 +685,10 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 .miniCalHeaderArrows {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-column: 1 / -1;
+  width: 100%;
   gap: 4px;
   flex-shrink: 0;
 }
@@ -1531,6 +1536,10 @@ aside .panelBody::-webkit-scrollbar {
   background: rgba(var(--accent-rgb), 0.15);
   font-weight: 700;
 }
+.miniCalHeaderArrows .btn { min-width: 0; width: 100%; white-space: normal; }
+.miniCalSticky .panelHeaderRow { height: auto; min-height: 76px; }
+.contextTagSwatch { display: inline-block; width: 12px; height: 12px; flex-shrink: 0; margin-right: 8px; border: 1px solid var(--border); border-radius: 3px; vertical-align: -1px; }
+.copySummaryBtn { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-width: 28px; min-height: 28px; }
 
 .taskTagContextItem.danger {
   color: var(--danger);
@@ -1641,13 +1650,13 @@ dialog.settingsDialog[open] {
   overflow-x: auto;
 }
 
-.panel[aria-label="タスク一覧テーブル"] .content {
+.panel[data-tasks-panel] .content {
   flex: 1;
   min-height: 0;
   display: flex;
 }
 
-.panel[aria-label="タスク一覧テーブル"] .content > .tasksContentLayout {
+.panel[data-tasks-panel] .content > .tasksContentLayout {
   flex: 1;
   min-height: 0;
   width: 100%;
@@ -1944,12 +1953,12 @@ dialog.settingsDialog[open] {
 }
 
 /* 見出しを横書きで保ち、狭い画面ではtableWrap内で横スクロールする。 */
-.table[aria-label="タスク一覧"] th,
-.table[aria-label="タスク一覧"] td:nth-child(5) {
+.table[data-task-table] th,
+.table[data-task-table] td:nth-child(5) {
   white-space: nowrap;
 }
 
-.table[aria-label="タスク一覧"] th[data-sort="title"] {
+.table[data-task-table] th[data-sort="title"] {
   min-width: 10em;
 }
 
@@ -1961,8 +1970,8 @@ dialog.settingsDialog[open] {
   font-size: var(--font-body);
 }
 
-.panel[aria-label="タスク一覧テーブル"] .table th,
-.panel[aria-label="タスク一覧テーブル"] .table td {
+.panel[data-tasks-panel] .table th,
+.panel[data-tasks-panel] .table td {
   padding: 7px 8px;
   line-height: 1.35;
 }
@@ -3138,6 +3147,24 @@ label.uiToggle { position: relative; width: fit-content; }
   border-radius: var(--radius-md);
   padding: 8px;
 }
+
+.sideWorkTotals { display: grid; gap: 6px; padding: 10px 0; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
+.sideWorkTotals > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; align-items: baseline; }
+.sideWorkTotals strong { font-variant-numeric: tabular-nums; }
+.miniToday { grid-column: 1 / -1; width: 100%; margin-top: 4px; }
+.transferWrite, .transferRead { padding: 12px 0; }
+.transferWrite { border-bottom: 1px solid var(--border); }
+.transferWrite h3, .transferRead h3 { font-size: var(--font-body); margin: 0 0 8px; }
+.transferSteps { display: grid; gap: 10px; margin: 0; padding-left: 24px; }
+.transferSteps li > span { display: block; font-weight: 600; margin-bottom: 6px; }
+.transferSteps p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0; }
+.settingsFileImportName { overflow-wrap: anywhere; white-space: normal; }
+.outlookJobError { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; }
+.outlookJobError span { flex: 1; overflow-wrap: anywhere; }
+.outlookLinkBanner { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); max-width: min(700px, 90vw); background: var(--panel); color: var(--text); border: 1px solid #c2410c; border-radius: var(--radius-sm); padding: 10px 16px; box-shadow: var(--shadow-md); z-index: 100; }
+.aiPersonalization { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin: 12px 0; min-width: 0; }
+.aiPersonalization textarea { width: 100%; min-height: 72px; resize: vertical; }
+[data-ai-preview-status] { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* タグ管理: タグ名/上限/下限を列として揃えたテーブル形式。
    列見出しは.settingsTagTableHead(app.html側に静的配置)で固定表示する。 */

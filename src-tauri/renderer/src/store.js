@@ -11,6 +11,9 @@
 import { normalizeCompanyHolidayEntries } from "./company-holidays.js";
 import { normalizeQuickLinks } from "./settings-transfer.js";
 import { DEFAULT_UI_COLOR, normalizeUiColor } from "./ui-colors.js";
+import { normalizeLocale, t as translate, th as translateHtml } from './i18n.js';
+import { personalization } from "./ai-personalization.js";
+import { summarizeWork } from "./work-time.js";
 import {
   normalizeBreaks, normalizeUrlAutoOpenTimes, _isDateKey, _normalizeDateKey, timeToMinutes, minutesToTime,
   formatDateKey, formatYearMonth, parseLocalDate,
@@ -18,7 +21,7 @@ import {
 
 // AIの接続先。"none"(既定)のときはAIを呼ばない。
 export const AI_PROVIDER_LABELS = {
-  none: "使わない",
+  get none() { return translate('ui.16f23fffd1'); },
   "claude-code": "Claude Code",
   codex: "Codex",
   ollama: "Ollama",
@@ -48,6 +51,8 @@ function _normalizeShortText(value) {
 
 // ── デフォルト値 ──────────────────────────────────────
 const DEFAULT_SETTINGS = {
+  uiLanguage: "auto",
+  aiPersonalization: personalization({}),
   workStart:           "09:00",
   workEnd:             "18:00",
   // 休憩時間帯ごとに工数計算へ含めるか選べるようにする。
@@ -85,6 +90,8 @@ const DEFAULT_SETTINGS = {
   outlookSyncCalendarName: "Calendar",
   outlookSyncTagId: "",
   outlookSyncDaysAhead: 90,
+  outlookWriteDefault: false,
+  outlookWriteCalendarName: "Calendar",
   trayEnabled: true, // 「✕」でタスクトレイへ格納するか(Rust側main.rsが起動時に読む)
   startMinimizedToTray: false, // 起動時にタスクトレイのみで起動するか
 };
@@ -157,6 +164,10 @@ function _normalizeSettings(settingsLike) {
   merged.urlAutoOpenTimes = normalizeUrlAutoOpenTimes(merged.urlAutoOpenTimes);
   merged.quickLinks = normalizeQuickLinks(merged.quickLinks);
   merged.uiAccentColor = normalizeUiColor(merged.uiAccentColor);
+  merged.uiLanguage = merged.uiLanguage === "auto" ? "auto" : normalizeLocale(merged.uiLanguage);
+  merged.aiPersonalization = personalization(merged);
+  merged.outlookWriteDefault = merged.outlookWriteDefault === true;
+  merged.outlookWriteCalendarName = String(merged.outlookWriteCalendarName ?? 'Calendar').trim().slice(0, 200) || 'Calendar';
   merged.companyHolidayEntries = normalizeCompanyHolidayEntries(merged.companyHolidayEntries ?? merged.companyHolidays);
   merged.companyHolidays = merged.companyHolidayEntries.map((row) => row.dateKey);
   merged.aiCliEnabled = merged.aiCliEnabled === true;
@@ -357,7 +368,7 @@ let _syncReloading = false;
 
 function _strictApiError(action, error) {
   const reason = String(error?.message ?? error ?? "Unknown error");
-  return new Error(`${action}に失敗しました。\n${reason}`);
+  return new Error(translate('ui.a4d69ea188', { p0: (action), p1: (reason) }));
 }
 
 async function _failStrictApi(channel, action, error) {
@@ -549,7 +560,7 @@ function _ensureTaskIndex() {
     _tasksByMonth.get(month).push(task);
   }
 }
-const _copySummary = summary => ({ total: summary.total, byTag: new Map(summary.byTag) });
+const _copySummary = summary => ({ total: summary.total, overtime: summary.overtime ?? 0, byTag: new Map(summary.byTag) });
 
 async function _readTaskSnapshot(etag = null) {
   const headers = etag ? { 'If-None-Match': etag } : {};
@@ -576,7 +587,7 @@ function _refreshTaskSnapshot() {
       }
       return;
     }
-    throw new Error('予定を編集中のため再読み込みできませんでした。もう一度お試しください。');
+    throw new Error(translate('ui.a384f9463f'));
   })().finally(() => { _taskRefreshPromise = null; });
   return _taskRefreshPromise;
 }
@@ -822,7 +833,7 @@ function _makeTaskEntity(data, dateKey, recurrence, nowIso) {
 
   return {
     id:        String(data.id ?? genId()),
-    title:     String(data.title  ?? "").trim() || "無題",
+    title:     String(data.title  ?? "").trim() || translate('ui.6ada6dbdde'),
     date:      String(dateKey ?? data.date ?? ""),
     isAllDay,
     startTime: normalizedClock.startTime,
@@ -830,6 +841,7 @@ function _makeTaskEntity(data, dateKey, recurrence, nowIso) {
     tagId:     String(data.tagId  ?? ""),
     recurrence,
     memo:      String(data.memo   ?? "").trim(),
+    outlookEnabled: data.outlookEnabled === undefined ? _settings.outlookWriteDefault : data.outlookEnabled === true,
     createdAt: nowIso,
     updatedAt: nowIso,
   };
@@ -859,7 +871,7 @@ async function createTask(data) {
     await _commitTaskMutation(generation, () => _tasks.push(...createdTasks.filter(validateTask)));
     return createdTasks[0] ?? null;
   } catch (e) {
-    throw _strictApiError("予定の保存", e);
+    throw _strictApiError(translate('ui.01f48f2110'), e);
   }
 }
 
@@ -888,13 +900,13 @@ async function _batchTasks(upserts, deleted) {
 /** Restore a previously deleted task without changing its identity or recurrence. */
 async function restoreTask(task) {
   if (!validateTask(task) || _tasks.some((row) => row.id === task.id)) {
-    throw new Error("予定を復元できません。元のIDが既に使われています。");
+    throw new Error(translate('ui.a91424ac42'));
   }
   try {
     const saved = await _batchTasks([task], []);
     return saved.find((row) => row.id === task.id) ?? null;
   } catch (e) {
-    throw _strictApiError("予定の復元", e);
+    throw _strictApiError(translate('ui.a521c33722'), e);
   }
 }
 
@@ -981,7 +993,7 @@ async function updateTask(id, patch, { expectedUpdatedAt } = {}) {
     await _commitTaskMutation(generation, () => { _tasks[idx] = saved; });
     return saved;
   } catch (e) {
-    throw _strictApiError("予定の更新", e);
+    throw _strictApiError(translate('ui.7ab0e296d1'), e);
   }
 }
 
@@ -1066,7 +1078,7 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
   const normalized = sharedPatch.recurrence === undefined ? { ...oldRecurrence }
     : _normalizeRecurrence(sharedPatch.recurrence, anchor);
   if (normalized.type !== "none" && normalized.until < anchor) {
-    throw new Error("繰り返しの終了日は、変更する予定の開始日以降にしてください。");
+    throw new Error(translate('ui.cf5c0a4a7e'));
   }
   const expansionAnchor = normalized.type === "monthly"
     && oldRecurrence.type === "monthly" && _isDateKey(oldRecurrence.originDate)
@@ -1168,7 +1180,7 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
       ?? saved.find((task) => task.id === upserts[0]?.id)
       ?? null;
   } catch (e) {
-    throw _strictApiError("繰り返し予定の更新", e);
+    throw _strictApiError(translate('ui.774df96a5d'), e);
   }
 }
 
@@ -1208,7 +1220,7 @@ async function deleteTaskWithMode(id, mode = "single", { expectedUpdatedAt } = {
       await _commitTaskMutation(generation, () => { _tasks = nextTasks; });
     }
   } catch (e) {
-    throw _strictApiError("予定の削除", e);
+    throw _strictApiError(translate('ui.a14cee8184'), e);
   }
 }
 
@@ -1231,7 +1243,7 @@ async function createTag(data) {
     publish("tags", _tags);
     return saved;
   } catch (e) {
-    return _failStrictApi("tags", "タグの保存", e);
+    return _failStrictApi("tags", translate('ui.2cbe49d6eb'), e);
   }
 }
 
@@ -1247,7 +1259,7 @@ async function updateTag(id, patch) {
     publish("tags", _tags);
     return saved;
   } catch (e) {
-    return _failStrictApi("tags", "タグの更新", e);
+    return _failStrictApi("tags", translate('ui.279082ada9'), e);
   }
 }
 
@@ -1259,7 +1271,7 @@ async function deleteTag(id) {
     // サーバー側で設定内の参照(monthTagOrders/outlookSyncTagId)も取り除かれるため読み直す。
     await _reloadFromSource("settings");
   } catch (e) {
-    return _failStrictApi("tags", "タグの削除", e);
+    return _failStrictApi("tags", translate('ui.fac387348b'), e);
   }
 }
 
@@ -1349,7 +1361,7 @@ async function updateSettings(patch) {
     _settings = (saved && typeof saved === "object") ? _normalizeSettings(saved) : _normalizeSettings(nextSettings);
     publish("settings", _settings);
   } catch (e) {
-    return _failStrictApi("settings", "設定の更新", e);
+    return _failStrictApi("settings", translate('ui.98cfb65d08'), e);
   }
 }
 
@@ -1447,7 +1459,7 @@ function calcDaySummary(dateKey) {
       intervals.push(..._subtractBreaksFromInterval(timeToMinutes(t.startTime), timeToMinutes(t.endTime)));
     }
   }
-  const result = { total: _mergeIntervalMinutes(intervals), byTag };
+  const result = { ...summarizeWork(tasks, _settings), byTag };
   _daySummaryCache.set(dateKey, result);
   return _copySummary(result);
 }
@@ -1473,11 +1485,13 @@ function calcMonthSummary(yearMonth) {
       intervalsByDate.set(t.date, list);
     }
   }
-  let total = 0;
-  for (const list of intervalsByDate.values()) {
-    total += _mergeIntervalMinutes(list);
+  const workByDate = new Map();
+  for (const task of tasks) {
+    if (!workByDate.has(task.date)) workByDate.set(task.date, []);
+    workByDate.get(task.date).push(task);
   }
-  const result = { total, byTag };
+  const sums = [...workByDate.values()].map(day => summarizeWork(day, _settings));
+  const result = { total: sums.reduce((sum, row) => sum + row.total, 0), overtime: sums.reduce((sum, row) => sum + row.overtime, 0), byTag };
   _monthSummaryCache.set(yearMonth, result);
   return _copySummary(result);
 }
@@ -1510,7 +1524,7 @@ async function init() {
     console.info("[store] SQLite API で初期化しました");
   } catch (e) {
     console.error("[store] strict SQLite runtime initialization failed:", e);
-    throw _strictApiError("アプリの起動", e);
+    throw _strictApiError(translate('ui.8359a92fa3'), e);
   }
 }
 

@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 export const isUpdateApplying = phase => ['downloading', 'installing'].includes(phase);
 export const isUpdateBusy = phase => phase === 'checking' || isUpdateApplying(phase);
 
@@ -21,7 +22,7 @@ export function createUpdateController(native, canInstall = () => true) {
     async install() {
       if (busy() || !state.latest) return;
       if (!canInstall()) {
-        set({ phase: 'error', error: '開いている設定や予定を保存して閉じてから、もう一度更新してください。' });
+        set({ phase: 'error', error: translate('ui.c039d659d5') });
         return;
       }
       set({ phase: 'downloading', error: '', percent: null });

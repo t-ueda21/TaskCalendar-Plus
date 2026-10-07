@@ -37,12 +37,15 @@ pub struct TaskRow {
     pub meeting_url: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    pub outlook_enabled: bool,
 }
 
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskInsertInput {
     pub id: String,
+    #[serde(default)]
+    pub outlook_enabled: bool,
     #[serde(default)]
     pub title: Option<String>,
     pub date: String,
@@ -110,6 +113,7 @@ fn row_to_task(row: &rusqlite::Row) -> rusqlite::Result<TaskRow> {
         meeting_url: row.get("meeting_url")?,
         created_at: row.get("created_at")?,
         updated_at: row.get("updated_at")?,
+        outlook_enabled: row.get::<_,i64>("outlook_enabled")? != 0,
     })
 }
 
@@ -133,6 +137,7 @@ fn tasks_get(conn: &Connection, id: &str) -> rusqlite::Result<Option<TaskRow>> {
 }
 
 pub fn tasks_insert(conn: &Connection, input: TaskInsertInput) -> rusqlite::Result<TaskRow> {
+    let transaction = if conn.is_autocommit() { Some(conn.unchecked_transaction()?) } else { None };
     let id = input.id.clone();
     let now = next_revision(None);
     let recurrence = input.recurrence.unwrap_or_else(default_recurrence);
@@ -157,7 +162,10 @@ pub fn tasks_insert(conn: &Connection, input: TaskInsertInput) -> rusqlite::Resu
             now,
         ],
     )?;
-    Ok(tasks_get(conn, &id)?.expect("just inserted"))
+    if input.outlook_enabled { crate::outlook_jobs::enable(conn, &id)?; }
+    let saved = tasks_get(conn, &id)?.expect("just inserted");
+    if let Some(transaction) = transaction { transaction.commit()?; }
+    Ok(saved)
 }
 
 /// 既存の単発予定の更新と、繰り返し分の追加を一度に確定する。
@@ -299,6 +307,8 @@ pub struct TaskRevision {
 #[serde(rename_all = "camelCase")]
 pub struct BatchTaskInput {
     pub id: String,
+    #[serde(default)]
+    pub outlook_enabled: bool,
     pub title: String,
     pub date: String,
     pub is_all_day: bool,
@@ -447,6 +457,9 @@ pub fn tasks_batch(
              ON CONFLICT(id) DO UPDATE SET title=excluded.title,date=excluded.date,is_all_day=excluded.is_all_day,start_time=excluded.start_time,end_time=excluded.end_time,tag_id=excluded.tag_id,recurrence=excluded.recurrence,memo=excluded.memo,outlook_occurrence_key=excluded.outlook_occurrence_key,outlook_series_id=excluded.outlook_series_id,meeting_url=excluded.meeting_url,updated_at=excluded.updated_at",
             params![task.id,task.title,task.date,task.is_all_day as i64,task.start_time,task.end_time,task.tag_id,task.recurrence.to_string(),task.memo,task.outlook_occurrence_key,task.outlook_series_id,task.meeting_url,task.created_at,revision],
         )?;
+    }
+    for task in &input.upserts {
+        if task.outlook_enabled && current[task.id.as_str()].is_none() { crate::outlook_jobs::enable(&tx, &task.id)?; }
     }
     let rows = tasks_list(&tx)?;
     tx.commit()?;
@@ -820,7 +833,7 @@ pub fn backup_restore(conn: &Connection, data: &Value) -> Result<RestoreCounts, 
 
     let tx = conn.unchecked_transaction()?;
     tx.execute_batch(
-        "DELETE FROM tasks; DELETE FROM tags; DELETE FROM settings; DELETE FROM ai_memory;",
+        "DELETE FROM outlook_jobs; DELETE FROM outlook_links; DELETE FROM tasks; DELETE FROM tags; DELETE FROM settings; DELETE FROM ai_memory;",
     )?;
     for task in &tasks {
         tx.execute(
@@ -932,6 +945,7 @@ fn random_hex(n_bytes: usize) -> String {
 }
 
 /// `tag_id`は未設定なら空文字列のまま挿入する(既定タグへはフォールバックしない)。
+#[cfg(test)]
 pub fn outlook_auto_sync(
     conn: &Connection,
     events: &[OutlookEvent],
@@ -939,14 +953,35 @@ pub fn outlook_auto_sync(
     start_key: &str,
     end_key: &str,
 ) -> rusqlite::Result<AutoSyncResult> {
+    let range = crate::outlook::OutlookSyncRange::dates(start_key, end_key).map_err(|_| rusqlite::Error::InvalidParameterName("Outlook range".into()))?;
+    outlook_sync_in_range(conn, events, tag_id, range)
+}
+
+pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id: &str, range: crate::outlook::OutlookSyncRange) -> rusqlite::Result<AutoSyncResult> {
+    let start_key = range.start_key();
+    let end_key = range.end_key();
     let tx = conn.unchecked_transaction()?;
     let conn = &tx;
     let now = next_revision(None);
+    let mut accepted_events = Vec::new();
+    for event in events {
+        if let Some(external_key) = event.outlook_occurrence_key.strip_prefix("tcplus:") {
+            use rusqlite::OptionalExtension;
+            let owner = conn.query_row("SELECT l.task_id,EXISTS(SELECT 1 FROM tasks WHERE id=l.task_id),COALESCE((SELECT status FROM outlook_jobs WHERE task_id=l.task_id),'done') FROM outlook_links l WHERE l.external_key=?1",params![external_key],|row|Ok((row.get::<_,String>(0)?,row.get::<_,bool>(1)?,row.get::<_,String>(2)?))).optional()?;
+            if let Some((id, exists, status)) = owner {
+                if !exists || status != "done" { continue; }
+                conn.execute("UPDATE tasks SET outlook_occurrence_key=?2,outlook_series_id=?3 WHERE id=?1",params![id,event.outlook_occurrence_key,event.outlook_series_id])?;
+            }
+        }
+        accepted_events.push(event.clone());
+    }
+    let events = accepted_events.as_slice();
 
     let mut rows: Vec<ExistingRow> = Vec::new();
     {
         let mut stmt = conn.prepare(
-            "SELECT id, title, date, is_all_day, start_time, end_time, memo, outlook_occurrence_key, outlook_series_id, meeting_url
+            "SELECT id, title, date, is_all_day, start_time, end_time, memo, outlook_occurrence_key, outlook_series_id, meeting_url,
+                EXISTS(SELECT 1 FROM outlook_jobs WHERE task_id=tasks.id AND status <> 'done')
              FROM tasks WHERE (date >= ?1 AND date <= ?2)
                 OR (outlook_occurrence_key IS NOT NULL AND outlook_series_id IS NOT NULL AND outlook_series_id <> '')",
         )?;
@@ -962,6 +997,7 @@ pub fn outlook_auto_sync(
             let occurrence_key: Option<String> = row.get(7)?;
             let series_id: Option<String> = row.get(8)?;
             let meeting_url: Option<String> = row.get(9)?;
+            let pending_outbound: bool = row.get(10)?;
             let sig = signature(
                 &title,
                 &date,
@@ -973,7 +1009,7 @@ pub fn outlook_auto_sync(
             rows.push(ExistingRow {
                 id,
                 title,
-                in_range: date.as_str() >= start_key && date.as_str() <= end_key,
+                in_range: !pending_outbound && range.contains_task(&date, if is_all_day_int != 0 { None } else { start_time.as_deref() }),
                 signature: sig,
                 key: occurrence_key.unwrap_or_default(),
                 series_id: series_id.unwrap_or_default(),

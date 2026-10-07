@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 import { MANUAL_MODEL, renderModelChoices } from './ai-model-picker.js';
 
 // Local API settings and transient requests. Model files remain managed by Ollama / LM Studio.
@@ -14,20 +15,20 @@ export function localAiConfig(settings, provider = settings?.aiProvider) {
 }
 
 export function validateLocalAi(config, requireModel = true) {
-  if (!config || !Object.hasOwn(LOCAL_AI_PROVIDERS, config.provider)) return '接続先を選択してください。';
+  if (!config || !Object.hasOwn(LOCAL_AI_PROVIDERS, config.provider)) return translate('ui.16669b68d7');
   try {
     const url = new URL(config.endpoint);
     if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error();
-  } catch { return 'エンドポイントは認証情報・クエリを含まない http:// または https:// のURLを入力してください。'; }
-  return requireModel && !config.model ? 'モデル名を入力するか、取得した候補から選んでください。' : '';
+  } catch { return translate('ui.325a3feb1a'); }
+  return requireModel && !config.model ? translate('ui.ce26315ad2') : '';
 }
 
 export async function requestLocalAi(action, config, signal) {
   const response = await fetch(`/api/ai/local/${action}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config), signal,
   });
-  const data = await response.json().catch(() => { throw new Error('サーバーの応答を読み取れませんでした。'); });
-  if (!response.ok) throw new Error(data?.error || `接続できませんでした（${response.status}）。`);
+  const data = await response.json().catch(() => { throw new Error(translate('ui.2a1aed3179')); });
+  if (!response.ok) throw new Error(data?.error || translate('ui.30ec74a9f5', { p0: (response.status) }));
   return data;
 }
 
@@ -69,7 +70,7 @@ function readPanel(state) {
 }
 
 function renderModels(state, current = readPanel(state).model, manualMode = state.model.value === MANUAL_MODEL) {
-  renderModelChoices(state.model, state.manual, state.models, current, manualMode, 'モデルを選択してください');
+  renderModelChoices(state.model, state.manual, state.models, current, manualMode, translate('ui.ed8e2e1ef3'));
 }
 
 async function run(state, action) {
@@ -79,27 +80,27 @@ async function run(state, action) {
   if (error) { state.status.textContent = error; return; }
   const controller = new AbortController(); state.controller = controller;
   state.buttons.forEach(button => { button.disabled = true; });
-  state.status.textContent = action === 'models' ? 'モデル候補を取得中…' : '接続と道具の呼び出しを確認中…';
+  state.status.textContent = action === 'models' ? translate('ui.80b28e7645') : translate('ui.10405fd70d');
   const timer = setTimeout(() => controller.abort(), action === 'models' ? 32000 : 180000);
   try {
     const data = await requestLocalAi(action, config, controller.signal);
     if (state.controller !== controller || controller.signal.aborted) return;
     if (action === 'models') {
-      if (!Array.isArray(data.models)) throw new Error('モデル一覧の形式を読み取れませんでした。');
+      if (!Array.isArray(data.models)) throw new Error(translate('ui.2ac5316b12'));
       const ids = [...new Set(data.models.map(row => row?.id).filter(id => typeof id === 'string' && id.trim()))];
       state.models = ids.map(id => ({id, label:id}));
       renderModels(state);
-      state.status.textContent = ids.length ? `${ids.length}件取得しました。プルダウンから選択してください。一覧にない場合は「モデル名を手入力…」を選べます。`
-        : 'モデルがありません。接続先でモデルを用意して再取得してください。';
+      state.status.textContent = ids.length ? translate('ui.8b20bc93b1', { p0: (ids.length) })
+        : translate('ui.851a2895bb');
     } else {
-      if (data.ok !== true || typeof data.toolsSupported !== 'boolean') throw new Error('接続テストの応答を読み取れませんでした。');
-      state.status.textContent = data.toolsSupported ? '接続と道具の呼び出しを確認できました。保存すると使用できます。'
-        : '接続できましたが、道具の呼び出しは確認できませんでした。AIモードでは道具に対応したモデルを選んでください。';
+      if (data.ok !== true || typeof data.toolsSupported !== 'boolean') throw new Error(translate('ui.517d64a893'));
+      state.status.textContent = data.toolsSupported ? translate('ui.7cbc9e2d4b')
+        : translate('ui.d53f0aa6a4');
     }
   } catch (error) {
     if (state.controller !== controller) return;
-    state.status.textContent = controller.signal.aborted ? '応答が時間内に返りませんでした。サーバーとモデルの状態を確認してください。'
-      : `${String(error?.message ?? error)} モデル名は手入力もできます。`;
+    state.status.textContent = controller.signal.aborted ? translate('ui.023f8fec90')
+      : translate('ui.81ecd1b8b6', { p0: (String(error?.message ?? error)) });
   } finally {
     clearTimeout(timer);
     if (state.controller === controller) { state.controller = null; state.buttons.forEach(button => { button.disabled = false; }); }
@@ -142,7 +143,7 @@ export function describeLocalAiImport(patch, current = {}) {
   return Object.entries(LOCAL_AI_PROVIDERS).flatMap(([provider, definition]) => {
     if (!(definition.endpointKey in patch) && !(definition.modelKey in patch) && selected !== provider) return [];
     const config = localAiConfig(effective, provider);
-    return [`・${definition.label}の送信先: ${config.endpoint}（モデル: ${config.model || '未設定'}）`];
+    return [translate('ui.15bd690d1c', { p0: (definition.label), p1: (config.endpoint), p2: (config.model || '未設定') })];
   });
 }
 

@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml, weekdayLabels } from './i18n.js';
 /**
  * ai-mode.js
  *
@@ -27,24 +28,24 @@ import { todayDateKeyInJst } from "./ai-memory.js";
 import { getWeatherLocationOptions } from "./weather.js";
 
 const HISTORY_TURNS = 12; // AIに渡す直近の会話の数
-const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const WEEKDAYS = weekdayLabels();
 
 const WELCOME_MESSAGE = [
-  "予定や作業記録について、なんでも聞いてください。予定の作成・変更・削除もできます。",
+  translate('ui.86ce342e4a'),
   "",
-  "- 先週の火曜は何してた？",
-  "- 9月に設計レビューに何時間使った？",
-  "- 今月あとどれくらい工数使える？",
-  "- 明日の15時から16時に設計会議を入れて",
+  translate('ui.02b863889f'),
+  translate('ui.7da97b8bce'),
+  translate('ui.8a063e51cf'),
+  translate('ui.68215d7f60'),
   "",
-  "予定の作成・変更・削除は確認カードで［確定］を押したときに反映されます。Ctrl+Enter で送信できます。",
+  translate('ui.c73927c87c'),
 ].join("\n");
 
 const SETUP_MESSAGE = [
-  "AIモードを使うには、AIの接続先の設定が必要です。",
+  translate('ui.75470d60bd'),
   "",
-  "⚙設定 →「基本」→「AI」で接続先とモデルを設定してください。",
-  "Claude Code / Codex、または起動済みの Ollama / LM Studio を使えます。",
+  translate('ui.e86898bcbd'),
+  translate('ui.14175555c8'),
 ].join("\n");
 
 let _settings = Store.getSettings();
@@ -70,7 +71,7 @@ function _showLoading() {
   bubble.className = "aiBubble aiLoadingBubble";
   const label = document.createElement("span");
   label.className = "aiLoadingText";
-  label.textContent = "AIが記録を調べています";
+  label.textContent = translate('ui.c6d7aa14f1');
   const dots = document.createElement("span");
   dots.className = "aiLoadingDots";
   dots.setAttribute("aria-hidden", "true");
@@ -83,7 +84,7 @@ function _showLoading() {
   $.chatLog.scrollTop = $.chatLog.scrollHeight;
 
   const startedAt = Date.now();
-  const tick = () => { elapsed.textContent = `（${Math.floor((Date.now() - startedAt) / 1000)}秒）`; };
+  const tick = () => { elapsed.textContent = translate('ui.8e73cdfe82', { p0: (Math.floor((Date.now() - startedAt) / 1000)) }); };
   tick();
   _loadingTimerId = window.setInterval(tick, 1000);
 }
@@ -98,7 +99,7 @@ function _setBusy(busy) {
   _busy = busy;
   if ($.input) $.input.disabled = busy;
   if ($.askBtn) {
-    $.askBtn.textContent = busy ? "停止" : "送信";
+    $.askBtn.textContent = busy ? translate('ui.ca4d973c0b') : translate('ui.a6c1ceaf4b');
     $.askBtn.classList.toggle("danger", busy);
   }
   if (busy) _showLoading();
@@ -113,13 +114,13 @@ function _dateLabel(dateKey) {
 }
 
 function _taskLabel(task) {
-  const time = task.allDay ? "終日" : `${task.startTime}〜${task.endTime}`;
+  const time = task.allDay ? translate('ui.0aff5cf2d8') : `${task.startTime}〜${task.endTime}`;
   return `${_dateLabel(task.date)} ${time}`;
 }
 
-const ACTION_LABELS = { create: "予定の作成", update: "予定の変更", delete: "予定の削除" };
-const STATUS_LABELS = { applied: "反映しました", dismissed: "取り消しました", failed: "反映できませんでした" };
-const FIELD_LABELS = { date: "日付", startTime: "開始", endTime: "終了", allDay: "終日", title: "タイトル", tagName: "タグ", memo: "メモ" };
+const ACTION_LABELS = { get create() { return translate('ui.50f5f9e681'); }, get update() { return translate('ui.07fc6daa5f'); }, get delete() { return translate('ui.a14cee8184'); } };
+const STATUS_LABELS = { get applied() { return translate('ui.b45c497caf'); }, get dismissed() { return translate('ui.958b5cd4de'); }, get failed() { return translate('ui.195e9b8a56'); } };
+const FIELD_LABELS = { get date() { return translate('ui.666819e178'); }, get startTime() { return translate('ui.cc147e162c'); }, get endTime() { return translate('ui.8f26d43810'); }, get allDay() { return translate('ui.0aff5cf2d8'); }, get title() { return translate('ui.a20f57232e'); }, get tagName() { return translate('ui.302eafc71d'); }, get memo() { return translate('ui.99fa5c96e0'); } };
 
 function _proposalRows(proposal) {
   const task = proposal.task ?? {};
@@ -128,20 +129,20 @@ function _proposalRows(proposal) {
     return Object.keys(FIELD_LABELS)
       .filter((key) => JSON.stringify(before[key] ?? "") !== JSON.stringify(task[key] ?? ""))
       .map((key) => [FIELD_LABELS[key], `${_fieldText(key, before[key])} → ${_fieldText(key, task[key])}`])
-      .concat([["対象", `${_taskLabel(before)} ${before.title ?? ""}`]]);
+      .concat([[translate('ui.b8e1cf9f89'), `${_taskLabel(before)} ${before.title ?? ""}`]]);
   }
   return [
-    ["日時", _taskLabel(task)],
-    ["タイトル", task.title ?? ""],
-    ["タグ", task.tagName ? `${task.tagName}${proposal.newTag ? "（新しいタグ）" : ""}` : "なし"],
-    ...(task.memo ? [["メモ", task.memo]] : []),
+    [translate('ui.11b74db9d1'), _taskLabel(task)],
+    [translate('ui.a20f57232e'), task.title ?? ""],
+    [translate('ui.302eafc71d'), task.tagName ? `${task.tagName}${proposal.newTag ? translate('ui.d0bd1c2904') : ""}` : translate('ui.868310e193')],
+    ...(task.memo ? [[translate('ui.99fa5c96e0'), task.memo]] : []),
   ];
 }
 
 function _fieldText(key, value) {
-  if (key === "allDay") return value ? "終日" : "時刻指定";
+  if (key === "allDay") return value ? translate('ui.0aff5cf2d8') : translate('ui.9c4da99579');
   if (key === "date" && value) return _dateLabel(value);
-  return String(value ?? "") || "なし";
+  return String(value ?? "") || translate('ui.868310e193');
 }
 
 function _renderProposalCard(proposal, { dateKey, messageId }) {
@@ -149,7 +150,7 @@ function _renderProposalCard(proposal, { dateKey, messageId }) {
   card.className = `aiProposal aiProposal-${proposal.action}`;
   const title = document.createElement("div");
   title.className = "aiProposalTitle";
-  title.textContent = ACTION_LABELS[proposal.action] ?? "提案";
+  title.textContent = ACTION_LABELS[proposal.action] ?? translate('ui.46adc49713');
   card.appendChild(title);
 
   const table = document.createElement("dl");
@@ -177,11 +178,20 @@ function _renderProposalCard(proposal, { dateKey, messageId }) {
     const confirmBtn = document.createElement("button");
     confirmBtn.type = "button";
     confirmBtn.className = `btn ${proposal.action === "delete" ? "danger" : "primary"}`;
-    confirmBtn.textContent = "確定";
+    confirmBtn.textContent = translate('ui.20db9f87b8');
     const dismissBtn = document.createElement("button");
     dismissBtn.type = "button";
     dismissBtn.className = "btn";
-    dismissBtn.textContent = "取消";
+    dismissBtn.textContent = translate('ui.2cd0f3be87');
+    if (proposal.action === 'create') {
+      const label = document.createElement('label');
+      const toggle = document.createElement('input'); toggle.type = 'checkbox';
+      toggle.checked = proposal.outlookEnabled ?? Store.getSettings().outlookWriteDefault;
+      proposal.outlookEnabled = toggle.checked;
+      toggle.addEventListener('change', () => { proposal.outlookEnabled = toggle.checked; });
+      label.append(toggle, document.createTextNode(translate('ui.3cd1ed84ff')));
+      footer.appendChild(label);
+    }
     confirmBtn.addEventListener("click", async () => {
       confirmBtn.disabled = true;
       dismissBtn.disabled = true;
@@ -214,7 +224,7 @@ async function _ensureTagId(tagName, dateKey) {
   if (!name) return "";
   let tag = Store.getAllTags().find((t) => String(t.name ?? "").toLowerCase() === name.toLowerCase());
   if (!tag) tag = await Store.createTag({ name, color: DEFAULT_TAG_COLOR });
-  if (!tag) throw new Error(`タグ「${name}」を作成できませんでした`);
+  if (!tag) throw new Error(translate('ui.0382f629ab', { p0: (name) }));
   const yearMonth = String(dateKey).slice(0, 7);
   const ids = Store.hasMonthTagOrder(yearMonth) ? Store.getTagsForMonth(yearMonth).map((t) => t.id) : [];
   if (!ids.includes(tag.id)) await Store.setMonthTagOrder(yearMonth, [...ids, tag.id]);
@@ -235,13 +245,13 @@ async function _proposalRevision(proposal) {
   // Refresh first; comparing only the cached task misses changes from Outlook or another view.
   await Store.refreshTasks();
   const current = Store.getAllTasks().find(t => t.id === proposal.taskId);
-  if (!current) throw new Error("対象の予定が見つかりません。最新の内容で依頼し直してください。");
+  if (!current) throw new Error(translate('ui.a98306acab'));
   const before = proposal.action === "update" ? proposal.before : proposal.task;
   const currentTag = Store.getAllTags().find(t => t.id === current.tagId)?.name ?? "";
   if (!before || !current.updatedAt
       || (proposal.expectedUpdatedAt && proposal.expectedUpdatedAt !== current.updatedAt)
       || JSON.stringify(_proposalTaskSnapshot(before)) !== JSON.stringify(_proposalTaskSnapshot(current, currentTag))) {
-    throw new Error("この予定は提案後に変更されています。最新の内容でAIに依頼し直してください。");
+    throw new Error(translate('ui.2a0524f848'));
   }
   // The backend checks this revision atomically too, covering changes after this refresh.
   return current.updatedAt;
@@ -259,17 +269,17 @@ async function _applyProposal(proposal) {
     memo: task.memo ?? "",
   });
   if (proposal.action === "create") {
-    const created = await Store.createTask({ ...(await fields()), recurrence: { type: "none" } });
-    if (!created) throw new Error("予定を作成できませんでした");
+    const created = await Store.createTask({ ...(await fields()), outlookEnabled: proposal.outlookEnabled ?? Store.getSettings().outlookWriteDefault, recurrence: { type: "none" } });
+    if (!created) throw new Error(translate('ui.5f61d2c3bb'));
   } else if (proposal.action === "update") {
     const expectedUpdatedAt = await _proposalRevision(proposal);
     const updated = await Store.updateTask(proposal.taskId, await fields(), { expectedUpdatedAt });
-    if (!updated) throw new Error("予定を変更できませんでした");
+    if (!updated) throw new Error(translate('ui.b7a94a4bef'));
   } else if (proposal.action === "delete") {
     const expectedUpdatedAt = await _proposalRevision(proposal);
     await Store.deleteTaskWithMode(proposal.taskId, "single", { expectedUpdatedAt });
   } else {
-    throw new Error("予定の提案を読み取れませんでした。");
+    throw new Error(translate('ui.73b1d9dcc9'));
   }
 }
 
@@ -336,7 +346,7 @@ async function _send() {
     _showLoading();
     const reply = await chatWithAgent([...history, { role: "user", content: text }]);
     if (_sendCancelled) return;
-    const answer = reply.content || "内容を確認して、下のカードで確定してください。";
+    const answer = reply.content || translate('ui.f5d59c00eb');
     const message = Store.addAiChatMessage(dateKey, { role: "assistant", text: answer, proposals: reply.proposals });
     if (dateKey === _activeDateKey) {
       _appendMessage({ role: "assistant", text: answer, proposals: message?.proposals ?? [], id: message?.id, dateKey });
@@ -366,17 +376,17 @@ function _renderSideSummaries() {
 function _renderModelStatus() {
   if (!$.modelStatus) return;
   if (!isAiConfigured()) {
-    $.modelStatus.textContent = "AI: 未設定（⚙設定 → 基本 → AI）";
-    $.modelStatus.title = "設定画面の「AI」で接続先とモデルを設定すると使えます";
+    $.modelStatus.textContent = translate('ui.3bb1d8d6af');
+    $.modelStatus.title = translate('ui.7cb8457bcc');
     return;
   }
   const provider = String(_settings.aiProvider);
   const label = Store.AI_PROVIDER_LABELS[provider] ?? provider;
   const modelKey = { "claude-code": "aiClaudeModel", codex: "aiCodexModel", ollama: "aiOllamaModel", lmstudio: "aiLmStudioModel" }[provider];
-  const model = String(_settings[modelKey] ?? "").trim() || "既定";
+  const model = String(_settings[modelKey] ?? "").trim() || translate('ui.3f0577f9b1');
   const effort = String((provider === "codex" ? _settings.aiCodexEffort : provider === "claude-code" ? _settings.aiClaudeEffort : "") ?? "").trim();
   const used = getLastUsedModel();
-  $.modelStatus.textContent = `AI: ${label} / ${model}${effort ? ` / effort: ${effort}` : ""}${used && used !== model ? `（実行: ${used}）` : ""}`;
+  $.modelStatus.textContent = `AI: ${label} / ${model}${effort ? ` / effort: ${effort}` : ""}${used && used !== model ? translate('ui.73486a16fe', { p0: (used) }) : ""}`;
   $.modelStatus.title = $.modelStatus.textContent;
 }
 
@@ -398,8 +408,8 @@ function _renderInputMode() {
   const enabled = _settings.aiEnterToSend === true;
   $.enterToggle?.setAttribute("aria-checked", String(enabled));
   if ($.inputHint) $.inputHint.textContent = enabled
-    ? "Enterで送信 / Shift+Enterで改行"
-    : "Enterで改行 / Ctrl+Enterで送信";
+    ? translate('ui.59a8b44b57')
+    : translate('ui.3f9cf63fb0');
 }
 
 function _wire() {
@@ -418,7 +428,7 @@ function _wire() {
     try {
       await Store.updateSettings({ aiEnterToSend: _settings.aiEnterToSend !== true });
     } catch (error) {
-      if ($.inputHint) $.inputHint.textContent = `送信設定を保存できませんでした。もう一度お試しください。${String(error?.message ?? error)}`;
+      if ($.inputHint) $.inputHint.textContent = translate('ui.6878d4d13d', { p0: (String(error?.message ?? error)) });
     } finally {
       $.enterToggle.disabled = false;
     }

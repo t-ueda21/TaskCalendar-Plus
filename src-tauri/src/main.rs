@@ -8,9 +8,12 @@ mod ai_models;
 mod api;
 mod calendar;
 mod db;
+mod locale;
 mod mcp;
 mod outlook;
+mod outlook_jobs;
 mod repositories;
+mod single_instance;
 mod ui_preferences;
 mod updater;
 
@@ -25,6 +28,24 @@ use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
 
 /// 組み込みHTTP APIの合言葉(起動ごとに生成)。画面へはこのコマンドでだけ渡す。
 struct ApiToken(String);
+struct NativeLocale(Mutex<String>);
+
+fn tray_menu(app: &tauri::AppHandle, locale: &str) -> Result<tauri::menu::Menu<tauri::Wry>,String> {
+    MenuBuilder::new(app)
+        .text(TRAY_MENU_MINIMIZE,crate::locale::text("native.minimize",locale))
+        .text(TRAY_MENU_RELOAD,crate::locale::text("native.reload",locale))
+        .text(TRAY_MENU_RESTART,crate::locale::text("native.restart",locale))
+        .text(TRAY_MENU_QUIT,crate::locale::text("native.quit",locale))
+        .build().map_err(|e|e.to_string())
+}
+
+#[tauri::command]
+fn set_ui_language(app: tauri::AppHandle, locale: String) -> Result<(),String> {
+    let locale = crate::locale::normalize_locale(&locale).to_string();
+    *app.state::<NativeLocale>().0.lock().map_err(|_|"Language lock failed")?=locale.clone();
+    if let Some(tray)=app.tray_by_id(TRAY_ICON_ID) { tray.set_menu(Some(tray_menu(&app,&locale)?)).map_err(|e|e.to_string())?; }
+    Ok(())
+}
 
 #[tauri::command]
 fn get_api_token(token: tauri::State<'_, ApiToken>) -> String {
@@ -115,13 +136,8 @@ fn ensure_tray(app: &tauri::AppHandle, static_root: &std::path::Path) -> Result<
         .find(|p| p.extension().and_then(|e| e.to_str()) != Some("svg"))
         .ok_or("tray icon is unavailable")?;
     let icon = tauri::image::Image::from_path(&icon_path).map_err(|e| e.to_string())?;
-    let menu = MenuBuilder::new(app)
-        .text(TRAY_MENU_MINIMIZE, "最小化")
-        .text(TRAY_MENU_RELOAD, "リロード")
-        .text(TRAY_MENU_RESTART, "再起動")
-        .text(TRAY_MENU_QUIT, "閉じる")
-        .build()
-        .map_err(|e| e.to_string())?;
+    let locale = app.state::<NativeLocale>().0.lock().map_err(|_|"Language lock failed")?.clone();
+    let menu = tray_menu(app,&locale)?;
     TrayIconBuilder::with_id(TRAY_ICON_ID)
         .icon(icon)
         .menu(&menu)
@@ -236,7 +252,19 @@ async fn outlook_auto_sync_loop(base_url: String, api_token: String) {
 }
 
 fn main() {
+    let mut context = tauri::generate_context!();
+    if let Some(directory) = std::env::var_os("TCPLUS_DATA_DIR") {
+        use std::hash::{Hash,Hasher};
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        let path = std::fs::canonicalize(&directory).unwrap_or_else(|_| std::path::PathBuf::from(directory));
+        path.to_string_lossy().to_lowercase().hash(&mut hasher);
+        context.config_mut().identifier = format!("{}.test{:x}",context.config().identifier,hasher.finish());
+    }
+    let startup_guard = single_instance::startup_guard(&context.config().identifier).expect("acquire startup lock");
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|app,_,_| {
+            if let Some(window) = app.get_webview_window("main") { let _=window.show();let _=window.unminimize();let _=window.set_focus(); }
+        }))
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_autostart::init(
@@ -248,6 +276,7 @@ fn main() {
             get_ui_preferences,
             set_ui_theme,
             set_ui_zoom,
+            set_ui_language,
             set_tray_enabled,
             get_autostart_enabled,
             set_autostart_enabled,
@@ -255,7 +284,8 @@ fn main() {
             updater::check_app_update,
             updater::install_app_update
         ])
-        .setup(|app| {
+        .setup(move |app| {
+            drop(startup_guard);
             let app_handle = app.handle().clone();
 
             // 環境変数 TCPLUS_DATA_DIR があればそこに保存する(E2Eテストで普段のデータを汚さないため)。
@@ -278,6 +308,9 @@ fn main() {
             let conn = db::open_database(&db_path).expect("open database");
             let current_month = chrono::Local::now().format("%Y-%m").to_string();
             db::migrate(&conn, &current_month).expect("migrate database");
+            let os_locale=crate::locale::os_locale();
+            let settings=repositories::settings_get(&conn).ok().flatten().unwrap_or(serde_json::Value::Null);
+            app.manage(NativeLocale(Mutex::new(crate::locale::effective_locale(&settings,&os_locale).to_string())));
 
             // 画面資材(renderer/)の静的配信root。
             //
@@ -360,6 +393,7 @@ fn main() {
             app.manage(ApiToken(api_token.clone()));
 
             let state = api::AppState {
+                os_locale,
                 conn,
                 static_root,
                 proposals: Default::default(),
@@ -368,6 +402,21 @@ fn main() {
                 codex_command: std::env::var_os("TCPLUS_CODEX_PATH").map(std::path::PathBuf::from),
                 api_token: api_token.clone(),
             };
+            // Isolated diagnostic/E2E data must never write to the user's real
+            // calendar. Live testing can opt in only with a dedicated test calendar.
+            if std::env::var_os("TCPLUS_DATA_DIR").is_none() || std::env::var("TCPLUS_ALLOW_EXTERNAL_SYNC").as_deref() == Ok("1") {
+                let outbound_state = state.clone();
+                tauri::async_runtime::spawn(async move {
+                    loop {
+                        match outlook_jobs::process_one(&outbound_state).await {
+                            Ok(true) => continue,
+                            Ok(false) => {},
+                            Err(error) => eprintln!("[Outlook outbound] {error}"),
+                        }
+                        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    }
+                });
+            }
             let router = api::build_router(state);
 
             tauri::async_runtime::spawn(async move {
@@ -398,6 +447,6 @@ fn main() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }

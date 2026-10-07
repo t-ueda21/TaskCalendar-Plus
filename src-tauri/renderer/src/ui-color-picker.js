@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 import { normalizeUiColor, buildUiPalette, UI_COLOR_PRESETS } from './ui-colors.js';
 
 const drafts = new WeakMap();
@@ -41,7 +42,7 @@ export function wireUiColorPicker(dialog, Store) {
     button.dataset.uiColor = preset.color;
     button.style.setProperty('--swatch-color', preset.color);
     button.style.setProperty('--swatch-text', buildUiPalette(preset.color)['--on-accent']);
-    button.setAttribute('aria-label', `UIカラー：${preset.name}`);
+    button.setAttribute('aria-label', translate('ui.4d9e1a1996', { p0: (preset.name) }));
     button.setAttribute('aria-pressed', 'false');
     button.title = preset.name;
     button.addEventListener('click', () => populateUiColor(dialog, preset.color));

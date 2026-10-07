@@ -21,6 +21,7 @@ use crate::repositories as repo;
 
 #[derive(Clone)]
 pub struct AppState {
+    pub os_locale: String,
     pub conn: Arc<Mutex<Connection>>,
     /// 静的配信のroot(`renderer/`)。配下の`assets/`を静的配信する。
     pub static_root: PathBuf,
@@ -35,6 +36,7 @@ pub struct AppState {
 }
 
 pub const API_TOKEN_HEADER: &str = "x-tcplus-token";
+tokio::task_local! { static REQUEST_LOCALE: String; }
 
 /// `Host` の値(`host[:port]`)がループバックかを判定する。DNSリバインディング対策。
 fn is_loopback_authority(value: &str) -> bool {
@@ -101,7 +103,12 @@ async fn request_guard(State(state): State<AppState>, request: Request, next: Ne
             }
         }
     }
-    next.run(request).await
+    let locale = {
+        let conn = lock_conn(&state);
+        let settings = repo::settings_get(&conn).ok().flatten().unwrap_or(Value::Null);
+        crate::locale::effective_locale(&settings,&state.os_locale).to_string()
+    };
+    REQUEST_LOCALE.scope(locale,next.run(request)).await
 }
 
 pub fn build_router(state: AppState) -> Router {
@@ -136,6 +143,10 @@ pub fn build_router(state: AppState) -> Router {
             axum::routing::post(outlook_auto_sync),
         )
         .route("/api/ai/chat", axum::routing::post(ai_chat))
+        .route("/api/outlook/fetch", axum::routing::post(outlook_fetch))
+        .route("/api/outlook/jobs", get(outlook_job_list))
+        .route("/api/outlook/jobs/{id}/retry", axum::routing::post(outlook_job_retry))
+        .route("/api/ai/preview", axum::routing::post(ai_preview))
         .route("/api/ai/local/models", axum::routing::post(ai_local_models))
         .route("/api/ai/local/test", axum::routing::post(ai_local_test))
         .route(
@@ -175,7 +186,12 @@ fn parse_body<T: serde::de::DeserializeOwned>(body: &Bytes) -> Result<T, Box<Res
 }
 
 fn json_err(status: StatusCode, message: impl Into<String>) -> Response {
-    (status, axum::Json(json!({ "error": message.into() }))).into_response()
+    let details = message.into();
+    let locale = REQUEST_LOCALE.try_with(Clone::clone).unwrap_or_else(|_| "ja".into());
+    let fallback = if status == StatusCode::CONFLICT { "errors.conflict" } else if status == StatusCode::BAD_REQUEST { "errors.invalidInput" } else if status == StatusCode::SERVICE_UNAVAILABLE { "errors.unavailable" } else { "errors.generic" };
+    let error = crate::locale::error_text(&details,&locale,fallback);
+    let body = if error == details { json!({"error":error}) } else { json!({"error":error,"details":details}) };
+    (status, axum::Json(body)).into_response()
 }
 
 fn no_content() -> Response {
@@ -541,8 +557,8 @@ pub fn list_app_icon_candidates(static_root: &FsPath) -> Vec<PathBuf> {
 }
 
 /// 画面の「説明」タブに表示するアプリのバージョン。
-async fn runtime_info() -> Response {
-    json_ok(json!({ "appVersion": env!("CARGO_PKG_VERSION") }))
+async fn runtime_info(State(state): State<AppState>) -> Response {
+    json_ok(json!({ "appVersion": env!("CARGO_PKG_VERSION"), "osLocale": state.os_locale }))
 }
 
 // --- outlook -------------------------------------------------------------
@@ -551,6 +567,35 @@ async fn runtime_info() -> Response {
 /// Outlook COM呼び出しは`outlook::fetch_events`内の専用ワーカースレッドで行い、
 /// このasyncハンドラ自体はブロックしない。
 async fn outlook_auto_sync(State(state): State<AppState>) -> Response {
+    outlook_sync(state, json!({"mode":"now"})).await
+}
+
+async fn outlook_job_list(State(state): State<AppState>) -> Response {
+    let conn = lock_conn(&state);
+    let counts = match crate::outlook_jobs::counts(&conn) { Ok(value)=>value,Err(error)=>return json_err(StatusCode::INTERNAL_SERVER_ERROR,error.to_string()) };
+    match crate::outlook_jobs::list(&conn) {
+        Ok(mut jobs) => {
+            let locale = REQUEST_LOCALE.try_with(Clone::clone).unwrap_or_else(|_| "ja".into());
+            for job in &mut jobs { if let Some(error) = job["error"].as_str().filter(|s|!s.is_empty()) { let details=error.to_string(); job["error"]=json!(crate::locale::error_text(&details,&locale,"outlook.failed"));job["details"]=json!(details); } }
+            json_ok(json!({"jobs":jobs,"counts":counts}))
+        }, Err(error) => json_err(StatusCode::INTERNAL_SERVER_ERROR,error.to_string()),
+    }
+}
+
+async fn outlook_job_retry(State(state): State<AppState>, Path(id): Path<String>) -> Response {
+    match crate::outlook_jobs::retry(&lock_conn(&state),&id) {
+        Ok(0) => json_err(StatusCode::CONFLICT,"Outlook operation is not in a failed state"),
+        Ok(_) => json_ok(json!({"queued":true})),
+        Err(error) => json_err(StatusCode::INTERNAL_SERVER_ERROR,error.to_string()),
+    }
+}
+
+async fn outlook_fetch(State(state): State<AppState>, body: Bytes) -> Response {
+    let request: Value = match parse_body(&body) { Ok(value) => value, Err(response) => return *response };
+    outlook_sync(state, request).await
+}
+
+async fn outlook_sync(state: AppState, request: Value) -> Response {
     let settings = {
         let conn = lock_conn(&state);
         match repo::settings_get(&conn) {
@@ -576,16 +621,21 @@ async fn outlook_auto_sync(State(state): State<AppState>) -> Response {
         .unwrap_or(90)
         .clamp(1, 365);
 
-    let snapshot = match crate::outlook::fetch_events(calendar_name, days_ahead).await {
+    let mode = request.get("mode").and_then(Value::as_str).unwrap_or("now");
+    let range = match mode {
+        "now" => crate::outlook::OutlookSyncRange::new(chrono::Local::now().naive_local(), days_ahead),
+        "range" => match crate::outlook::OutlookSyncRange::dates(request.get("startDate").and_then(Value::as_str).unwrap_or(""), request.get("endDate").and_then(Value::as_str).unwrap_or("")) {
+            Ok(range) => range, Err(error) => return json_err(StatusCode::BAD_REQUEST, error),
+        },
+        _ => return json_err(StatusCode::BAD_REQUEST, "Invalid Outlook fetch mode"),
+    };
+    let snapshot = match crate::outlook::fetch_events_in_range(calendar_name, range).await {
         Ok(snapshot) => snapshot,
         Err(message) => return json_err(StatusCode::SERVICE_UNAVAILABLE, message),
     };
 
-    let start_key = snapshot.range.start_key();
-    let end_key = snapshot.range.end_key();
-
     let conn = lock_conn(&state);
-    match repo::outlook_auto_sync(&conn, &snapshot.events, &tag_id, &start_key, &end_key) {
+    match repo::outlook_sync_in_range(&conn, &snapshot.events, &tag_id, snapshot.range) {
         Ok(result) => json_ok(json!({
             "success": true,
             "count": result.count,
@@ -604,6 +654,14 @@ async fn outlook_auto_sync(State(state): State<AppState>) -> Response {
 /// 道具を使わせる(チャットごとにセッションを発行し、終了後に、そのチャットで出た予定の提案を応答に付ける)。
 /// `agent` が無いときは道具なしの1回の呼び出し(日次サマリーなど)。
 async fn ai_chat(State(state): State<AppState>, headers: HeaderMap, body: Bytes) -> Response {
+    ai_request(state, headers, body, false).await
+}
+
+async fn ai_preview(State(state): State<AppState>, headers: HeaderMap, body: Bytes) -> Response {
+    ai_request(state, headers, body, true).await
+}
+
+async fn ai_request(state: AppState, headers: HeaderMap, body: Bytes, preview: bool) -> Response {
     let body: Value = match parse_body(&body) {
         Ok(v) => v,
         Err(response) => return *response,
@@ -613,15 +671,25 @@ async fn ai_chat(State(state): State<AppState>, headers: HeaderMap, body: Bytes)
         .and_then(|v| v.as_array())
         .cloned()
         .unwrap_or_default();
-    let format = body.get("format").filter(|v| !v.is_null()).cloned();
-    let agent = body.get("agent").and_then(|v| v.as_bool()).unwrap_or(false);
-    let settings = {
+    let format = if preview { None } else { body.get("format").filter(|v| !v.is_null()).cloned() };
+    let agent = !preview && body.get("agent").and_then(|v| v.as_bool()).unwrap_or(false);
+    let mut settings = {
         let conn = lock_conn(&state);
         repo::settings_get(&conn)
             .ok()
             .flatten()
             .unwrap_or(Value::Null)
     };
+    if preview {
+        if !settings.is_object() { settings = json!({}); }
+        if let Some(overrides) = body.get("settings").and_then(Value::as_object) {
+            for key in ["uiLanguage", "aiPersonalization", "aiProvider", "aiCliEnabled", "aiClaudeModel", "aiClaudeEffort", "aiCodexModel", "aiCodexEffort", "aiOllamaEndpoint", "aiOllamaModel", "aiLmStudioEndpoint", "aiLmStudioModel"] {
+                if let Some(value) = overrides.get(key) { settings[key] = value.clone(); }
+            }
+        }
+        messages = vec![json!({"role":"user","content":"This is a style preview using fictional information only. In two sentences, encourage someone who plans to complete one small task tomorrow. Do not access records or use tools."})];
+    }
+    messages.insert(0, json!({"role":"system","content":crate::ai::build_system_instructions(chrono::Local::now().date_naive(), &settings, &state.os_locale, agent)}));
     if let Some(local) = crate::ai_local::LocalSettings::from_settings(&settings) {
         return match crate::ai_local::chat(&state, &local, messages, format.as_ref(), agent).await {
             Ok(reply) => json_ok(reply),
@@ -657,7 +725,6 @@ async fn ai_chat(State(state): State<AppState>, headers: HeaderMap, body: Bytes)
             .lock()
             .expect("proposal store poisoned")
             .insert(id.clone(), Vec::new());
-        messages.insert(0, json!({ "role": "system", "content": crate::ai::agent_system_prompt(chrono::Local::now().date_naive()) }));
     }
 
     let result = crate::ai_cli::chat(
@@ -977,6 +1044,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::write(tmp.path().join("hello.txt"), b"hi").unwrap();
         let state = AppState {
+            os_locale: "ja-JP".into(),
             conn: Arc::new(Mutex::new(conn)),
             static_root: tmp.path().to_path_buf(),
             proposals: Default::default(),
@@ -2077,7 +2145,8 @@ echo {stdout_line}
 
         let (status, runtime) = send(&router, "GET", "/api/runtime", None).await;
         assert_eq!(status, StatusCode::OK);
-        assert_eq!(runtime, json!({ "appVersion": env!("CARGO_PKG_VERSION") }));
+        assert_eq!(runtime["appVersion"], env!("CARGO_PKG_VERSION"));
+        assert!(runtime["osLocale"].as_str().is_some_and(|s| !s.is_empty()));
     }
 
     #[tokio::test]

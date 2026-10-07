@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 /**
  * tag-manager.js — 設定ダイアログのタグ管理(月ごとのタグの並び・色・予算)と色の選択ポップアップ
  */
@@ -15,14 +16,14 @@ export function _renderTagManager(dlg, Store, tagMgrMonth) {
 
   if (monthLabelEl) {
     const [y, m] = tagMgrMonth.split("-").map(Number);
-    monthLabelEl.textContent = `${y}年${m}月`;
+    monthLabelEl.textContent = translate('ui.b907b4b50e', { p0: (y), p1: (m) });
   }
 
   listEl.querySelectorAll(".hslPicker").forEach((el) => {
     if (typeof el.__hslDestroy === "function") el.__hslDestroy();
   });
   listEl.innerHTML = "";
-  const emptyMsg = "この月のタグは未設定です。前月をコピーするか、下のフォームから追加してください。";
+  const emptyMsg = translate('ui.37a0e79eea');
   const tags = Store.getTagsForMonth(tagMgrMonth);
   if (!Store.hasMonthTagOrder(tagMgrMonth) || tags.length === 0) {
     const msg = document.createElement("div");
@@ -87,7 +88,7 @@ export function _renderTagManager(dlg, Store, tagMgrMonth) {
     dragHandle.className = "settingsTagDragHandle";
     dragHandle.setAttribute("aria-hidden", "true");
     dragHandle.textContent = "⠿";
-    dragHandle.title = "ドラッグして並び替え";
+    dragHandle.title = translate('ui.01605357a7');
 
     const colorField = document.createElement("div");
     colorField.className = "hslPicker";
@@ -152,9 +153,9 @@ export function _renderTagManager(dlg, Store, tagMgrMonth) {
     delBtn.className = "btn danger settingsDeleteBtn";
     delBtn.type = "button";
     delBtn.textContent = "✕";
-    delBtn.title = `「${tag.name}」をこの月から除外`;
+    delBtn.title = translate('ui.bd6dc69e2d', { p0: (tag.name) });
     delBtn.addEventListener("click", async () => {
-      if (!confirm(`タグ「${tag.name}」をこの月から除外しますか？`)) return;
+      if (!confirm(translate('ui.d33b3810a5', { p0: (tag.name) }))) return;
       try {
         await Store.removeTagFromMonth(tagMgrMonth, tag.id);
       } catch (e) {
@@ -275,8 +276,8 @@ export function buildHslPicker(container, initialColor = DEFAULT_TAG_COLOR, onCo
   const trigger = document.createElement("button");
   trigger.type = "button";
   trigger.className = "hslTrigger";
-  trigger.title = "色を変更";
-  trigger.setAttribute("aria-label", "タグ色を選択");
+  trigger.title = translate('ui.df5c4c0450');
+  trigger.setAttribute("aria-label", translate('ui.57b05322d6'));
   trigger.setAttribute("aria-haspopup", "listbox");
   trigger.setAttribute("aria-expanded", "false");
 
@@ -285,7 +286,7 @@ export function buildHslPicker(container, initialColor = DEFAULT_TAG_COLOR, onCo
   popup.className = "hslPopup";
   popup.hidden = true;
   popup.setAttribute("role", "listbox");
-  popup.setAttribute("aria-label", "タグ色パレット");
+  popup.setAttribute("aria-label", translate('ui.bb80a52a07'));
 
   const popupHost = container.closest("dialog") || document.body;
   popupHost.appendChild(popup);

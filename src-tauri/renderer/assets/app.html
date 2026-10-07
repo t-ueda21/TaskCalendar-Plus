@@ -11,61 +11,61 @@
     <header class="header">
       <div class="brand">
         <h1><a href="#" data-nav-target="calendar">TaskCalendar+</a></h1>
-        <nav class="externalLinks" aria-label="クイックリンク" data-quick-links hidden></nav>
+        <nav class="externalLinks" aria-label="クイックリンク" data-quick-links hidden data-i18n-attrs="aria-label=ui.2bc08963bf"></nav>
       </div>
 
       <div class="headerNavigation">
-        <nav class="nav hasIndicator" aria-label="ページ切替">
+        <nav class="nav hasIndicator" aria-label="ページ切替" data-i18n-attrs="aria-label=ui.7b74237f77">
           <span class="navIndicator" aria-hidden="true"></span>
-          <a href="#" data-nav-target="calendar" aria-current="page">カレンダー</a>
-          <a href="#" data-nav-target="tasks">タスク一覧</a>
-          <a href="#" data-nav-target="ai">AIモード</a>
+          <a href="#" data-nav-target="calendar" aria-current="page"><span data-i18n="ui.e6f6d06c44">カレンダー</span></a>
+          <a href="#" data-nav-target="tasks"><span data-i18n="ui.ae919285fa">タスク一覧</span></a>
+          <a href="#" data-nav-target="ai"><span data-i18n="ui.7d773cf892">AIモード</span></a>
         </nav>
       </div>
 
-      <div class="clock" aria-label="時刻表示">
+      <div class="clock" aria-label="時刻表示" data-i18n-attrs="aria-label=ui.9c2f56089f">
         <div>
-          <div class="k">日付</div>
+          <div class="k"><span data-i18n="ui.666819e178">日付</span></div>
           <div class="v" data-today-date>----</div>
         </div>
         <div>
-          <div class="k">現在</div>
+          <div class="k"><span data-i18n="ui.83aeddd375">現在</span></div>
           <div class="v" data-now>--:--:--</div>
         </div>
         <div>
-          <div class="k">定時まで</div>
-          <div class="v" data-remaining>--.-時間（---分）</div>
+          <div class="k"><span data-i18n="ui.9e38ef67d7">定時まで</span></div>
+          <div class="v" data-remaining><span data-i18n="ui.552580ce97">--.-時間（---分）</span></div>
         </div>
       </div>
     </header>
 
     <div id="viewRoot">
       <section class="view" data-view="calendar" hidden>
-        <section class="toolbar" aria-label="カレンダー操作">
+        <section class="toolbar" aria-label="カレンダー操作" data-i18n-attrs="aria-label=ui.8cc15dc16f">
           <div class="left">
-            <button class="btn primary" type="button" data-new-task>＋ 新しいタスクを追加</button>
+            <button class="btn primary" type="button" data-new-task><span data-i18n="ui.ac7e34f0b1">＋ 新しいタスクを追加</span></button>
 
-            <div class="control" aria-label="表示切替">
-              <span>表示</span>
-              <select aria-label="日/週" data-viewmode>
-                <option value="day">日</option>
-                <option value="week" selected>週</option>
+            <div class="control" aria-label="表示切替" data-i18n-attrs="aria-label=ui.4a71cf4389">
+              <span><span data-i18n="ui.17efc6654e">表示</span></span>
+              <select aria-label="日/週" data-viewmode data-i18n-attrs="aria-label=ui.0460c6f649">
+                <option value="day" data-i18n="ui.85217f7aff">日</option>
+                <option value="week" selected data-i18n="ui.f36b4109a9">週</option>
               </select>
             </div>
 
-            <div class="control" aria-label="粒度">
-              <span>粒度</span>
+            <div class="control" aria-label="粒度" data-i18n-attrs="aria-label=ui.761fc4d6cd">
+              <span><span data-i18n="ui.761fc4d6cd">粒度</span></span>
               <select data-granularity>
-                <option value="60">60分</option>
-                <option value="30" selected>30分</option>
-                <option value="15">15分</option>
+                <option value="60" data-i18n="ui.e3b483e072">60分</option>
+                <option value="30" selected data-i18n="ui.048dcd53a9">30分</option>
+                <option value="15" data-i18n="ui.3e789d9da8">15分</option>
               </select>
             </div>
 
-            <label class="uiToggle" aria-label="営業日のみ表示">
+            <label class="uiToggle" aria-label="営業日のみ表示" data-i18n-attrs="aria-label=ui.d3080a7c82">
                 <input type="checkbox" class="uiToggleInput" role="switch" checked data-businessdays-only />
                 <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                <span class="themeToggleLabel">営業日のみ（既定: 月〜金）</span>
+                <span class="themeToggleLabel"><span data-i18n="ui.4aa65d6d84">営業日のみ（既定: 月〜金）</span></span>
               </label>
           </div>
 
@@ -75,51 +75,51 @@
         <main class="layout">
           <template data-view-template="shared-sidebar"></template>
 
-          <section class="panel" aria-label="カレンダー本体">
+          <section class="panel" data-calendar-panel aria-label="カレンダー本体" data-i18n-attrs="aria-label=ui.bf221b5219">
             <h2 class="calendarTitleBar calendarWeatherTitleBar">
               <span class="calendarTitleLeft">
-                <button class="btn primary" type="button" data-go-today>今日に戻る</button>
-                <button class="btn titleNavBtn" type="button" data-shift-prev aria-label="前の日"><span aria-hidden="true">◀</span><span data-nav-label>前日</span></button>
-                <button class="btn titleNavBtn" type="button" data-shift-next aria-label="次の日"><span data-nav-label>翌日</span><span aria-hidden="true">▶</span></button>
+                <button class="btn primary" type="button" data-go-today><span data-i18n="ui.0f581cf638">今日に戻る</span></button>
+                <button class="btn titleNavBtn" type="button" data-shift-prev aria-label="前の日" data-i18n-attrs="aria-label=ui.09f7b583a1"><span aria-hidden="true">◀</span><span data-nav-label><span data-i18n="ui.e1e3664a59">前日</span></span></button>
+                <button class="btn titleNavBtn" type="button" data-shift-next aria-label="次の日" data-i18n-attrs="aria-label=ui.6a53ffb998"><span data-nav-label><span data-i18n="ui.40b8fbe539">翌日</span></span><span aria-hidden="true">▶</span></button>
                 <span class="small titleShiftLabel"><strong data-view-date>----</strong></span>
               </span>
-              <span class="weatherChip" data-calendar-day-weather>天気取得中...</span>
+              <span class="weatherChip" data-calendar-day-weather><span data-i18n="ui.e766dd8d41">天気取得中...</span></span>
             </h2>
-            <div class="panelBody" aria-label="カレンダー本文">
+            <div class="panelBody" aria-label="カレンダー本文" data-i18n-attrs="aria-label=ui.8fd3b2824a">
               <div data-view="day" style="display:flex; flex-direction:column; height:100%;">
                 <div class="gridWrap">
-                  <div class="weekSticky" aria-label="日固定ヘッダー">
-                    <div class="allDayLane" aria-label="終日予定">
-                      <div class="allDayTitle">終日</div>
+                  <div class="weekSticky" aria-label="日固定ヘッダー" data-i18n-attrs="aria-label=ui.cce63174e6">
+                    <div class="allDayLane" aria-label="終日予定" data-i18n-attrs="aria-label=ui.598512328d">
+                      <div class="allDayTitle"><span data-i18n="ui.0aff5cf2d8">終日</span></div>
                       <div class="allDayItems"></div>
                     </div>
                   </div>
 
                   <div class="calendarGrid">
-                    <div class="times" data-times="day" aria-label="時刻列"></div>
-                    <div class="dayCol" data-daycol aria-label="日付カラム">
-                      <div class="slots" data-slots="day" aria-label="時間スロット"></div>
+                    <div class="times" data-times="day" aria-label="時刻列" data-i18n-attrs="aria-label=ui.e3fa60eb12"></div>
+                    <div class="dayCol" data-daycol aria-label="日付カラム" data-i18n-attrs="aria-label=ui.81f5b9135c">
+                      <div class="slots" data-slots="day" aria-label="時間スロット" data-i18n-attrs="aria-label=ui.8fb0767842"></div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div data-view="week" hidden style="display:flex; flex-direction:column; height:100%;">
-                <div class="gridWrap" aria-label="週表示（時間スクロール）">
-                  <div class="weekSticky" aria-label="週固定ヘッダー">
-                    <div class="weekHeader" data-week-header aria-label="週ヘッダー（日付）">
-                      <div class="weekCorner">日付</div>
-                      <div class="weekDay sun" data-weekday="Sun">日 --/--</div>
-                      <div class="weekDay" data-weekday="Mon">月 --/--</div>
-                      <div class="weekDay" data-weekday="Tue">火 --/--</div>
-                      <div class="weekDay" data-weekday="Wed">水 --/--</div>
-                      <div class="weekDay" data-weekday="Thu">木 --/--</div>
-                      <div class="weekDay" data-weekday="Fri">金 --/--</div>
-                      <div class="weekDay sat" data-weekday="Sat">土 --/--</div>
+                <div class="gridWrap" aria-label="週表示（時間スクロール）" data-i18n-attrs="aria-label=ui.81c6c63f61">
+                  <div class="weekSticky" aria-label="週固定ヘッダー" data-i18n-attrs="aria-label=ui.159411cb9a">
+                    <div class="weekHeader" data-week-header aria-label="週ヘッダー（日付）" data-i18n-attrs="aria-label=ui.3c9d596d4b">
+                      <div class="weekCorner"><span data-i18n="ui.666819e178">日付</span></div>
+                      <div class="weekDay sun" data-weekday="Sun"><span data-i18n="ui.d5e0170240">日 --/--</span></div>
+                      <div class="weekDay" data-weekday="Mon"><span data-i18n="ui.a769904a03">月 --/--</span></div>
+                      <div class="weekDay" data-weekday="Tue"><span data-i18n="ui.d71c2a47fa">火 --/--</span></div>
+                      <div class="weekDay" data-weekday="Wed"><span data-i18n="ui.96922540e9">水 --/--</span></div>
+                      <div class="weekDay" data-weekday="Thu"><span data-i18n="ui.de7425404a">木 --/--</span></div>
+                      <div class="weekDay" data-weekday="Fri"><span data-i18n="ui.2e289bb938">金 --/--</span></div>
+                      <div class="weekDay sat" data-weekday="Sat"><span data-i18n="ui.e87f937882">土 --/--</span></div>
                     </div>
 
-                    <div class="weekAllDay" data-week-allday aria-label="週表示（終日）">
-                      <div class="weekCorner">終日</div>
+                    <div class="weekAllDay" data-week-allday aria-label="週表示（終日）" data-i18n-attrs="aria-label=ui.2149b7b687">
+                      <div class="weekCorner"><span data-i18n="ui.0aff5cf2d8">終日</span></div>
                       <div class="weekAllDayCell sun" data-weekday="Sun"></div>
                       <div class="weekAllDayCell" data-weekday="Mon"></div>
                       <div class="weekAllDayCell" data-weekday="Tue"></div>
@@ -130,59 +130,59 @@
                     </div>
                   </div>
 
-                  <div class="weekBody" data-week-body aria-label="週本体（時間）">
-                    <div class="times" data-times="week" aria-label="時刻列"></div>
+                  <div class="weekBody" data-week-body aria-label="週本体（時間）" data-i18n-attrs="aria-label=ui.4d0c66cf0c">
+                    <div class="times" data-times="week" aria-label="時刻列" data-i18n-attrs="aria-label=ui.e3fa60eb12"></div>
 
-                    <div class="weekCol sun" data-weekcol data-weekday="Sun" aria-label="日カラム">
-                      <div class="slots" data-slots="week" aria-label="時間スロット"></div>
+                    <div class="weekCol sun" data-weekcol data-weekday="Sun" aria-label="日カラム" data-i18n-attrs="aria-label=ui.97f0f40271">
+                      <div class="slots" data-slots="week" aria-label="時間スロット" data-i18n-attrs="aria-label=ui.8fb0767842"></div>
                     </div>
-                    <div class="weekCol" data-weekcol data-weekday="Mon" aria-label="月カラム">
-                      <div class="slots" data-slots="week" aria-label="時間スロット"></div>
+                    <div class="weekCol" data-weekcol data-weekday="Mon" aria-label="月カラム" data-i18n-attrs="aria-label=ui.59ea387ecf">
+                      <div class="slots" data-slots="week" aria-label="時間スロット" data-i18n-attrs="aria-label=ui.8fb0767842"></div>
                     </div>
-                    <div class="weekCol" data-weekcol data-weekday="Tue" aria-label="火カラム">
-                      <div class="slots" data-slots="week" aria-label="時間スロット"></div>
+                    <div class="weekCol" data-weekcol data-weekday="Tue" aria-label="火カラム" data-i18n-attrs="aria-label=ui.c7c2dca1cc">
+                      <div class="slots" data-slots="week" aria-label="時間スロット" data-i18n-attrs="aria-label=ui.8fb0767842"></div>
                     </div>
-                    <div class="weekCol" data-weekcol data-weekday="Wed" aria-label="水カラム">
-                      <div class="slots" data-slots="week" aria-label="時間スロット"></div>
+                    <div class="weekCol" data-weekcol data-weekday="Wed" aria-label="水カラム" data-i18n-attrs="aria-label=ui.c25a433588">
+                      <div class="slots" data-slots="week" aria-label="時間スロット" data-i18n-attrs="aria-label=ui.8fb0767842"></div>
                     </div>
-                    <div class="weekCol" data-weekcol data-weekday="Thu" aria-label="木カラム">
-                      <div class="slots" data-slots="week" aria-label="時間スロット"></div>
+                    <div class="weekCol" data-weekcol data-weekday="Thu" aria-label="木カラム" data-i18n-attrs="aria-label=ui.d0be90ec1d">
+                      <div class="slots" data-slots="week" aria-label="時間スロット" data-i18n-attrs="aria-label=ui.8fb0767842"></div>
                     </div>
-                    <div class="weekCol" data-weekcol data-weekday="Fri" aria-label="金カラム">
-                      <div class="slots" data-slots="week" aria-label="時間スロット"></div>
+                    <div class="weekCol" data-weekcol data-weekday="Fri" aria-label="金カラム" data-i18n-attrs="aria-label=ui.382201e926">
+                      <div class="slots" data-slots="week" aria-label="時間スロット" data-i18n-attrs="aria-label=ui.8fb0767842"></div>
                     </div>
-                    <div class="weekCol sat" data-weekcol data-weekday="Sat" aria-label="土カラム">
-                      <div class="slots" data-slots="week" aria-label="時間スロット"></div>
+                    <div class="weekCol sat" data-weekcol data-weekday="Sat" aria-label="土カラム" data-i18n-attrs="aria-label=ui.53ca569dbd">
+                      <div class="slots" data-slots="week" aria-label="時間スロット" data-i18n-attrs="aria-label=ui.8fb0767842"></div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <p class="small" style="margin: 12px 12px 0;">操作イメージ: 空き時間をドラッグして範囲選択 → タスク作成ダイアログ表示。表示は0:00〜24:00で、時間部分だけ上下スクロールできます。</p>
+              <p class="small" style="margin: 12px 12px 0;"><span data-i18n="ui.79d62de7a8">操作イメージ: 空き時間をドラッグして範囲選択 → タスク作成ダイアログ表示。表示は0:00〜24:00で、時間部分だけ上下スクロールできます。</span></p>
             </div>
           </section>
         </main>
 
-        <dialog data-task-dialog class="dialog" aria-label="タスク作成ダイアログ">
-          <header data-dialog-title>タスク作成</header>
+        <dialog data-task-dialog class="dialog" aria-label="タスク作成ダイアログ" data-i18n-attrs="aria-label=ui.0bc09b98ce">
+          <header data-dialog-title><span data-i18n="ui.84431e9d03">タスク作成</span></header>
           <template data-view-template="shared-task-form"></template>
           <footer>
-            <button class="btn danger" type="button" data-delete style="margin-right:auto">削除</button>
-            <button class="btn" type="button" data-cancel>キャンセル</button>
-            <button class="btn primary" type="button" data-save>保存</button>
+            <button class="btn danger" type="button" data-delete style="margin-right:auto"><span data-i18n="ui.e9653dc3ed">削除</span></button>
+            <button class="btn" type="button" data-cancel><span data-i18n="ui.bca84ea5c6">キャンセル</span></button>
+            <button class="btn primary" type="button" data-save><span data-i18n="ui.a3030bf8f1">保存</span></button>
           </footer>
         </dialog>
       </section>
 
       <section class="view" data-view="tasks" hidden>
-        <section class="toolbar" aria-label="一覧操作">
+        <section class="toolbar" aria-label="一覧操作" data-i18n-attrs="aria-label=ui.beaa7f03ca">
           <div class="left">
-            <button class="btn primary" type="button" data-new-task>＋ 新しいタスクを追加</button>
+            <button class="btn primary" type="button" data-new-task><span data-i18n="ui.ac7e34f0b1">＋ 新しいタスクを追加</span></button>
 
             <div class="control">
-              <span>タグ</span>
+              <span><span data-i18n="ui.302eafc71d">タグ</span></span>
               <select data-tag-filter>
-                <option value="__all__" selected>全て</option>
+                <option value="__all__" selected data-i18n="ui.bb7d147bc0">全て</option>
               </select>
             </div>
           </div>
@@ -193,15 +193,15 @@
         <main class="layout">
           <template data-view-template="shared-sidebar"></template>
 
-          <section class="panel" aria-label="タスク一覧テーブル">
+          <section class="panel" data-tasks-panel aria-label="タスク一覧テーブル" data-i18n-attrs="aria-label=ui.2fb5d691c1">
             <h2 class="calendarTitleBar calendarWeatherTitleBar">
               <span class="calendarTitleLeft">
-                <button class="btn primary" type="button" data-list-today>今日に戻る</button>
-                <button class="btn titleNavBtn" type="button" data-task-day-prev aria-label="前の日"><span aria-hidden="true">◀</span><span data-nav-label>前日</span></button>
-                <button class="btn titleNavBtn" type="button" data-task-day-next aria-label="次の日"><span data-nav-label>翌日</span><span aria-hidden="true">▶</span></button>
+                <button class="btn primary" type="button" data-list-today><span data-i18n="ui.0f581cf638">今日に戻る</span></button>
+                <button class="btn titleNavBtn" type="button" data-task-day-prev aria-label="前の日" data-i18n-attrs="aria-label=ui.09f7b583a1"><span aria-hidden="true">◀</span><span data-nav-label><span data-i18n="ui.e1e3664a59">前日</span></span></button>
+                <button class="btn titleNavBtn" type="button" data-task-day-next aria-label="次の日" data-i18n-attrs="aria-label=ui.6a53ffb998"><span data-nav-label><span data-i18n="ui.40b8fbe539">翌日</span></span><span aria-hidden="true">▶</span></button>
                 <span class="small titleShiftLabel"><strong data-task-day-label>----</strong></span>
               </span>
-              <span class="weatherChip" data-task-day-weather>天気取得中...</span>
+              <span class="weatherChip" data-task-day-weather><span data-i18n="ui.e766dd8d41">天気取得中...</span></span>
             </h2>
             <div class="content">
               <div class="tasksContentLayout">
@@ -209,15 +209,15 @@
                   <p class="taskEmptyState" data-task-empty-state hidden></p>
 
                   <div class="tableWrap">
-                    <table class="table" aria-label="タスク一覧">
+                    <table class="table" data-task-table aria-label="タスク一覧" data-i18n-attrs="aria-label=ui.ae919285fa">
                       <thead data-task-thead>
                         <tr>
-                          <th style="width: 64px;" data-sort="startTime">開始 ⇕</th>
-                          <th style="width: 64px;" data-sort="endTime">終了 ⇕</th>
-                          <th data-sort="title">タイトル ⇕</th>
-                          <th style="width: 130px;" data-sort="tag">タグ ⇕</th>
-                          <th style="width: 145px;" data-sort="duration">工数 ⇕</th>
-                          <th style="width: 90px;">操作</th>
+                          <th style="width: 64px;" data-sort="startTime"><span data-i18n="ui.96e39eaec7">開始 ⇕</span></th>
+                          <th style="width: 64px;" data-sort="endTime"><span data-i18n="ui.336627beee">終了 ⇕</span></th>
+                          <th data-sort="title"><span data-i18n="ui.14bd9a0c91">タイトル ⇕</span></th>
+                          <th style="width: 130px;" data-sort="tag"><span data-i18n="ui.82f7d72639">タグ ⇕</span></th>
+                          <th style="width: 145px;" data-sort="duration"><span data-i18n="ui.fd8aa1f18d">工数 ⇕</span></th>
+                          <th style="width: 90px;"><span data-i18n="ui.ed31fbb483">操作</span></th>
                         </tr>
                       </thead>
                       <tbody data-task-tbody></tbody>
@@ -225,18 +225,18 @@
                   </div>
 
                   <div class="taskDayTotalsSection">
-                    <div class="tag dayTotalCard" aria-label="日次集計">
-                      <div class="name"><strong>日次集計（合計）</strong></div>
-                      <span class="small dayTotalValue" data-day-total>0.0時間（0分）</span>
+                    <div class="tag dayTotalCard" aria-label="日次集計" data-i18n-attrs="aria-label=ui.00ba1dd660">
+                      <div class="name"><strong><span data-i18n="ui.9061c3bc0b">日次集計（合計）</span></strong></div>
+                      <span class="small dayTotalValue" data-day-total><span data-i18n="ui.f5ea8cc685">0.0時間（0分）</span></span>
                     </div>
                     <div class="taglist" data-day-tag-summary-dynamic></div>
                   </div>
                 </div>
 
-                <aside class="tasksRightColumn" aria-label="その日のサマリーと気づき">
+                <aside class="tasksRightColumn" aria-label="その日のサマリーと気づき" data-i18n-attrs="aria-label=ui.d06ceebb21">
                   <div class="daySummaryBubble" data-day-summary-wrap hidden>
                     <div class="daySummaryHead">
-                      <strong>今日のサマリー</strong>
+                      <strong><span data-i18n="ui.b420bf71bb">今日のサマリー</span></strong>
                       <span class="small" data-day-summary-meta></span>
                     </div>
                     <div class="daySummaryText" data-day-summary-text></div>
@@ -244,16 +244,16 @@
                     <ul class="daySummaryHighlights" data-day-summary-highlights></ul>
                   </div>
 
-                  <div class="dayInsightCard" aria-label="その日の気づき入力">
+                  <div class="dayInsightCard" aria-label="その日の気づき入力" data-i18n-attrs="aria-label=ui.7c076f35de">
                     <div class="dayInsightHead">
-                      <strong>その日の気づき・思ったこと</strong>
-                      <span class="small" data-day-insight-meta>保存すると今日のサマリーへ直接反映します</span>
+                      <strong><span data-i18n="ui.514d8d2cd1">その日の気づき・思ったこと</span></strong>
+                      <span class="small" data-day-insight-meta><span data-i18n="ui.a78838de69">保存すると今日のサマリーへ直接反映します</span></span>
                     </div>
-                    <textarea class="dayInsightInput" rows="3" data-day-insight-input placeholder="例: 午後は打ち合わせが多くて実装が進まなかったが、課題の整理は進んだ"></textarea>
+                    <textarea class="dayInsightInput" rows="3" data-day-insight-input placeholder="例: 午後は打ち合わせが多くて実装が進まなかったが、課題の整理は進んだ" data-i18n-attrs="placeholder=ui.fbb734e955"></textarea>
                     <div class="dayInsightActions">
-                      <button class="btn primary" type="button" data-day-insight-send>保存してサマリー反映</button>
+                      <button class="btn primary" type="button" data-day-insight-send><span data-i18n="ui.2923874991">保存してサマリー反映</span></button>
                     </div>
-                    <div class="dayInsightReply" data-day-insight-reply>気づきを保存すると、今日のサマリーへ直接反映します。</div>
+                    <div class="dayInsightReply" data-day-insight-reply><span data-i18n="ui.71c5ec8575">気づきを保存すると、今日のサマリーへ直接反映します。</span></div>
                   </div>
                 </aside>
               </div>
@@ -261,19 +261,19 @@
           </section>
         </main>
 
-        <dialog data-task-dialog class="dialog" aria-label="タスクダイアログ">
-          <header data-dialog-title>タスクを追加</header>
+        <dialog data-task-dialog class="dialog" aria-label="タスクダイアログ" data-i18n-attrs="aria-label=ui.583dacff94">
+          <header data-dialog-title><span data-i18n="ui.13ec227edb">タスクを追加</span></header>
           <template data-view-template="shared-task-form"></template>
           <footer>
-            <button class="btn danger" type="button" data-delete style="margin-right:auto">削除</button>
-            <button class="btn" type="button" data-cancel>キャンセル</button>
-            <button class="btn primary" type="button" data-save>保存</button>
+            <button class="btn danger" type="button" data-delete style="margin-right:auto"><span data-i18n="ui.e9653dc3ed">削除</span></button>
+            <button class="btn" type="button" data-cancel><span data-i18n="ui.bca84ea5c6">キャンセル</span></button>
+            <button class="btn primary" type="button" data-save><span data-i18n="ui.a3030bf8f1">保存</span></button>
           </footer>
         </dialog>
       </section>
 
       <section class="view" data-view="ai" hidden>
-        <section class="toolbar" aria-label="AI操作">
+        <section class="toolbar" aria-label="AI操作" data-i18n-attrs="aria-label=ui.0a7206387b">
           <div class="left">
             <div class="aiModelChip" data-ai-model-current>AI: --</div>
           </div>
@@ -283,28 +283,28 @@
         <main class="layout aiLayout">
           <template data-view-template="shared-sidebar"></template>
 
-          <section class="panel aiModePanel" aria-label="AIモード本体">
+          <section class="panel aiModePanel" aria-label="AIモード本体" data-i18n-attrs="aria-label=ui.6c91f0c213">
             <h2 class="calendarTitleBar">
               <span class="calendarTitleLeft">
-                <button class="btn primary" type="button" data-ai-today>今日に戻る</button>
-                <button class="btn titleNavBtn" type="button" data-ai-day-prev aria-label="前の日"><span aria-hidden="true">◀</span><span data-nav-label>前日</span></button>
-                <button class="btn titleNavBtn" type="button" data-ai-day-next aria-label="次の日"><span data-nav-label>翌日</span><span aria-hidden="true">▶</span></button>
+                <button class="btn primary" type="button" data-ai-today><span data-i18n="ui.0f581cf638">今日に戻る</span></button>
+                <button class="btn titleNavBtn" type="button" data-ai-day-prev aria-label="前の日" data-i18n-attrs="aria-label=ui.09f7b583a1"><span aria-hidden="true">◀</span><span data-nav-label><span data-i18n="ui.e1e3664a59">前日</span></span></button>
+                <button class="btn titleNavBtn" type="button" data-ai-day-next aria-label="次の日" data-i18n-attrs="aria-label=ui.6a53ffb998"><span data-nav-label><span data-i18n="ui.40b8fbe539">翌日</span></span><span aria-hidden="true">▶</span></button>
                 <span class="small titleShiftLabel"><strong data-ai-day-label>----</strong></span>
               </span>
             </h2>
             <div class="content aiModeContent">
-              <section class="aiChatArea" aria-label="対話エリア">
+              <section class="aiChatArea" aria-label="対話エリア" data-i18n-attrs="aria-label=ui.f6dea696c9">
                 <div class="aiChatLog" data-ai-chat-log></div>
                 <div class="aiInputArea">
                   <div class="aiComposer">
-                    <textarea data-ai-input rows="2" placeholder="メッセージを入力" aria-describedby="ai-send-hint"></textarea>
-                    <button class="btn primary" type="button" data-ai-ask aria-label="送信">送信</button>
+                    <textarea data-ai-input rows="2" placeholder="メッセージを入力" aria-describedby="ai-send-hint" data-i18n-attrs="placeholder=ui.93ac1ff311"></textarea>
+                    <button class="btn primary" type="button" data-ai-ask aria-label="送信" data-i18n-attrs="aria-label=ui.a6c1ceaf4b"><span data-i18n="ui.a6c1ceaf4b">送信</span></button>
                   </div>
                   <div class="aiComposerOptions">
-                    <div class="aiInputHint" id="ai-send-hint" data-ai-input-hint aria-live="polite">Enterで改行 / Ctrl+Enterで送信</div>
+                    <div class="aiInputHint" id="ai-send-hint" data-ai-input-hint aria-live="polite"><span data-i18n="ui.3f9cf63fb0">Enterで改行 / Ctrl+Enterで送信</span></div>
                     <button class="uiToggle aiEnterToggle" type="button" role="switch" aria-checked="false" data-ai-enter-toggle>
                       <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                      <span>Enterで送信</span>
+                      <span><span data-i18n="ui.c8eadbf293">Enterで送信</span></span>
                     </button>
                   </div>
                 </div>
@@ -315,30 +315,30 @@
       </section>
     </div>
 
-    <dialog data-settings-dialog class="dialog settingsDialog" aria-label="設定">
+    <dialog data-settings-dialog class="dialog settingsDialog" aria-label="設定" data-i18n-attrs="aria-label=ui.0d8619aae0">
       <header>
-        <button type="button" class="uiToggle themeToggle" data-theme-toggle aria-pressed="false" aria-label="ダークモード切替">
+        <button type="button" class="uiToggle themeToggle" data-theme-toggle aria-pressed="false" aria-label="ダークモード切替" data-i18n-attrs="aria-label=ui.c62660d712">
           <span class="themeToggleTrack"><span class="themeToggleThumb"></span></span>
-          <span class="themeToggleLabel">ダークモード</span>
+          <span class="themeToggleLabel"><span data-i18n="ui.5f8b0cbdca">ダークモード</span></span>
         </button>
-        <div class="settingsDialogTitle">設定</div>
-        <div class="settingsDialogSub">タブで切り替えて設定できます。</div>
+        <div class="settingsDialogTitle"><span data-i18n="ui.0d8619aae0">設定</span></div>
+        <div class="settingsDialogSub"><span data-i18n="ui.35e56f183d">タブで切り替えて設定できます。</span></div>
       </header>
 
       <div class="settingsTabBar">
-      <div class="settingsTabs" role="tablist" aria-label="設定タブ">
-        <button class="settingsTabBtn isActive" type="button" role="tab" aria-selected="true" data-settings-tab="general">基本</button>
-        <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="advanced">詳細</button>
-        <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="tags">タグ管理</button>
+      <div class="settingsTabs" role="tablist" aria-label="設定タブ" data-i18n-attrs="aria-label=ui.3239a37983">
+        <button class="settingsTabBtn isActive" type="button" role="tab" aria-selected="true" data-settings-tab="general"><span data-i18n="ui.25c2fd632a">基本</span></button>
+        <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="advanced"><span data-i18n="ui.9652e7b5f6">詳細</span></button>
+        <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="tags"><span data-i18n="ui.a93778fc94">タグ管理</span></button>
         <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="outlook">Outlook</button>
-        <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="about">説明</button>
-        <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="shortcuts">ショートカット</button>
+        <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="about"><span data-i18n="ui.9683551a84">説明</span></button>
+        <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="shortcuts"><span data-i18n="ui.8fd49ecbb2">ショートカット</span></button>
       </div>
-      <div class="uiColorPicker" data-ui-color-picker role="group" aria-label="UIカラー">
+      <div class="uiColorPicker" data-ui-color-picker role="group" aria-label="UIカラー" data-i18n-attrs="aria-label=ui.0ff6ed306c">
         <div class="uiColorPresets" data-ui-color-presets></div>
-        <label class="uiColorCustom" title="好きな色を選択（保存で確定）">
+        <label class="uiColorCustom" title="好きな色を選択（保存で確定）" data-i18n-attrs="title=ui.d44c745f02">
           <span aria-hidden="true">＋</span>
-          <input type="color" data-ui-color-custom aria-label="好きなUIカラーを選択" value="#0072bc" />
+          <input type="color" data-ui-color-custom aria-label="好きなUIカラーを選択" value="#0072bc"  data-i18n-attrs="aria-label=ui.b47582535b" />
         </label>
       </div>
       </div>
@@ -347,214 +347,234 @@
         <form method="dialog">
           <section class="settingsTabPanel isActive" data-settings-tab-panel="general">
             <section class="settingsSection">
-              <div class="settingsSectionLabel">会社休日</div>
-              <div class="settingsSectionSub">1行1件。日付,休日名 で登録できます。</div>
+              <div class="settingsSectionLabel" data-i18n="language.label">表示言語</div>
+              <div class="settingsInlineRow settingsInlineRowWide">
+                <label class="settingsInlineLabel" for="cfg-language" data-i18n="language.label">表示言語</label>
+                <select id="cfg-language" name="uiLanguage" data-language-select></select>
+              </div>
+              <p class="settingsTagHint"><span data-i18n="ui.95b00e6341">祝日・地域設定は日本のままです。AIの回答も選択した言語になります。</span></p>
+            </section>
+            <section class="settingsSection">
+              <div class="settingsSectionLabel"><span data-i18n="ui.a264a8936e">会社休日</span></div>
+              <div class="settingsSectionSub"><span data-i18n="ui.ad42442156">1行1件。日付,休日名 で登録できます。</span></div>
               <div class="settingsInlineRow settingsInlineRowWideTop">
-                <label class="settingsInlineLabel" for="cfg-company-holidays">日付</label>
+                <label class="settingsInlineLabel" for="cfg-company-holidays"><span data-i18n="ui.666819e178">日付</span></label>
                 <textarea
                   id="cfg-company-holidays"
                   name="companyHolidaysText"
                   data-company-holidays-input
                   rows="4"
                   placeholder="2026-12-29,年末休暇"
-                ></textarea>
+                 data-i18n-attrs="placeholder=ui.73e1225776"></textarea>
               </div>
               <div class="settingsInlineRow settingsInlineRowWide">
-                <span class="settingsInlineLabel">取込</span>
+                <span class="settingsInlineLabel"><span data-i18n="ui.fcc771684c">取込</span></span>
                 <div class="settingsFileImport">
                   <input class="settingsFileInput" id="cfg-company-holidays-file" type="file" accept=".json,.csv,application/json,text/csv" data-company-holidays-import-file />
-                  <label for="cfg-company-holidays-file" class="btn">ファイルを選択</label>
-                  <span class="settingsFileImportName" data-company-holidays-file-name>未選択</span>
-                  <button class="btn" type="button" data-company-holidays-import-btn>取込</button>
+                  <label for="cfg-company-holidays-file" class="btn"><span data-i18n="ui.282a22d88d">ファイルを選択</span></label>
+                  <span class="settingsFileImportName" data-company-holidays-file-name><span data-i18n="ui.a28710cc66">未選択</span></span>
+                  <button class="btn" type="button" data-company-holidays-import-btn><span data-i18n="ui.fcc771684c">取込</span></button>
                 </div>
               </div>
-              <div class="settingsTagHint">手入力と取込の併用が可能です。重複日付は後から追加した内容で上書きされます。</div>
+              <div class="settingsTagHint"><span data-i18n="ui.3523ae22c8">手入力と取込の併用が可能です。重複日付は後から追加した内容で上書きされます。</span></div>
             </section>
 
             <section class="settingsSection">
-              <div class="settingsSectionLabel">天気地点</div>
+              <div class="settingsSectionLabel"><span data-i18n="ui.6e75b42ba3">天気地点</span></div>
               <div class="settingsInlineRow">
-                <label class="settingsInlineLabel" for="cfg-weather-location">地点</label>
+                <label class="settingsInlineLabel" for="cfg-weather-location"><span data-i18n="ui.253ac66fb8">地点</span></label>
                 <select id="cfg-weather-location" name="weatherLocationKey" data-weather-location-select></select>
               </div>
             </section>
 
             <section class="settingsSection">
-              <div class="settingsSectionLabel">クイックリンク</div>
-              <div class="settingsSectionSub">ヘッダーに表示するリンクです。1行1件、ラベル,URL の形式で登録できます（最大8件）。</div>
+              <div class="settingsSectionLabel"><span data-i18n="ui.2bc08963bf">クイックリンク</span></div>
+              <div class="settingsSectionSub"><span data-i18n="ui.ab477af28c">ヘッダーに表示するリンクです。1行1件、ラベル,URL の形式で登録できます（最大8件）。</span></div>
               <div class="settingsInlineRow settingsInlineRowWideTop">
-                <label class="settingsInlineLabel" for="cfg-quick-links">リンク</label>
+                <label class="settingsInlineLabel" for="cfg-quick-links"><span data-i18n="ui.9645ff2377">リンク</span></label>
                 <textarea
                   id="cfg-quick-links"
                   name="quickLinksText"
                   data-quick-links-input
                   rows="3"
                   placeholder="ポータル,https://example.com/&#10;勤怠,https://example.com/attendance"
-                ></textarea>
+                 data-i18n-attrs="placeholder=ui.6bbfcadffe"></textarea>
               </div>
             </section>
 
             <section class="settingsSection">
               <div class="settingsSectionLabel">AI</div>
-              <div class="settingsSectionSub">AIモード・日次サマリーで使うAIの接続先です。Claude Code / Codex、または Ollama / LM Studio に接続できます。</div>
+              <fieldset class="aiPersonalization" data-ai-personalization>
+                <legend><span data-i18n="ui.132aae0779">AIの話し方</span></legend>
+                <div class="settingsInlineRow settingsInlineRowWide"><label for="cfg-ai-warmth"><span data-i18n="ui.d18bdf8478">温かさ</span></label><select id="cfg-ai-warmth" data-ai-personality="warmth"><option value="neutral" data-i18n="ui.6f5de510e1">標準</option><option value="warm" data-i18n="ui.3dd9df88c6">温かい</option></select></div>
+                <div class="settingsInlineRow settingsInlineRowWide"><label for="cfg-ai-emoji"><span data-i18n="ui.1fc2973965">絵文字</span></label><select id="cfg-ai-emoji" data-ai-personality="emoji"><option value="none" data-i18n="ui.868310e193">なし</option><option value="few" data-i18n="ui.70b8c90a5c">少なめ</option><option value="many" data-i18n="ui.26efe90cd0">多め</option></select></div>
+                <div class="settingsInlineRow settingsInlineRowWide"><label for="cfg-ai-length"><span data-i18n="ui.cf68c78727">回答の長さ</span></label><select id="cfg-ai-length" data-ai-personality="length"><option value="short" data-i18n="ui.b0b605656e">短め</option><option value="balanced" data-i18n="ui.6f5de510e1">標準</option><option value="detailed" data-i18n="ui.1cada455ca">詳しく</option></select></div>
+                <div class="settingsInlineRow settingsInlineRowWide"><label for="cfg-ai-tone"><span data-i18n="ui.898b0ca9a0">口調</span></label><select id="cfg-ai-tone" data-ai-personality="tone"><option value="neutral" data-i18n="ui.6f5de510e1">標準</option><option value="casual" data-i18n="ui.be6f914a12">親しみやすい</option><option value="formal" data-i18n="ui.f938db4473">丁寧</option></select></div>
+                <label for="cfg-ai-instructions"><span data-i18n="ui.c241a325ad">カスタム指示</span></label>
+                <textarea id="cfg-ai-instructions" data-ai-personality="customInstructions" rows="3" maxlength="4000" placeholder="例：結論を先に、やさしい言葉で説明して" data-i18n-attrs="placeholder=ui.4190cd0363"></textarea>
+                <p class="settingsTagHint"><span data-i18n="ui.19e9e67b29">AIチャットと日次サマリーの両方に適用します。</span></p>
+                <div class="settingsBtnRow"><button type="button" class="btn" data-ai-personality-reset><span data-i18n="ui.02ad9e465c">既定に戻す</span></button><button type="button" class="btn" data-ai-personality-preview><span data-i18n="ui.fbfd69013f">回答例を確認</span></button></div>
+                <p data-ai-preview-status role="status" aria-live="polite"></p>
+              </fieldset>
+              <div class="settingsSectionSub"><span data-i18n="ui.6f43b51ba2">AIモード・日次サマリーで使うAIの接続先です。Claude Code / Codex、または Ollama / LM Studio に接続できます。</span></div>
               <label class="uiToggle" for="cfg-ai-cli-enabled">
                 <input id="cfg-ai-cli-enabled" name="aiCliEnabled" type="checkbox" class="uiToggleInput" role="switch" data-ai-cli-enabled />
                 <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                <span class="themeToggleLabel">Claude Code / Codex と連携する</span>
+                <span class="themeToggleLabel"><span data-i18n="ui.54d6802595">Claude Code / Codex と連携する</span></span>
               </label>
-              <div class="settingsTagHint" data-ai-cli-note>
+              <div class="settingsTagHint" data-ai-cli-note><span data-i18n="ui.32f7f7c8c2">
                 オンにすると、このPCにインストール・ログイン済みの Claude Code または Codex を、AIモード・日次サマリーの実行時に呼び出せるようになります（既定はオフ）。
                 呼び出すたびに、予定のタイトル・時刻・メモ・気づきメモの内容が Anthropic（Claude Code）または OpenAI（Codex）へ送信され、ご自身の契約の利用枠を消費します。
                 呼び出し時はファイル操作・コマンド実行などのツールを無効にし、ご自身の設定やMCPサーバーは読み込みません。業務で使う場合は、所属組織のルールも確認してください。
-              </div>
+              </span></div>
               <div class="settingsInlineRow settingsInlineRowWide">
-                <label class="settingsInlineLabel" for="cfg-ai-provider">接続先</label>
+                <label class="settingsInlineLabel" for="cfg-ai-provider"><span data-i18n="ui.3dee590a02">接続先</span></label>
                 <div style="display:flex; align-items:center; gap:6px; min-width:0;">
                   <select id="cfg-ai-provider" name="aiProvider" data-ai-provider-select style="flex:1; min-width:0;">
-                    <option value="none">使わない</option>
+                    <option value="none" data-i18n="ui.16f23fffd1">使わない</option>
                     <option value="claude-code">Claude Code</option>
                     <option value="codex">Codex</option>
                     <option value="ollama">Ollama</option>
                     <option value="lmstudio">LM Studio</option>
                   </select>
-                  <button class="btn" type="button" data-ai-detect-btn title="Claude Code / Codex がこのPCで使えるか確認します">検出</button>
+                  <button class="btn" type="button" data-ai-detect-btn title="Claude Code / Codex がこのPCで使えるか確認します" data-i18n-attrs="title=ui.b331cd57bb"><span data-i18n="ui.bc4f25fd9c">検出</span></button>
                 </div>
               </div>
               <div class="settingsTagHint" data-ai-detect-result hidden></div>
 
               <div data-ai-provider-panel="claude-code" hidden>
                 <div class="settingsInlineRow settingsInlineRowWide settingsModelRow">
-                  <label class="settingsInlineLabel" for="cfg-ai-claude-model">モデル</label>
+                  <label class="settingsInlineLabel" for="cfg-ai-claude-model"><span data-i18n="ui.94591749a3">モデル</span></label>
                   <select id="cfg-ai-claude-model" name="aiClaudeModel" data-ai-model-select aria-describedby="claude-model-status">
-                    <option value="">既定を使用（CLIにおまかせ）</option>
+                    <option value="" data-i18n="ui.eefb4763d5">既定を使用（CLIにおまかせ）</option>
                   </select>
-                  <button class="btn" type="button" data-ai-model-refresh>再取得</button>
+                  <button class="btn" type="button" data-ai-model-refresh><span data-i18n="ui.90e07be37c">再取得</span></button>
                 </div>
                 <div class="settingsInlineRow settingsInlineRowWide">
-                  <input type="text" data-ai-model-manual aria-label="Claude Codeのモデル名を手入力" placeholder="モデル名を入力" hidden />
+                  <input type="text" data-ai-model-manual aria-label="Claude Codeのモデル名を手入力" placeholder="モデル名を入力" hidden  data-i18n-attrs="aria-label=ui.b5e10672a6;placeholder=ui.ffe2f21bee" />
                 </div>
                 <div class="settingsTagHint" id="claude-model-status" data-ai-model-status role="status" aria-live="polite"></div>
                 <div class="settingsInlineRow settingsInlineRowWide">
                   <label class="settingsInlineLabel" for="cfg-ai-claude-effort">effort</label>
                   <select id="cfg-ai-claude-effort" name="aiClaudeEffort">
-                    <option value="">既定</option>
-                    <option value="low">low（速い）</option>
+                    <option value="" data-i18n="ui.3f0577f9b1">既定</option>
+                    <option value="low" data-i18n="ui.c56d5ad3ea">low（速い）</option>
                     <option value="medium">medium</option>
                     <option value="high">high</option>
                     <option value="xhigh">xhigh</option>
-                    <option value="max">max（丁寧・遅い）</option>
+                    <option value="max" data-i18n="ui.bd560f9ad2">max（丁寧・遅い）</option>
                   </select>
                 </div>
               </div>
 
               <div data-ai-provider-panel="codex" hidden>
                 <div class="settingsInlineRow settingsInlineRowWide settingsModelRow">
-                  <label class="settingsInlineLabel" for="cfg-ai-codex-model">モデル</label>
+                  <label class="settingsInlineLabel" for="cfg-ai-codex-model"><span data-i18n="ui.94591749a3">モデル</span></label>
                   <select id="cfg-ai-codex-model" name="aiCodexModel" data-ai-model-select aria-describedby="codex-model-status">
-                    <option value="">既定を使用（CLIにおまかせ）</option>
+                    <option value="" data-i18n="ui.eefb4763d5">既定を使用（CLIにおまかせ）</option>
                   </select>
-                  <button class="btn" type="button" data-ai-model-refresh>再取得</button>
+                  <button class="btn" type="button" data-ai-model-refresh><span data-i18n="ui.90e07be37c">再取得</span></button>
                 </div>
                 <div class="settingsInlineRow settingsInlineRowWide">
-                  <input type="text" data-ai-model-manual aria-label="Codexのモデル名を手入力" placeholder="モデル名を入力" hidden />
+                  <input type="text" data-ai-model-manual aria-label="Codexのモデル名を手入力" placeholder="モデル名を入力" hidden  data-i18n-attrs="aria-label=ui.e761bdafc3;placeholder=ui.ffe2f21bee" />
                 </div>
                 <div class="settingsTagHint" id="codex-model-status" data-ai-model-status role="status" aria-live="polite"></div>
                 <div class="settingsInlineRow settingsInlineRowWide">
                   <label class="settingsInlineLabel" for="cfg-ai-codex-effort">effort</label>
                   <select id="cfg-ai-codex-effort" name="aiCodexEffort">
-                    <option value="">既定</option>
-                    <option value="minimal">minimal（速い）</option>
+                    <option value="" data-i18n="ui.3f0577f9b1">既定</option>
+                    <option value="minimal" data-i18n="ui.3f9df90584">minimal（速い）</option>
                     <option value="low">low</option>
                     <option value="medium">medium</option>
                     <option value="high">high</option>
-                    <option value="xhigh">xhigh（丁寧・遅い）</option>
+                    <option value="xhigh" data-i18n="ui.ae8a9d1e44">xhigh（丁寧・遅い）</option>
                   </select>
                 </div>
               </div>
 
               <div class="localAiProvider" data-ai-provider-panel="ollama" hidden>
-                <div class="settingsTagHint">Ollamaのサーバーを起動して、使用するモデルを用意してください。Claude Code / Codex の連携スイッチは不要です。</div>
+                <div class="settingsTagHint"><span data-i18n="ui.6fd300b827">Ollamaのサーバーを起動して、使用するモデルを用意してください。Claude Code / Codex の連携スイッチは不要です。</span></div>
                 <div class="settingsInlineRow settingsInlineRowWide">
-                  <label class="settingsInlineLabel" for="cfg-ollama-endpoint">接続URL</label>
+                  <label class="settingsInlineLabel" for="cfg-ollama-endpoint"><span data-i18n="ui.6f1d049d41">接続URL</span></label>
                   <input id="cfg-ollama-endpoint" name="aiOllamaEndpoint" type="url" data-local-ai-endpoint placeholder="http://localhost:11434/v1" spellcheck="false" />
                 </div>
                 <div class="settingsInlineRow settingsInlineRowWide settingsModelRow">
-                  <label class="settingsInlineLabel" for="cfg-ollama-model">モデル</label>
-                  <select id="cfg-ollama-model" name="aiOllamaModel" data-local-ai-model data-ai-model-select aria-describedby="ollama-model-status"><option value="">モデルを選択してください</option></select>
-                  <button class="btn" type="button" data-local-ai-action="models">再取得</button>
+                  <label class="settingsInlineLabel" for="cfg-ollama-model"><span data-i18n="ui.94591749a3">モデル</span></label>
+                  <select id="cfg-ollama-model" name="aiOllamaModel" data-local-ai-model data-ai-model-select aria-describedby="ollama-model-status"><option value="" data-i18n="ui.ed8e2e1ef3">モデルを選択してください</option></select>
+                  <button class="btn" type="button" data-local-ai-action="models"><span data-i18n="ui.90e07be37c">再取得</span></button>
 
                 </div>
                 <div class="settingsInlineRow settingsInlineRowWide">
-                  <input type="text" data-local-ai-manual data-ai-model-manual aria-label="Ollamaのモデル名を手入力" placeholder="モデル名を入力" hidden />
+                  <input type="text" data-local-ai-manual data-ai-model-manual aria-label="Ollamaのモデル名を手入力" placeholder="モデル名を入力" hidden  data-i18n-attrs="aria-label=ui.101cad4585;placeholder=ui.ffe2f21bee" />
                 </div>
                 <div class="localAiActions">
-                  <button class="btn" type="button" data-local-ai-action="test">接続テスト</button>
+                  <button class="btn" type="button" data-local-ai-action="test"><span data-i18n="ui.3ee76ae704">接続テスト</span></button>
                 </div>
                 <div class="settingsTagHint" id="ollama-model-status" data-local-ai-status role="status" aria-live="polite"></div>
               </div>
               <div class="localAiProvider" data-ai-provider-panel="lmstudio" hidden>
-                <div class="settingsTagHint">LM Studioのサーバーを起動して、使用するモデルを用意してください。Claude Code / Codex の連携スイッチは不要です。</div>
+                <div class="settingsTagHint"><span data-i18n="ui.cbe821e63b">LM Studioのサーバーを起動して、使用するモデルを用意してください。Claude Code / Codex の連携スイッチは不要です。</span></div>
                 <div class="settingsInlineRow settingsInlineRowWide">
-                  <label class="settingsInlineLabel" for="cfg-lmstudio-endpoint">接続URL</label>
+                  <label class="settingsInlineLabel" for="cfg-lmstudio-endpoint"><span data-i18n="ui.6f1d049d41">接続URL</span></label>
                   <input id="cfg-lmstudio-endpoint" name="aiLmStudioEndpoint" type="url" data-local-ai-endpoint placeholder="http://localhost:1234/v1" spellcheck="false" />
                 </div>
                 <div class="settingsInlineRow settingsInlineRowWide settingsModelRow">
-                  <label class="settingsInlineLabel" for="cfg-lmstudio-model">モデル</label>
-                  <select id="cfg-lmstudio-model" name="aiLmStudioModel" data-local-ai-model data-ai-model-select aria-describedby="lmstudio-model-status"><option value="">モデルを選択してください</option></select>
-                  <button class="btn" type="button" data-local-ai-action="models">再取得</button>
+                  <label class="settingsInlineLabel" for="cfg-lmstudio-model"><span data-i18n="ui.94591749a3">モデル</span></label>
+                  <select id="cfg-lmstudio-model" name="aiLmStudioModel" data-local-ai-model data-ai-model-select aria-describedby="lmstudio-model-status"><option value="" data-i18n="ui.ed8e2e1ef3">モデルを選択してください</option></select>
+                  <button class="btn" type="button" data-local-ai-action="models"><span data-i18n="ui.90e07be37c">再取得</span></button>
 
                 </div>
                 <div class="settingsInlineRow settingsInlineRowWide">
-                  <input type="text" data-local-ai-manual data-ai-model-manual aria-label="LM Studioのモデル名を手入力" placeholder="モデル名を入力" hidden />
+                  <input type="text" data-local-ai-manual data-ai-model-manual aria-label="LM Studioのモデル名を手入力" placeholder="モデル名を入力" hidden  data-i18n-attrs="aria-label=ui.b479b1592d;placeholder=ui.ffe2f21bee" />
                 </div>
                 <div class="localAiActions">
-                  <button class="btn" type="button" data-local-ai-action="test">接続テスト</button>
+                  <button class="btn" type="button" data-local-ai-action="test"><span data-i18n="ui.3ee76ae704">接続テスト</span></button>
                 </div>
                 <div class="settingsTagHint" id="lmstudio-model-status" data-local-ai-status role="status" aria-live="polite"></div>
               </div>
 
-              <div class="settingsTagHint" data-ai-privacy-note hidden>予定のタイトル・時刻・メモ・気づきメモの内容が、選んだAIサービスへ送信されます。</div>
+              <div class="settingsTagHint" data-ai-privacy-note hidden><span data-i18n="ui.d071681f9d">予定のタイトル・時刻・メモ・気づきメモの内容が、選んだAIサービスへ送信されます。</span></div>
             </section>
           </section>
 
           <section class="settingsTabPanel" data-settings-tab-panel="advanced" hidden>
             <section class="settingsSection">
-              <div class="settingsSectionLabel">勤務時間</div>
+              <div class="settingsSectionLabel"><span data-i18n="ui.b768d4ec28">勤務時間</span></div>
               <div class="settingsTimeRange">
                 <div class="settingsTimeField">
-                  <label for="cfg-workStart">開始</label>
-                  <select id="cfg-workStart" name="workStart" class="settingsTimeSelect" aria-label="勤務開始時刻"></select>
+                  <label for="cfg-workStart"><span data-i18n="ui.cc147e162c">開始</span></label>
+                  <select id="cfg-workStart" name="workStart" class="settingsTimeSelect" aria-label="勤務開始時刻" data-i18n-attrs="aria-label=ui.334bfd3197"></select>
                 </div>
                 <div class="settingsTimeField">
-                  <label for="cfg-workEnd">終了</label>
-                  <select id="cfg-workEnd" name="workEnd" class="settingsTimeSelect" aria-label="勤務終了時刻"></select>
+                  <label for="cfg-workEnd"><span data-i18n="ui.8f26d43810">終了</span></label>
+                  <select id="cfg-workEnd" name="workEnd" class="settingsTimeSelect" aria-label="勤務終了時刻" data-i18n-attrs="aria-label=ui.b1a271bb60"></select>
                 </div>
               </div>
             </section>
 
             <section class="settingsSection">
-              <div class="settingsSectionLabel">表示設定</div>
+              <div class="settingsSectionLabel"><span data-i18n="ui.52cbc155c4">表示設定</span></div>
               <div class="settingsInlineRow">
-                <label class="settingsInlineLabel" for="cfg-granularity">時間粒度</label>
+                <label class="settingsInlineLabel" for="cfg-granularity"><span data-i18n="ui.673ac0e3ec">時間粒度</span></label>
                 <select id="cfg-granularity" name="granularity">
-                  <option value="60">60分</option>
-                  <option value="30">30分</option>
-                  <option value="15">15分</option>
+                  <option value="60" data-i18n="ui.e3b483e072">60分</option>
+                  <option value="30" data-i18n="ui.048dcd53a9">30分</option>
+                  <option value="15" data-i18n="ui.3e789d9da8">15分</option>
                 </select>
               </div>
               <label class="uiToggle" for="cfg-businessOnly">
                 <input id="cfg-businessOnly" name="showBusinessDaysOnly" type="checkbox" class="uiToggleInput" role="switch" />
                 <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                <span class="themeToggleLabel">営業日のみ（月〜金）</span>
+                <span class="themeToggleLabel"><span data-i18n="ui.f7262018ec">営業日のみ（月〜金）</span></span>
               </label>
             </section>
 
             <section class="settingsSection">
-              <div class="settingsSectionLabel">URL自動オープン</div>
+              <div class="settingsSectionLabel"><span data-i18n="ui.f970a560b9">URL自動オープン</span></div>
               <label class="uiToggle" for="cfg-url-auto-open-enabled">
                 <input id="cfg-url-auto-open-enabled" name="urlAutoOpenEnabled" type="checkbox" class="uiToggleInput" role="switch" />
                 <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                <span class="themeToggleLabel">指定時刻にURLを自動で開く</span>
+                <span class="themeToggleLabel"><span data-i18n="ui.dd73b27521">指定時刻にURLを自動で開く</span></span>
               </label>
               <div class="settingsInlineRow settingsInlineRowWide">
                 <label class="settingsInlineLabel" for="cfg-url-open-url">URL</label>
@@ -567,7 +587,7 @@
                 />
               </div>
               <div class="settingsInlineRow settingsInlineRowWide">
-                <label class="settingsInlineLabel" for="cfg-url-open-times">時刻</label>
+                <label class="settingsInlineLabel" for="cfg-url-open-times"><span data-i18n="ui.20d2bb9aec">時刻</span></label>
                 <input
                   id="cfg-url-open-times"
                   name="urlAutoOpenTimesText"
@@ -576,33 +596,33 @@
                   placeholder="09:00, 13:00"
                 />
               </div>
-              <div class="settingsTagHint">24時間表記でカンマ区切り（例: 09:00, 13:00）</div>
+              <div class="settingsTagHint"><span data-i18n="ui.e2009d6c6a">24時間表記でカンマ区切り（例: 09:00, 13:00）</span></div>
             </section>
 
             <section class="settingsSection">
-              <div class="settingsSectionLabel">起動設定</div>
+              <div class="settingsSectionLabel"><span data-i18n="ui.981c2458d0">起動設定</span></div>
               <label class="uiToggle" for="cfg-launch-at-login">
                 <input id="cfg-launch-at-login" name="launchAtLogin" type="checkbox" class="uiToggleInput" role="switch" />
                 <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                <span class="themeToggleLabel">PCログイン時に自動的に起動する</span>
+                <span class="themeToggleLabel"><span data-i18n="ui.abdc26aff8">PCログイン時に自動的に起動する</span></span>
               </label>
               <label class="uiToggle" for="cfg-tray-enabled">
                 <input id="cfg-tray-enabled" name="trayEnabled" type="checkbox" class="uiToggleInput" role="switch" />
                 <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                <span class="themeToggleLabel">「✕」ボタンでタスクトレイに格納する</span>
+                <span class="themeToggleLabel"><span data-i18n="ui.78e00c0072">「✕」ボタンでタスクトレイに格納する</span></span>
               </label>
               <label class="uiToggle" for="cfg-start-minimized-to-tray">
                 <input id="cfg-start-minimized-to-tray" name="startMinimizedToTray" type="checkbox" class="uiToggleInput" role="switch" />
                 <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                <span class="themeToggleLabel">起動時にタスクトレイに格納した状態で起動する</span>
+                <span class="themeToggleLabel"><span data-i18n="ui.c111cfe205">起動時にタスクトレイに格納した状態で起動する</span></span>
               </label>
             </section>
 
             <section class="settingsSection">
-              <div class="settingsSectionLabel">休憩時間</div>
-              <div class="settingsSectionSub">この時間帯のタスクは工数が計算されません</div>
+              <div class="settingsSectionLabel"><span data-i18n="ui.bb94ddd757">休憩時間</span></div>
+              <div class="settingsSectionSub"><span data-i18n="ui.2d9042d80d">この時間帯のタスクは工数が計算されません</span></div>
               <div class="settingsBreaksList" data-breaks-list></div>
-              <button class="btn" type="button" data-add-break>＋ 休憩時間を追加</button>
+              <button class="btn" type="button" data-add-break><span data-i18n="ui.daa1b7cf97">＋ 休憩時間を追加</span></button>
             </section>
           </section>
         </form>
@@ -610,56 +630,70 @@
         <section class="settingsTabPanel" data-settings-tab-panel="tags" hidden>
           <div class="settingsTagSection">
             <div class="settingsTagHeader">
-              <div class="settingsSectionLabel">タグ管理</div>
+              <div class="settingsSectionLabel"><span data-i18n="ui.a93778fc94">タグ管理</span></div>
               <div class="settingsTagNav">
-                <button class="btn settingsOrderBtn" type="button" data-tagmgr-prev aria-label="前の月">◀</button>
-                <span data-tagmgr-month class="settingsTagMonthLabel">----年--月</span>
-                <button class="btn settingsOrderBtn" type="button" data-tagmgr-next aria-label="次の月">▶</button>
-                <button class="btn settingsCopyBtn" type="button" data-copy-prev-month>前月をコピー</button>
+                <button class="btn settingsOrderBtn" type="button" data-tagmgr-prev aria-label="前の月" data-i18n-attrs="aria-label=ui.337744c86a">◀</button>
+                <span data-tagmgr-month class="settingsTagMonthLabel"><span data-i18n="ui.384597c2e6">----年--月</span></span>
+                <button class="btn settingsOrderBtn" type="button" data-tagmgr-next aria-label="次の月" data-i18n-attrs="aria-label=ui.cf84916708">▶</button>
+                <button class="btn settingsCopyBtn" type="button" data-copy-prev-month><span data-i18n="ui.da2bb76d81">前月をコピー</span></button>
               </div>
             </div>
-            <div class="settingsTagHint">色ボタンを押すと、識別しやすい40色のパレットが開きます。工数の「上限」を入れると「下限」も入力できます。</div>
+            <div class="settingsTagHint"><span data-i18n="ui.ce5d5c10f5">色ボタンを押すと、識別しやすい40色のパレットが開きます。工数の「上限」を入れると「下限」も入力できます。</span></div>
             <div class="settingsTagTableHead" aria-hidden="true">
-              <span></span><span></span><span>タグ名</span><span>下限(h)</span><span>上限(h)</span><span></span>
+              <span></span><span></span><span><span data-i18n="ui.a0e69d6faf">タグ名</span></span><span><span data-i18n="ui.cf20e6cfc6">下限(h)</span></span><span><span data-i18n="ui.38229718b2">上限(h)</span></span><span></span>
             </div>
             <div data-tag-list class="settingsTagList"></div>
             <div class="settingsTagAdd">
               <div class="hslPicker" data-new-tag-hsl-picker></div>
-              <input type="text" data-new-tag-name placeholder="新しいタグ名" class="settingsTagInput" />
-              <button class="btn" type="button" data-add-tag>追加</button>
+              <input type="text" data-new-tag-name placeholder="新しいタグ名" class="settingsTagInput"  data-i18n-attrs="placeholder=ui.7b35e290a4" />
+              <button class="btn" type="button" data-add-tag><span data-i18n="ui.d91017c932">追加</span></button>
             </div>
           </div>
         </section>
 
         <section class="settingsTabPanel" data-settings-tab-panel="outlook" hidden>
           <section class="settingsSection">
-            <div class="settingsSectionLabel">Outlook同期</div>
-            <div class="settingsSectionSub">取得する予定表・期間・タグを選択します。</div>
+            <div class="settingsSectionLabel"><span data-i18n="ui.f4e1929b88">Outlook同期</span></div>
+            <div class="settingsSectionSub"><span data-i18n="ui.b52e6dbf56">取得する予定表・期間・タグを選択します。</span></div>
             <div class="settingsInlineRow settingsInlineRowWide">
-              <label class="settingsInlineLabel" for="cfg-outlook-calendar">カレンダー</label>
-              <input id="cfg-outlook-calendar" type="text" name="outlookCalendarName" value="Calendar" placeholder="例: 予定表" class="settingsOutlookText" />
+              <label class="settingsInlineLabel" for="cfg-outlook-calendar"><span data-i18n="ui.e6f6d06c44">カレンダー</span></label>
+              <input id="cfg-outlook-calendar" type="text" name="outlookCalendarName" value="Calendar" placeholder="例: 予定表" class="settingsOutlookText"  data-i18n-attrs="placeholder=ui.4d6478616e" />
             </div>
             <div class="settingsInlineRow settingsInlineRowWide">
-              <label class="settingsInlineLabel" for="cfg-outlook-days">取得期間</label>
+              <label class="settingsInlineLabel" for="cfg-outlook-days"><span data-i18n="ui.20c8fe3008">取得期間</span></label>
               <div class="settingsOutlookOptions">
                 <input id="cfg-outlook-days" type="number" name="outlookDays" min="1" max="365" value="90" class="settingsOutlookInput" />
-                <span class="settingsOutlookUnit">日間</span>
+                <span class="settingsOutlookUnit"><span data-i18n="ui.1d181e9310">日間</span></span>
               </div>
             </div>
             <div class="settingsInlineRow settingsInlineRowWide">
-              <label class="settingsInlineLabel" for="cfg-outlook-tag">タグ</label>
+              <label class="settingsInlineLabel" for="cfg-outlook-tag"><span data-i18n="ui.302eafc71d">タグ</span></label>
               <select id="cfg-outlook-tag" name="outlookTagId" data-outlook-tag-select class="settingsOutlookSelect">
-                <option value="">（タグなし）</option>
+                <option value="" data-i18n="ui.b7ae67726e">（タグなし）</option>
               </select>
             </div>
+            <div class="settingsInlineRow settingsInlineRowWide"><label class="settingsInlineLabel" for="cfg-outlook-mode"><span data-i18n="ui.78b1d3105c">取得方法</span></label><select id="cfg-outlook-mode" data-outlook-fetch-mode><option value="now" data-i18n="ui.685b698584">現在時刻以降</option><option value="range" data-i18n="ui.95c2bd0144">期間指定</option></select></div>
+            <div class="outlookDateRange" data-outlook-date-range hidden>
+              <div class="settingsInlineRow settingsInlineRowWide"><label for="cfg-outlook-start"><span data-i18n="ui.13857cfb1f">開始日</span></label><input id="cfg-outlook-start" type="date" data-outlook-start required /></div>
+              <div class="settingsInlineRow settingsInlineRowWide"><label for="cfg-outlook-end"><span data-i18n="ui.09ef66ab42">終了日</span></label><input id="cfg-outlook-end" type="date" data-outlook-end required /></div>
+              <div class="settingsBtnRow"><button type="button" class="btn" data-outlook-preset="week"><span data-i18n="ui.a670e0f392">今週</span></button><button type="button" class="btn" data-outlook-preset="month"><span data-i18n="ui.8f33e4826d">今月</span></button><button type="button" class="btn" data-outlook-preset="view"><span data-i18n="ui.f0e6373b53">表示中の週</span></button></div>
+              <p class="settingsTagHint"><span data-i18n="ui.b664d9fc8a">終了日を含みます。過去の予定も取得できます（最大366日）。自動同期は現在時刻以降を取得します。</span></p>
+            </div>
+            <section class="settingsSection outlookWriteSettings">
+              <div class="settingsSectionLabel"><span data-i18n="ui.c12faa89d1">Outlookへの登録</span></div>
+              <label class="uiToggle"><input type="checkbox" name="outlookWriteDefault" class="uiToggleInput" role="switch" /><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel"><span data-i18n="ui.1b26386d86">新しいタスクをOutlookへ登録する（既定）</span></span></label>
+              <div class="settingsInlineRow settingsInlineRowWide"><label for="cfg-outlook-write-calendar"><span data-i18n="ui.d245315c64">登録先の予定表</span></label><input id="cfg-outlook-write-calendar" name="outlookWriteCalendarName" type="text" value="Calendar" /></div>
+              <p class="settingsTagHint"><span data-i18n="ui.c9a457f008">タスクごとに登録するか選べます。連携した予定の編集・削除も反映します。</span></p>
+              <div data-outlook-jobs role="status" aria-live="polite"></div>
+            </section>
             <div class="settingsSyncBar">
               <div class="settingsSyncOptions">
-                <label class="uiToggle" data-setting-toggle="outlookAutoSync"><input class="uiToggleInput" type="checkbox" role="switch" name="outlookAutoSync" /><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel">自動同期</span></label>
-                <select name="outlookAutoSyncIntervalMin" id="cfg-outlook-auto-sync-interval" aria-label="自動同期の間隔" disabled>
-                  <option value="5">5分ごと</option><option value="10">10分ごと</option><option value="15">15分ごと</option><option value="30">30分ごと</option><option value="60">60分ごと</option>
+                <label class="uiToggle" data-setting-toggle="outlookAutoSync"><input class="uiToggleInput" type="checkbox" role="switch" name="outlookAutoSync" /><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel"><span data-i18n="ui.da6586a967">自動同期</span></span></label>
+                <select name="outlookAutoSyncIntervalMin" id="cfg-outlook-auto-sync-interval" aria-label="自動同期の間隔" disabled data-i18n-attrs="aria-label=ui.8611149184">
+                  <option value="5" data-i18n="ui.2d5936c805">5分ごと</option><option value="10" data-i18n="ui.a81ec1e8ae">10分ごと</option><option value="15" data-i18n="ui.e8245a5155">15分ごと</option><option value="30" data-i18n="ui.fd29614856">30分ごと</option><option value="60" data-i18n="ui.57dee19e0a">60分ごと</option>
                 </select>
               </div>
-              <button class="btn primary" type="button" data-sync-outlook-btn>今すぐ取得</button>
+              <button class="btn primary" type="button" data-sync-outlook-btn><span data-i18n="ui.a8bf945e01">今すぐ取得</span></button>
             </div>
             <p class="settingsOutlookStatus" data-outlook-sync-status role="status"></p>
           </section>
@@ -669,145 +703,135 @@
           <section class="settingsSection settingsActionCard settingsUpdateSection">
             <div class="settingsActionHeader">
               <div class="settingsActionText">
-                <div class="updateVersionRow"><span class="settingsSectionLabel">アップデート</span><span class="settingsVersionChip" data-update-current aria-label="現在のバージョン"></span></div>
-                <p class="settingsSectionSub" data-update-status role="status">更新を確認できます。</p>
+                <div class="updateVersionRow"><span class="settingsSectionLabel"><span data-i18n="ui.3db34c3b08">アップデート</span></span><span class="settingsVersionChip" data-update-current aria-label="現在のバージョン" data-i18n-attrs="aria-label=ui.cf0f48dcf3"></span></div>
+                <p class="settingsSectionSub" data-update-status role="status"><span data-i18n="ui.2a5f2b564c">更新を確認できます。</span></p>
               </div>
               <div class="updateActions">
-                <button class="btn action" type="button" data-update-check>更新を確認</button>
-                <button class="btn primary" type="button" data-update-open hidden>更新する</button>
+                <button class="btn action" type="button" data-update-check><span data-i18n="ui.d0e7d03d32">更新を確認</span></button>
+                <button class="btn primary" type="button" data-update-open hidden><span data-i18n="ui.038adeb84f">更新する</span></button>
               </div>
             </div>
             <div class="settingsPreferenceLine">
-              <label class="uiToggle" data-setting-toggle="checkUpdatesOnStartup"><input class="uiToggleInput" type="checkbox" role="switch" name="checkUpdatesOnStartup" checked /><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel">起動時に更新を確認</span></label>
+              <label class="uiToggle" data-setting-toggle="checkUpdatesOnStartup"><input class="uiToggleInput" type="checkbox" role="switch" name="checkUpdatesOnStartup" checked /><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel"><span data-i18n="ui.e612c49bb7">起動時に更新を確認</span></span></label>
             </div>
           </section>
           <section class="settingsSection settingsAboutSection">
             <div class="settingsAboutHead">
-              <div class="settingsSectionLabel">TaskCalendar+ について</div>
+              <div class="settingsSectionLabel"><span data-i18n="ui.20fe75433d">TaskCalendar+ について</span></div>
             </div>
 
             <div class="settingsAboutContent">
-              <p>TaskCalendar+ は、日々の作業をカレンダーに記録し、タグ別の工数を<strong>日報・工数報告</strong>へそのまま転記するためのアプリです。</p>
-              <p class="settingsProjectLink"><a href="https://github.com/t-ueda21/TaskCalendar-Plus" data-project-github>GitHubでアプリの情報・更新履歴を見る ↗</a></p>
+              <p><span data-i18n="ui.216db0b2da">TaskCalendar+ は、日々の作業をカレンダーに記録し、タグ別の工数を</span><strong><span data-i18n="ui.45db41e0ec">日報・工数報告</span></strong><span data-i18n="ui.69a99c4788">へそのまま転記するためのアプリです。</span></p>
+              <p class="settingsProjectLink"><a href="https://github.com/t-ueda21/TaskCalendar-Plus" data-project-github><span data-i18n="ui.815de9c500">GitHubでアプリの情報・更新履歴を見る ↗</span></a></p>
               <div class="settingsFeatureGrid">
                 <div class="settingsFeatureCard">
                   <div class="settingsFeatureIcon" aria-hidden="true">🖱️</div>
-                  <div class="settingsFeatureTitle">ドラッグ操作</div>
-                  <div class="settingsFeatureDesc">予定の作成・移動・リサイズ</div>
+                  <div class="settingsFeatureTitle"><span data-i18n="ui.6480c2906d">ドラッグ操作</span></div>
+                  <div class="settingsFeatureDesc"><span data-i18n="ui.7df6dc53c6">予定の作成・移動・リサイズ</span></div>
                 </div>
                 <div class="settingsFeatureCard">
                   <div class="settingsFeatureIcon" aria-hidden="true">📋</div>
-                  <div class="settingsFeatureTitle">日報コピー</div>
-                  <div class="settingsFeatureDesc">タグ別工数をワンクリックで転記</div>
+                  <div class="settingsFeatureTitle"><span data-i18n="ui.43bd99d321">日報コピー</span></div>
+                  <div class="settingsFeatureDesc"><span data-i18n="ui.968ddccd04">タグ別工数をワンクリックで転記</span></div>
                 </div>
                 <div class="settingsFeatureCard">
                   <div class="settingsFeatureIcon" aria-hidden="true">🔄</div>
-                  <div class="settingsFeatureTitle">Outlook連携</div>
-                  <div class="settingsFeatureDesc">予定を自動で取り込み・同期</div>
+                  <div class="settingsFeatureTitle"><span data-i18n="ui.a677c6ace7">Outlook連携</span></div>
+                  <div class="settingsFeatureDesc"><span data-i18n="ui.d7433fd0b7">予定を自動で取り込み・同期</span></div>
                 </div>
                 <div class="settingsFeatureCard">
                   <div class="settingsFeatureIcon" aria-hidden="true">🤖</div>
-                  <div class="settingsFeatureTitle">AIモード</div>
-                  <div class="settingsFeatureDesc">自然文で予定を追加・修正・削除</div>
+                  <div class="settingsFeatureTitle"><span data-i18n="ui.7d773cf892">AIモード</span></div>
+                  <div class="settingsFeatureDesc"><span data-i18n="ui.d3c67b8c94">自然文で予定を追加・修正・削除</span></div>
                 </div>
               </div>
-              <div class="settingsAboutNote">💡 詳しい項目は 基本/詳細/タグ管理/Outlook の各タブを参照してください。設定は「保存」で確定、「キャンセル」で破棄できます。</div>
+              <div class="settingsAboutNote"><span data-i18n="ui.8287c250b4">💡 詳しい項目は 基本/詳細/タグ管理/Outlook の各タブを参照してください。設定は「保存」で確定、「キャンセル」で破棄できます。</span></div>
             </div>
           </section>
 
           <section class="settingsSection">
-            <div class="settingsSectionLabel">設定のエクスポート／インポート</div>
-            <div class="settingsSectionSub">設定とタグをJSONファイルに書き出し、別のPCや初期設定に使えます。タスクは含みません。インポートすると設定はすぐに反映されます。</div>
-            <div class="settingsFileImport">
-              <button class="btn" type="button" data-settings-export-btn>エクスポート</button>
-              <input class="settingsFileInput" id="cfg-settings-import-file" type="file" accept=".json,application/json" data-settings-import-file />
-              <label for="cfg-settings-import-file" class="btn">ファイルを選択</label>
-              <span class="settingsFileImportName" data-settings-import-file-name>未選択</span>
-              <button class="btn" type="button" data-settings-import-btn>インポート</button>
-            </div>
+            <div class="settingsSectionLabel"><span data-i18n="ui.88454ec3d0">設定のエクスポート／インポート</span></div>
+            <div class="settingsSectionSub"><span data-i18n="ui.a5992d00dd">設定とタグをJSONファイルに書き出し、別のPCや初期設定に使えます。タスクは含みません。インポートすると設定はすぐに反映されます。</span></div>
+            <div class="transferWrite"><h3><span data-i18n="ui.09c5d46935">設定を書き出す</span></h3><button class="btn" type="button" data-settings-export-btn><span data-i18n="ui.39c9fcf2f1">設定をエクスポート</span></button><p data-export-status="settings" role="status"></p></div>
+            <div class="transferRead"><h3><span data-i18n="ui.270d993520">設定を読み込む</span></h3><ol class="transferSteps"><li><span><span data-i18n="ui.282a22d88d">ファイルを選択</span></span><div class="settingsFileImport"><input class="settingsFileInput" id="cfg-settings-import-file" type="file" accept=".json,application/json" data-settings-import-file /><label for="cfg-settings-import-file" class="btn"><span data-i18n="ui.282a22d88d">ファイルを選択</span></label><span class="settingsFileImportName" data-settings-import-file-name><span data-i18n="ui.a28710cc66">未選択</span></span></div></li><li><span><span data-i18n="ui.052c1f1dd0">内容を確認</span></span><p data-transfer-status="settings" role="status" aria-live="polite"></p></li><li><button class="btn primary" type="button" data-settings-import-btn disabled><span data-i18n="ui.f13f3cc089">設定をインポート</span></button></li></ol></div>
           </section>
 
           <section class="settingsSection">
-            <div class="settingsSectionLabel">全データのバックアップ／復元</div>
-            <div class="settingsSectionSub">タスク・タグ・設定・日次サマリー・気づきメモをまとめてJSONファイルに保存します。PCの入れ替えや再インストールのときに使えます。復元すると、今のデータはすべてバックアップの内容に置き換わります。</div>
-            <div class="settingsFileImport">
-              <button class="btn" type="button" data-backup-export-btn>バックアップ</button>
-              <input class="settingsFileInput" id="cfg-backup-file" type="file" accept=".json,application/json" data-backup-file />
-              <label for="cfg-backup-file" class="btn">ファイルを選択</label>
-              <span class="settingsFileImportName" data-backup-file-name>未選択</span>
-              <button class="btn danger" type="button" data-backup-restore-btn>復元</button>
-            </div>
+            <div class="settingsSectionLabel"><span data-i18n="ui.6ebf751516">全データのバックアップ／復元</span></div>
+            <div class="settingsSectionSub"><span data-i18n="ui.091799d5f0">タスク・タグ・設定・日次サマリー・気づきメモをまとめてJSONファイルに保存します。PCの入れ替えや再インストールのときに使えます。復元すると、今のデータはすべてバックアップの内容に置き換わります。</span></div>
+            <div class="transferWrite"><h3><span data-i18n="ui.a06095861e">全データを書き出す</span></h3><button class="btn" type="button" data-backup-export-btn><span data-i18n="ui.4839394636">全データをバックアップ</span></button><p data-export-status="backup" role="status"></p></div>
+            <div class="transferRead"><h3><span data-i18n="ui.6e8a7a6b30">全データを復元する</span></h3><ol class="transferSteps"><li><span><span data-i18n="ui.fd9c1543a5">バックアップファイルを選択</span></span><div class="settingsFileImport"><input class="settingsFileInput" id="cfg-backup-file" type="file" accept=".json,application/json" data-backup-file /><label for="cfg-backup-file" class="btn"><span data-i18n="ui.282a22d88d">ファイルを選択</span></label><span class="settingsFileImportName" data-backup-file-name><span data-i18n="ui.a28710cc66">未選択</span></span></div></li><li><span><span data-i18n="ui.052c1f1dd0">内容を確認</span></span><p data-transfer-status="backup" role="status" aria-live="polite"></p></li><li><button class="btn danger" type="button" data-backup-restore-btn disabled><span data-i18n="ui.d0ce767bc4">現在のデータを置き換えて復元</span></button></li></ol></div>
           </section>
         </section>
         <section class="settingsTabPanel" data-settings-tab-panel="shortcuts" hidden>
           <section class="settingsSection">
-            <h3 class="settingsSectionLabel">カレンダー・タスク一覧</h3>
-            <p class="settingsSectionSub">予定を選択してから操作します。文字入力中やダイアログ表示中は、予定のショートカットは使えません。</p>
-            <table class="shortcutTable" aria-label="カレンダー・タスク一覧のキー操作">
-              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+            <h3 class="settingsSectionLabel"><span data-i18n="ui.b42bde6d63">カレンダー・タスク一覧</span></h3>
+            <p class="settingsSectionSub"><span data-i18n="ui.ec5f1b9059">予定を選択してから操作します。文字入力中やダイアログ表示中は、予定のショートカットは使えません。</span></p>
+            <table class="shortcutTable" aria-label="カレンダー・タスク一覧のキー操作" data-i18n-attrs="aria-label=ui.2909408212">
+              <thead><tr><th scope="col"><span data-i18n="ui.1771ccbd34">キー</span></th><th scope="col"><span data-i18n="ui.efade2a7e1">操作・使える場面</span></th></tr></thead>
               <tbody>
-                <tr><th scope="row"><kbd>Ctrl + C</kbd></th><td>予定をコピー<span class="shortcutContext">カレンダーで選択中の予定</span></td></tr>
-                <tr><th scope="row"><kbd>Ctrl + X</kbd></th><td>予定を切り取り<span class="shortcutContext">カレンダーで選択中の1件</span></td></tr>
-                <tr><th scope="row"><kbd>Ctrl + V</kbd></th><td>予定を貼り付け<span class="shortcutContext">カレンダーの選択日に、繰り返しなしで複製</span></td></tr>
-                <tr><th scope="row"><kbd>Ctrl + ドラッグ</kbd></th><td>予定を複製して移動<span class="shortcutContext">カレンダーの予定をドラッグ</span></td></tr>
-                <tr><th scope="row"><kbd>Delete</kbd></th><td>予定を削除<span class="shortcutContext">カレンダー・タスク一覧で選択中の予定</span></td></tr>
-                <tr><th scope="row"><kbd>Ctrl + Z</kbd></th><td>操作を元に戻す<span class="shortcutContext">カレンダーの予定操作。繰り返しの一括作成・一括編集は対象外</span></td></tr>
-                <tr><th scope="row"><kbd>Ctrl + Y / Ctrl + Shift + Z</kbd></th><td>操作をやり直す<span class="shortcutContext">カレンダーで元に戻した操作</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + C</kbd></th><td><span data-i18n="ui.5a0ee9d895">予定をコピー</span><span class="shortcutContext"><span data-i18n="ui.c882ab8a59">カレンダーで選択中の予定</span></span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + X</kbd></th><td><span data-i18n="ui.7bf6476929">予定を切り取り</span><span class="shortcutContext"><span data-i18n="ui.2ef02a96cf">カレンダーで選択中の1件</span></span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + V</kbd></th><td><span data-i18n="ui.4d69557966">予定を貼り付け</span><span class="shortcutContext"><span data-i18n="ui.3fe39e4a2f">カレンダーの選択日に、繰り返しなしで複製</span></span></td></tr>
+                <tr><th scope="row"><kbd><span data-i18n="ui.923c9de9d8">Ctrl + ドラッグ</span></kbd></th><td><span data-i18n="ui.ca0edd30b2">予定を複製して移動</span><span class="shortcutContext"><span data-i18n="ui.d93ca0f013">カレンダーの予定をドラッグ</span></span></td></tr>
+                <tr><th scope="row"><kbd>Delete</kbd></th><td><span data-i18n="ui.5916a8b7a5">予定を削除</span><span class="shortcutContext"><span data-i18n="ui.d222a52b91">カレンダー・タスク一覧で選択中の予定</span></span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + Z</kbd></th><td><span data-i18n="ui.aa6eea7af9">操作を元に戻す</span><span class="shortcutContext"><span data-i18n="ui.fb1a531dc4">カレンダーの予定操作。繰り返しの一括作成・一括編集は対象外</span></span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + Y / Ctrl + Shift + Z</kbd></th><td><span data-i18n="ui.c39895f2ce">操作をやり直す</span><span class="shortcutContext"><span data-i18n="ui.b9404b3163">カレンダーで元に戻した操作</span></span></td></tr>
               </tbody>
             </table>
           </section>
           <section class="settingsSection">
-            <h3 class="settingsSectionLabel">AI・気づきメモ</h3>
-            <p class="settingsSectionSub">日本語の変換確定中のEnterでは、AIメッセージを送信しません。</p>
-            <table class="shortcutTable" aria-label="AI・気づきメモのキー操作">
-              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+            <h3 class="settingsSectionLabel"><span data-i18n="ui.c634d5b286">AI・気づきメモ</span></h3>
+            <p class="settingsSectionSub"><span data-i18n="ui.3fdce01b44">日本語の変換確定中のEnterでは、AIメッセージを送信しません。</span></p>
+            <table class="shortcutTable" aria-label="AI・気づきメモのキー操作" data-i18n-attrs="aria-label=ui.759c107530">
+              <thead><tr><th scope="col"><span data-i18n="ui.1771ccbd34">キー</span></th><th scope="col"><span data-i18n="ui.efade2a7e1">操作・使える場面</span></th></tr></thead>
               <tbody>
-                <tr><th scope="row"><kbd>Ctrl + Enter</kbd></th><td>メッセージを送信<span class="shortcutContext">AIモードの入力欄</span></td></tr>
-                <tr><th scope="row"><kbd>Enter</kbd></th><td>改行／メッセージを送信<span class="shortcutContext">AIモード。「Enterで送信」がOFFなら改行、ONなら送信（初期値OFF）</span></td></tr>
-                <tr><th scope="row"><kbd>Shift + Enter</kbd></th><td>改行<span class="shortcutContext">AIモード。「Enterで送信」がONでも改行</span></td></tr>
-                <tr><th scope="row"><kbd>Ctrl + Enter</kbd></th><td>気づきメモを保存<span class="shortcutContext">タスク一覧の「その日の気づき・思ったこと」</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + Enter</kbd></th><td><span data-i18n="ui.43e4a3e222">メッセージを送信</span><span class="shortcutContext"><span data-i18n="ui.0d06818c75">AIモードの入力欄</span></span></td></tr>
+                <tr><th scope="row"><kbd>Enter</kbd></th><td><span data-i18n="ui.701a50f16d">改行／メッセージを送信</span><span class="shortcutContext"><span data-i18n="ui.976d98cf6d">AIモード。「Enterで送信」がOFFなら改行、ONなら送信（初期値OFF）</span></span></td></tr>
+                <tr><th scope="row"><kbd>Shift + Enter</kbd></th><td><span data-i18n="ui.9159ce24a4">改行</span><span class="shortcutContext"><span data-i18n="ui.a86599ddb1">AIモード。「Enterで送信」がONでも改行</span></span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + Enter</kbd></th><td><span data-i18n="ui.57a209eeef">気づきメモを保存</span><span class="shortcutContext"><span data-i18n="ui.6191f5fd55">タスク一覧の「その日の気づき・思ったこと」</span></span></td></tr>
               </tbody>
             </table>
           </section>
           <section class="settingsSection">
-            <h3 class="settingsSectionLabel">表示倍率</h3>
-            <p class="settingsSectionSub">アプリ全体の文字や表示の大きさを調整します。</p>
-            <table class="shortcutTable" aria-label="表示倍率のキー操作">
-              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+            <h3 class="settingsSectionLabel"><span data-i18n="ui.0cff63194a">表示倍率</span></h3>
+            <p class="settingsSectionSub"><span data-i18n="ui.9a006fe372">アプリ全体の文字や表示の大きさを調整します。</span></p>
+            <table class="shortcutTable" aria-label="表示倍率のキー操作" data-i18n-attrs="aria-label=ui.046290ea35">
+              <thead><tr><th scope="col"><span data-i18n="ui.1771ccbd34">キー</span></th><th scope="col"><span data-i18n="ui.efade2a7e1">操作・使える場面</span></th></tr></thead>
               <tbody>
-                <tr><th scope="row"><kbd>Ctrl + ＋ / Ctrl + ＝ / Ctrl + ；</kbd></th><td>拡大<span class="shortcutContext">どの画面でも使用可。日本語配列ではCtrl + ；も使用可</span></td></tr>
-                <tr><th scope="row"><kbd>Ctrl + −</kbd></th><td>縮小<span class="shortcutContext">どの画面でも使用可</span></td></tr>
-                <tr><th scope="row"><kbd>Ctrl + 0</kbd></th><td>標準倍率に戻す<span class="shortcutContext">100%に戻す</span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + ＋ / Ctrl + ＝ / Ctrl + ；</kbd></th><td><span data-i18n="ui.da39c794fb">拡大</span><span class="shortcutContext"><span data-i18n="ui.dbfdbaf5ed">どの画面でも使用可。日本語配列ではCtrl + ；も使用可</span></span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + −</kbd></th><td><span data-i18n="ui.092a4a0ba5">縮小</span><span class="shortcutContext"><span data-i18n="ui.cae1a9516a">どの画面でも使用可</span></span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + 0</kbd></th><td><span data-i18n="ui.131abec1e3">標準倍率に戻す</span><span class="shortcutContext"><span data-i18n="ui.1ee313f933">100%に戻す</span></span></td></tr>
               </tbody>
             </table>
           </section>
           <section class="settingsSection">
-            <h3 class="settingsSectionLabel">月選択・時刻入力</h3>
-            <p class="settingsSectionSub">ミニカレンダーの月名を押すと、1〜12月の選択画面が開きます。</p>
-            <table class="shortcutTable" aria-label="月選択・時刻入力のキー操作">
-              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+            <h3 class="settingsSectionLabel"><span data-i18n="ui.6c6292794d">月選択・時刻入力</span></h3>
+            <p class="settingsSectionSub"><span data-i18n="ui.ccf44c490e">ミニカレンダーの月名を押すと、1〜12月の選択画面が開きます。</span></p>
+            <table class="shortcutTable" aria-label="月選択・時刻入力のキー操作" data-i18n-attrs="aria-label=ui.b0e119aae8">
+              <thead><tr><th scope="col"><span data-i18n="ui.1771ccbd34">キー</span></th><th scope="col"><span data-i18n="ui.efade2a7e1">操作・使える場面</span></th></tr></thead>
               <tbody>
-                <tr><th scope="row"><kbd>← / → / ↑ / ↓</kbd></th><td>月の選択位置を移動<span class="shortcutContext">月選択画面。上下は4か月分移動</span></td></tr>
-                <tr><th scope="row"><kbd>Home / End</kbd></th><td>1月／12月へ移動<span class="shortcutContext">月選択画面</span></td></tr>
-                <tr><th scope="row"><kbd>Enter / Space</kbd></th><td>選択中の月を開く<span class="shortcutContext">月のボタンにフォーカスがあるとき</span></td></tr>
-                <tr><th scope="row"><kbd>Esc</kbd></th><td>日付一覧へ戻る<span class="shortcutContext">月選択画面</span></td></tr>
-                <tr><th scope="row"><kbd>↑ / ↓</kbd></th><td>時刻を1分進める／戻す<span class="shortcutContext">予定の開始・終了などの時刻入力欄</span></td></tr>
+                <tr><th scope="row"><kbd>← / → / ↑ / ↓</kbd></th><td><span data-i18n="ui.17f799329d">月の選択位置を移動</span><span class="shortcutContext"><span data-i18n="ui.17dad718e6">月選択画面。上下は4か月分移動</span></span></td></tr>
+                <tr><th scope="row"><kbd>Home / End</kbd></th><td><span data-i18n="ui.3b5a66f2b2">1月／12月へ移動</span><span class="shortcutContext"><span data-i18n="ui.79da5e4a2f">月選択画面</span></span></td></tr>
+                <tr><th scope="row"><kbd>Enter / Space</kbd></th><td><span data-i18n="ui.a30d6120c4">選択中の月を開く</span><span class="shortcutContext"><span data-i18n="ui.e7b5bb612e">月のボタンにフォーカスがあるとき</span></span></td></tr>
+                <tr><th scope="row"><kbd>Esc</kbd></th><td><span data-i18n="ui.f4f1bda83d">日付一覧へ戻る</span><span class="shortcutContext"><span data-i18n="ui.79da5e4a2f">月選択画面</span></span></td></tr>
+                <tr><th scope="row"><kbd>↑ / ↓</kbd></th><td><span data-i18n="ui.1e5991bf37">時刻を1分進める／戻す</span><span class="shortcutContext"><span data-i18n="ui.57e7a0d8ed">予定の開始・終了などの時刻入力欄</span></span></td></tr>
               </tbody>
             </table>
           </section>
           <section class="settingsSection">
-            <h3 class="settingsSectionLabel">入力・共通操作</h3>
-            <p class="settingsSectionSub">操作する入力欄やボタンにフォーカス（選択枠）がある状態で使います。</p>
-            <table class="shortcutTable" aria-label="入力・共通操作のキー操作">
-              <thead><tr><th scope="col">キー</th><th scope="col">操作・使える場面</th></tr></thead>
+            <h3 class="settingsSectionLabel"><span data-i18n="ui.530335bc69">入力・共通操作</span></h3>
+            <p class="settingsSectionSub"><span data-i18n="ui.a9ebc85dfa">操作する入力欄やボタンにフォーカス（選択枠）がある状態で使います。</span></p>
+            <table class="shortcutTable" aria-label="入力・共通操作のキー操作" data-i18n-attrs="aria-label=ui.64142e67d6">
+              <thead><tr><th scope="col"><span data-i18n="ui.1771ccbd34">キー</span></th><th scope="col"><span data-i18n="ui.efade2a7e1">操作・使える場面</span></th></tr></thead>
               <tbody>
-                <tr><th scope="row"><kbd>Enter</kbd></th><td>予定を保存<span class="shortcutContext">予定の編集画面。メモ欄では改行</span></td></tr>
-                <tr><th scope="row"><kbd>Enter</kbd></th><td>設定を保存<span class="shortcutContext">設定の入力欄。複数行の入力欄では改行</span></td></tr>
-                <tr><th scope="row"><kbd>Enter</kbd></th><td>タグを追加／名前の編集を確定<span class="shortcutContext">タグ追加欄では追加、タグ一覧では編集を確定</span></td></tr>
-                <tr><th scope="row"><kbd>Ctrl + R</kbd></th><td>画面をリロード<span class="shortcutContext">トレイの「リロード」と同じ。保存してから操作してください</span></td></tr>
-                <tr><th scope="row"><kbd>Tab / Shift + Tab</kbd></th><td>次／前の操作部品へ移動<span class="shortcutContext">入力欄・ボタンなど</span></td></tr>
-                <tr><th scope="row"><kbd>Enter / Space</kbd></th><td>ボタンやスイッチを操作<span class="shortcutContext">選択中の操作部品</span></td></tr>
-                <tr><th scope="row"><kbd>Esc</kbd></th><td>ダイアログ・メニューを閉じる<span class="shortcutContext">設定や予定の編集、タグのメニューなど</span></td></tr>
+                <tr><th scope="row"><kbd>Enter</kbd></th><td><span data-i18n="ui.663e4fc121">予定を保存</span><span class="shortcutContext"><span data-i18n="ui.b912408ed6">予定の編集画面。メモ欄では改行</span></span></td></tr>
+                <tr><th scope="row"><kbd>Enter</kbd></th><td><span data-i18n="ui.b4fd2d361a">設定を保存</span><span class="shortcutContext"><span data-i18n="ui.0a43148239">設定の入力欄。複数行の入力欄では改行</span></span></td></tr>
+                <tr><th scope="row"><kbd>Enter</kbd></th><td><span data-i18n="ui.5d3e0fcc6c">タグを追加／名前の編集を確定</span><span class="shortcutContext"><span data-i18n="ui.4698a5cabe">タグ追加欄では追加、タグ一覧では編集を確定</span></span></td></tr>
+                <tr><th scope="row"><kbd>Ctrl + R</kbd></th><td><span data-i18n="ui.1942d9240b">画面をリロード</span><span class="shortcutContext"><span data-i18n="ui.7f194c8317">トレイの「リロード」と同じ。保存してから操作してください</span></span></td></tr>
+                <tr><th scope="row"><kbd>Tab / Shift + Tab</kbd></th><td><span data-i18n="ui.4aaa7282f4">次／前の操作部品へ移動</span><span class="shortcutContext"><span data-i18n="ui.3af24b2f2a">入力欄・ボタンなど</span></span></td></tr>
+                <tr><th scope="row"><kbd>Enter / Space</kbd></th><td><span data-i18n="ui.9709dab723">ボタンやスイッチを操作</span><span class="shortcutContext"><span data-i18n="ui.3ad582c768">選択中の操作部品</span></span></td></tr>
+                <tr><th scope="row"><kbd>Esc</kbd></th><td><span data-i18n="ui.551adfe77b">ダイアログ・メニューを閉じる</span><span class="shortcutContext"><span data-i18n="ui.e6517eb538">設定や予定の編集、タグのメニューなど</span></span></td></tr>
               </tbody>
             </table>
           </section>
@@ -815,8 +839,8 @@
       </div>
 
       <footer class="settingsFooter">
-        <button class="btn" type="button" data-settings-cancel>キャンセル</button>
-        <button class="btn primary" type="button" data-settings-save>保存</button>
+        <button class="btn" type="button" data-settings-cancel><span data-i18n="ui.bca84ea5c6">キャンセル</span></button>
+        <button class="btn primary" type="button" data-settings-save><span data-i18n="ui.a3030bf8f1">保存</span></button>
       </footer>
     </dialog>
   </div>
@@ -824,44 +848,44 @@
   <dialog class="dialog updateDialog" data-update-dialog aria-labelledby="update-title">
     <div class="updateDialogBody">
       <div class="updateNoticeIcon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></svg></div>
-      <h2 id="update-title">アプリのアップデート</h2>
-      <p class="updateIntro">TaskCalendar+ を最新のバージョンに更新できます。</p>
-      <div class="updateVersionComparison"><span>現在 <strong data-update-current></strong></span><span aria-hidden="true">→</span><span class="updateLatestVersion">最新 <strong data-update-latest></strong></span></div>
+      <h2 id="update-title"><span data-i18n="ui.f156c3dde4">アプリのアップデート</span></h2>
+      <p class="updateIntro"><span data-i18n="ui.83b81c3e1c">TaskCalendar+ を最新のバージョンに更新できます。</span></p>
+      <div class="updateVersionComparison"><span><span data-i18n="ui.83aeddd375">現在 </span><strong data-update-current></strong></span><span aria-hidden="true">→</span><span class="updateLatestVersion"><span data-i18n="ui.569af1a47d">最新 </span><strong data-update-latest></strong></span></div>
       <p data-update-status role="status"></p>
-      <h3 class="updateNotesHeading">今回の更新内容</h3>
+      <h3 class="updateNotesHeading"><span data-i18n="ui.00a20915fa">今回の更新内容</span></h3>
       <div class="updateReleaseNotes" data-update-notes></div>
-      <p class="settingsSectionSub updateSafetyNote">保存済みの予定・設定は、更新前に自動バックアップされます。更新が終わるとアプリが再起動します。</p>
-      <progress max="100" hidden aria-label="更新ファイルのダウンロード"></progress>
+      <p class="settingsSectionSub updateSafetyNote"><span data-i18n="ui.1a964a8f97">保存済みの予定・設定は、更新前に自動バックアップされます。更新が終わるとアプリが再起動します。</span></p>
+      <progress max="100" hidden aria-label="更新ファイルのダウンロード" data-i18n-attrs="aria-label=ui.4d7379907e"></progress>
     </div>
     <footer class="settingsFooter">
-      <button class="btn" type="button" data-update-close>閉じる</button>
-      <button class="btn action" type="button" data-update-check>更新を確認</button>
-      <button class="btn primary" type="button" data-update-install>更新して再起動</button>
+      <button class="btn" type="button" data-update-close><span data-i18n="ui.f6c244f988">閉じる</span></button>
+      <button class="btn action" type="button" data-update-check><span data-i18n="ui.d0e7d03d32">更新を確認</span></button>
+      <button class="btn primary" type="button" data-update-install><span data-i18n="ui.de30138177">更新して再起動</span></button>
     </footer>
   </dialog>
   <!-- Shared static UI is cloned before view initialization in main.js. -->
   <template id="shared-sidebar">
-<aside class="panel" aria-label="サイドバー">
+<aside class="panel" aria-label="サイドバー" data-i18n-attrs="aria-label=ui.f27de200aa">
             <div class="panelBody">
               <div class="miniCalSticky">
                 <div class="panelHeaderRow">
                   <div class="miniCalHeader">
-                    <button class="miniCalToggle" type="button" data-mini-calendar-toggle aria-expanded="true" aria-label="ミニカレンダーを折りたたむ" title="ミニカレンダーを折りたたむ">▼</button>
-                    <h2 class="title"><button class="miniCalMonthLabel" type="button" data-mini-month-label aria-expanded="false" title="月を選択">2026年4月</button></h2>
+                    <button class="miniCalToggle" type="button" data-mini-calendar-toggle aria-expanded="true" aria-label="ミニカレンダーを折りたたむ" title="ミニカレンダーを折りたたむ" data-i18n-attrs="aria-label=ui.b59467a165;title=ui.b59467a165">▼</button>
+                    <h2 class="title"><button class="miniCalMonthLabel" type="button" data-mini-month-label aria-expanded="false" title="月を選択" data-i18n-attrs="title=ui.b9a4a6beb9"><span data-i18n="ui.1548fc406b">2026年4月</span></button></h2>
                     <div class="miniCalHeaderArrows">
-                      <button class="btn titleNavBtn" type="button" data-mini-month-prev aria-label="前の月"><span aria-hidden="true">↑</span><span data-nav-label>前月</span></button>
-                      <button class="btn titleNavBtn" type="button" data-mini-month-next aria-label="次の月"><span data-nav-label>翌月</span><span aria-hidden="true">↓</span></button>
+                      <button class="btn titleNavBtn" type="button" data-mini-month-prev aria-label="前の月" data-i18n-attrs="aria-label=ui.337744c86a"><span aria-hidden="true">↑</span><span data-nav-label><span data-i18n="ui.85eb836723">前月</span></span></button>
+                      <button class="btn titleNavBtn" type="button" data-mini-month-next aria-label="次の月" data-i18n-attrs="aria-label=ui.cf84916708"><span data-nav-label><span data-i18n="ui.03b4028b0b">翌月</span></span><span aria-hidden="true">↓</span></button>
                     </div>
                   </div>
                 </div>
                 <div class="content" data-mini-calendar-body>
-                  <div class="mini" aria-label="ミニカレンダー" data-mini-cal></div>
+                  <div class="mini" aria-label="ミニカレンダー" data-mini-cal data-i18n-attrs="aria-label=ui.c0efe68893"></div>
                 </div>
               </div>
-              <h2>月次集計（タグ別）</h2>
+              <h2><span data-i18n="ui.26f37854bf">月次集計（タグ別）</span></h2>
               <div class="content taglist" data-side-month-summary></div>
 
-              <h2>日次集計（タグ別）</h2>
+              <h2><span data-i18n="ui.65540c9981">日次集計（タグ別）</span></h2>
               <div class="content taglist" data-side-day-summary></div>
             </div>
           </aside>
@@ -869,75 +893,76 @@
 
   <template id="shared-toolbar-actions">
 <div class="right">
-        <button class="btn toolbarIconButton" type="button" data-sidebar-toggle title="サイドバーを折りたたむ" aria-label="サイドバーを折りたたむ" aria-expanded="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path data-sidebar-chevron d="m16 9-3 3 3 3"/></svg><span>サイド</span></button>
-        <div class="toolbarActions" aria-label="アプリの操作">
-          <button class="btn toolbarIconButton" type="button" data-outlook-open title="Outlook予定の取得画面を開く" aria-label="Outlook予定の取得画面を開く"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v4m10-4v4M3 10h18M12 12v7m-3-3 3 3 3-3"/><rect x="3" y="5" width="18" height="17" rx="2"/></svg><span>取得</span></button>
-          <button class="btn toolbarIconButton toolbarUpdateButton" type="button" data-update-open data-update-entry title="アプリの更新を確認" aria-label="アプリの更新を確認"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></svg><span>更新</span></button>
+        <button class="btn toolbarIconButton" type="button" data-sidebar-toggle title="サイドバーを折りたたむ" aria-label="サイドバーを折りたたむ" aria-expanded="true" data-i18n-attrs="title=ui.cd3379e939;aria-label=ui.cd3379e939"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path data-sidebar-chevron d="m16 9-3 3 3 3"/></svg><span><span data-i18n="ui.f513806c22">サイド</span></span></button>
+        <div class="toolbarActions" aria-label="アプリの操作" data-i18n-attrs="aria-label=ui.4b7e8feb2b">
+          <button class="btn toolbarIconButton" type="button" data-outlook-open title="Outlook予定の取得画面を開く" aria-label="Outlook予定の取得画面を開く" data-i18n-attrs="title=ui.bb01c85f87;aria-label=ui.bb01c85f87"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v4m10-4v4M3 10h18M12 12v7m-3-3 3 3 3-3"/><rect x="3" y="5" width="18" height="17" rx="2"/></svg><span><span data-i18n="ui.03ecfee0d0">取得</span></span></button>
+          <button class="btn toolbarIconButton toolbarUpdateButton" type="button" data-update-open data-update-entry title="アプリの更新を確認" aria-label="アプリの更新を確認" data-i18n-attrs="title=ui.c8e005d218;aria-label=ui.c8e005d218"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></svg><span><span data-i18n="ui.3055a035f0">更新</span></span></button>
         </div>
-            <button class="btn toolbarIconButton" type="button" aria-label="設定" data-settings-btn><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.05 4.89 L10.27 4.50 L9.92 2.22 L14.08 2.22 L13.73 4.50 L14.95 4.89 L14.95 4.89 L16.08 5.47 L17.45 3.61 L20.39 6.55 L18.53 7.92 L19.11 9.05 L19.11 9.05 L19.50 10.27 L21.78 9.92 L21.78 14.08 L19.50 13.73 L19.11 14.95 L19.11 14.95 L18.53 16.08 L20.39 17.45 L17.45 20.39 L16.08 18.53 L14.95 19.11 L14.95 19.11 L13.73 19.50 L14.08 21.78 L9.92 21.78 L10.27 19.50 L9.05 19.11 L9.05 19.11 L7.92 18.53 L6.55 20.39 L3.61 17.45 L5.47 16.08 L4.89 14.95 L4.89 14.95 L4.50 13.73 L2.22 14.08 L2.22 9.92 L4.50 10.27 L4.89 9.05 L4.89 9.05 L5.47 7.92 L3.61 6.55 L6.55 3.61 L7.92 5.47 L9.05 4.89Z M12 8.6a3.4 3.4 0 1 0 0 6.8a3.4 3.4 0 1 0 0-6.8Z" fill="currentColor" fill-rule="evenodd" stroke="none"/></svg><span>設定</span></button>
+            <button class="btn toolbarIconButton" type="button" aria-label="設定" data-settings-btn data-i18n-attrs="aria-label=ui.0d8619aae0"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.05 4.89 L10.27 4.50 L9.92 2.22 L14.08 2.22 L13.73 4.50 L14.95 4.89 L14.95 4.89 L16.08 5.47 L17.45 3.61 L20.39 6.55 L18.53 7.92 L19.11 9.05 L19.11 9.05 L19.50 10.27 L21.78 9.92 L21.78 14.08 L19.50 13.73 L19.11 14.95 L19.11 14.95 L18.53 16.08 L20.39 17.45 L17.45 20.39 L16.08 18.53 L14.95 19.11 L14.95 19.11 L13.73 19.50 L14.08 21.78 L9.92 21.78 L10.27 19.50 L9.05 19.11 L9.05 19.11 L7.92 18.53 L6.55 20.39 L3.61 17.45 L5.47 16.08 L4.89 14.95 L4.89 14.95 L4.50 13.73 L2.22 14.08 L2.22 9.92 L4.50 10.27 L4.89 9.05 L4.89 9.05 L5.47 7.92 L3.61 6.55 L6.55 3.61 L7.92 5.47 L9.05 4.89Z M12 8.6a3.4 3.4 0 1 0 0 6.8a3.4 3.4 0 1 0 0-6.8Z" fill="currentColor" fill-rule="evenodd" stroke="none"/></svg><span><span data-i18n="ui.0d8619aae0">設定</span></span></button>
           </div>
   </template>
 
   <template id="shared-task-form">
 <form method="dialog">
             <div class="formRow">
-              <label for="taskDate">日付</label>
+              <label for="taskDate"><span data-i18n="ui.666819e178">日付</span></label>
               <input id="taskDate" name="date" type="date" />
             </div>
             <div class="formRow">
-              <label for="allDay">終日</label>
+              <label for="allDay"><span data-i18n="ui.0aff5cf2d8">終日</span></label>
               <label class="uiToggle">
                 <input id="allDay" name="allDay" type="checkbox" class="uiToggleInput" role="switch" />
                 <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                <span class="themeToggleLabel">終日予定</span>
+                <span class="themeToggleLabel"><span data-i18n="ui.598512328d">終日予定</span></span>
               </label>
             </div>
             <div class="formRow">
-              <label for="title">タイトル</label>
+              <label for="title"><span data-i18n="ui.a20f57232e">タイトル</span></label>
               <input id="title" name="title" type="text" />
             </div>
             <div class="formRow">
-              <label for="startTime">開始</label>
+              <label for="startTime"><span data-i18n="ui.cc147e162c">開始</span></label>
               <input id="startTime" name="startTime" type="text" data-time-picker inputmode="numeric" placeholder="HH:MM" value="09:00" />
             </div>
             <div class="formRow">
-              <label for="endTime">終了</label>
-              <input id="endTime" name="endTime" type="text" data-time-picker inputmode="numeric" placeholder="HH:MM（24:00可）" value="10:00" />
+              <label for="endTime"><span data-i18n="ui.8f26d43810">終了</span></label>
+              <input id="endTime" name="endTime" type="text" data-time-picker inputmode="numeric" placeholder="HH:MM（24:00可）" value="10:00"  data-i18n-attrs="placeholder=ui.7c377ea186" />
             </div>
             <div class="formRow top">
-              <label>タグ</label>
+              <label><span data-i18n="ui.302eafc71d">タグ</span></label>
               <div>
                 <input type="hidden" name="tag" value="" />
                 <div class="btnGroup" data-btn-group="tag"></div>
               </div>
             </div>
             <div class="formRow top">
-              <label>繰り返し</label>
+              <label><span data-i18n="ui.d22642e52b">繰り返し</span></label>
               <div>
                 <input type="hidden" name="repeat" value="none" />
                 <div class="btnGroup" data-btn-group="repeat">
-                  <button type="button" class="btnGroupItem active" data-value="none">なし</button>
-                  <button type="button" class="btnGroupItem" data-value="daily">毎日</button>
-                  <button type="button" class="btnGroupItem" data-value="weekly">毎週</button>
-                  <button type="button" class="btnGroupItem" data-value="monthly">毎月</button>
+                  <button type="button" class="btnGroupItem active" data-value="none"><span data-i18n="ui.868310e193">なし</span></button>
+                  <button type="button" class="btnGroupItem" data-value="daily"><span data-i18n="ui.46f5dc37de">毎日</span></button>
+                  <button type="button" class="btnGroupItem" data-value="weekly"><span data-i18n="ui.227060417a">毎週</span></button>
+                  <button type="button" class="btnGroupItem" data-value="monthly"><span data-i18n="ui.8029c415eb">毎月</span></button>
                 </div>
               </div>
             </div>
             <div class="formRow" data-repeat-period-row hidden>
-              <label for="repeatUntil">繰り返し終了</label>
+              <label for="repeatUntil"><span data-i18n="ui.0c8fa82e60">繰り返し終了</span></label>
               <input id="repeatUntil" name="repeatUntil" type="date" />
             </div>
             <div class="formRow" data-edit-scope-row hidden>
-              <label for="editScope">編集範囲</label>
+              <label for="editScope"><span data-i18n="ui.613ddfc20d">編集範囲</span></label>
               <select id="editScope" name="editScope">
-                <option value="single">この予定のみ</option>
-                <option value="future">今日以降すべて</option>
-                <option value="series">繰り返し予定すべて</option>
+                <option value="single" data-i18n="ui.33423c9e5e">この予定のみ</option>
+                <option value="future" data-i18n="ui.21806c0c67">今日以降すべて</option>
+                <option value="series" data-i18n="ui.163fca401d">繰り返し予定すべて</option>
               </select>
             </div>
+            <div class="formRow"><span>Outlook</span><label><input type="checkbox" name="outlookEnabled" /><span data-i18n="ui.8db5e560dc"> Outlookにも登録</span></label></div>
             <div class="formRow">
-              <label for="memo">メモ</label>
-              <textarea id="memo" name="memo" rows="3" placeholder="任意"></textarea>
+              <label for="memo"><span data-i18n="ui.99fa5c96e0">メモ</span></label>
+              <textarea id="memo" name="memo" rows="3" placeholder="任意" data-i18n-attrs="placeholder=ui.5d7906f5af"></textarea>
             </div>
           </form>
   </template>

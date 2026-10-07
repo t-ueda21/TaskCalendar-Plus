@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 /**
  * weather.js
  *
@@ -120,18 +121,18 @@ function _saveCache(locationKey) {
 
 function _weatherInfoByCode(code) {
   const n = Number(code);
-  if (n === 0) return { icon: "☀", text: "快晴" };
-  if (n === 1) return { icon: "🌤", text: "晴れ" };
-  if (n === 2) return { icon: "⛅", text: "晴れ時々曇り" };
-  if (n === 3) return { icon: "☁", text: "曇り" };
-  if (n === 45 || n === 48) return { icon: "🌫", text: "霧" };
-  if (n >= 51 && n <= 57) return { icon: "🌦", text: "霧雨" };
-  if (n >= 61 && n <= 67) return { icon: "🌧", text: "雨" };
-  if (n >= 71 && n <= 77) return { icon: "❄", text: "雪" };
-  if (n >= 80 && n <= 82) return { icon: "🌦", text: "にわか雨" };
-  if (n >= 85 && n <= 86) return { icon: "🌨", text: "にわか雪" };
-  if (n >= 95 && n <= 99) return { icon: "⛈", text: "雷雨" };
-  return { icon: "🌡", text: "不明" };
+  if (n === 0) return { icon: "☀", text: translate('ui.2443f783d4') };
+  if (n === 1) return { icon: "🌤", text: translate('ui.7551041af2') };
+  if (n === 2) return { icon: "⛅", text: translate('ui.7f225a40ed') };
+  if (n === 3) return { icon: "☁", text: translate('ui.e7fab4605a') };
+  if (n === 45 || n === 48) return { icon: "🌫", text: translate('ui.ad7fe58cb6') };
+  if (n >= 51 && n <= 57) return { icon: "🌦", text: translate('ui.9a08a682c0') };
+  if (n >= 61 && n <= 67) return { icon: "🌧", text: translate('ui.124d60580d') };
+  if (n >= 71 && n <= 77) return { icon: "❄", text: translate('ui.53058fe2e0') };
+  if (n >= 80 && n <= 82) return { icon: "🌦", text: translate('ui.a622d33485') };
+  if (n >= 85 && n <= 86) return { icon: "🌨", text: translate('ui.92befce5d7') };
+  if (n >= 95 && n <= 99) return { icon: "⛈", text: translate('ui.562c94de29') };
+  return { icon: "🌡", text: translate('ui.bd5a8814a3') };
 }
 
 function _toNumberOrNull(value) {
@@ -275,10 +276,10 @@ export function getWeatherLocationOptions() {
 }
 
 export function formatWeatherForDisplay(record, { withTemp = true } = {}) {
-  if (!record) return "天気情報なし";
+  if (!record) return translate('ui.5caed7fcdd');
 
   const icon = String(record.icon ?? "🌡");
-  const text = String(record.weatherText ?? "不明");
+  const text = String(record.weatherText ?? translate('ui.bd5a8814a3'));
   if (!withTemp) return `${icon} ${text}`;
 
   const max = Number(record.tempMaxC);

@@ -50,53 +50,98 @@ pub struct OutlookSnapshot {
 
 #[derive(Debug, Clone, Copy)]
 pub struct OutlookSyncRange {
-    start_date: chrono::NaiveDate,
-    end_date: chrono::NaiveDate,
+    pub start: chrono::NaiveDateTime,
+    pub end_exclusive: chrono::NaiveDateTime,
 }
 
 impl OutlookSyncRange {
-    fn new(now: chrono::NaiveDateTime, days_ahead: i64) -> Self {
-        let start_date = now.date();
+    #[cfg(test)]
+    fn assert_current_time_boundary() {
+        let noon = chrono::NaiveDate::from_ymd_opt(2026, 10, 7).unwrap().and_hms_opt(12, 0, 0).unwrap();
+        let range = Self::new(noon, 1);
+        assert!(!range.contains(noon - chrono::Duration::minutes(1)));
+        assert!(range.contains(noon));
+    }
+    pub fn new(now: chrono::NaiveDateTime, days_ahead: i64) -> Self {
         Self {
-            start_date,
-            end_date: start_date + chrono::Duration::days(days_ahead.clamp(1, 365)),
+            start: now,
+            end_exclusive: (now.date() + chrono::Duration::days(days_ahead.clamp(1, 365) + 1)).and_hms_opt(0, 0, 0).unwrap(),
         }
     }
 
-    pub fn start_key(self) -> String {
-        date_key(self.start_date)
-    }
-    pub fn end_key(self) -> String {
-        date_key(self.end_date)
+    pub fn dates(start: &str, end: &str) -> Result<Self, String> {
+        let parse = |value: &str| chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d").map_err(|_| "Invalid date: use YYYY-MM-DD".to_string());
+        let first = parse(start)?;
+        let last = parse(end)?;
+        if last < first { return Err("End date must not precede start date".into()); }
+        if (last - first).num_days() > 365 { return Err("Select no more than 366 days".into()); }
+        let next = last.succ_opt().ok_or("End date is out of range")?;
+        Ok(Self { start: first.and_hms_opt(0,0,0).unwrap(), end_exclusive: next.and_hms_opt(0,0,0).unwrap() })
     }
 
-    fn contains(self, start: chrono::NaiveDateTime) -> bool {
-        self.start_date <= start.date() && start.date() <= self.end_date
+    pub fn start_key(self) -> String {
+        date_key(self.start.date())
+    }
+    pub fn end_key(self) -> String {
+        date_key(self.end_exclusive.date() - chrono::Duration::days(1))
+    }
+
+    pub fn contains(self, start: chrono::NaiveDateTime) -> bool {
+        self.start <= start && start < self.end_exclusive
+    }
+
+    pub fn contains_task(self, date: &str, time: Option<&str>) -> bool {
+        let value = format!("{date} {}:00", time.unwrap_or("00:00"));
+        chrono::NaiveDateTime::parse_from_str(&value, "%Y-%m-%d %H:%M:%S").is_ok_and(|start| self.contains(start))
     }
 
     fn restrict_filter(self) -> String {
-        // SQLiteの終了日は含むため、COMの排他的な上限はその翌日0時にする。
-        let end_exclusive = self.end_date + chrono::Duration::days(1);
+        // COM's locale-dependent Restrict compares minute precision; contains()
+        // applies the exact second boundary after enumeration.
         format!(
             "[Start] >= '{}' AND [Start] < '{}'",
-            self.start_date.format("%m/%d/%Y"),
-            end_exclusive.format("%m/%d/%Y")
+            self.start.format("%m/%d/%Y %I:%M %p"),
+            self.end_exclusive.format("%m/%d/%Y %I:%M %p")
         )
     }
 }
 
 struct OutlookRequest {
     calendar_name: String,
-    days_ahead: i64,
+    range: OutlookSyncRange,
     reply: oneshot::Sender<Result<OutlookSnapshot, String>>,
 }
 
-static WORKER: OnceLock<std_mpsc::Sender<OutlookRequest>> = OnceLock::new();
+#[derive(Clone)]
+pub struct WriteRequest {
+    pub operation: String,
+    pub payload: crate::outlook_jobs::WritePayload,
+    pub calendar_name: String,
+    pub entry_id: Option<String>,
+    pub store_id: Option<String>,
+    pub external_key: String,
+}
 
-fn worker_sender() -> std_mpsc::Sender<OutlookRequest> {
+#[derive(Default)]
+pub struct WriteIdentity { pub entry_id: String, pub store_id: String, pub occurrence_key: String, pub series_id: String }
+
+enum WorkerRequest { Fetch(OutlookRequest), Write(Box<WriteRequest>, oneshot::Sender<Result<WriteIdentity, String>>) }
+
+impl WorkerRequest {
+    fn fail(self, message: String) {
+        match self { Self::Fetch(request) => { let _ = request.reply.send(Err(message)); }, Self::Write(_, reply) => { let _ = reply.send(Err(message)); } }
+    }
+}
+
+static WORKER: OnceLock<std_mpsc::Sender<WorkerRequest>> = OnceLock::new();
+
+#[test]
+fn current_time_excludes_past_starts() { OutlookSyncRange::assert_current_time_boundary(); }
+
+fn worker_sender() -> std_mpsc::Sender<WorkerRequest> {
     WORKER
         .get_or_init(|| {
-            let (tx, rx) = std_mpsc::channel::<OutlookRequest>();
+            let (tx, rx) = std_mpsc::channel::<WorkerRequest>();
             thread::Builder::new()
                 .name("outlook-com-worker".into())
                 .spawn(move || outlook_worker_loop(rx))
@@ -106,21 +151,23 @@ fn worker_sender() -> std_mpsc::Sender<OutlookRequest> {
         .clone()
 }
 
-fn outlook_worker_loop(rx: std_mpsc::Receiver<OutlookRequest>) {
+fn outlook_worker_loop(rx: std_mpsc::Receiver<WorkerRequest>) {
     let com_guard = w::CoInitializeEx(co::COINIT::APARTMENTTHREADED | co::COINIT::DISABLE_OLE1DDE);
     let _com_guard = match com_guard {
         Ok(g) => g,
         Err(e) => {
             let msg = format!("CoInitializeEx に失敗しました: {e}");
             for req in rx {
-                let _ = req.reply.send(Err(msg.clone()));
+                req.fail(msg.clone());
             }
             return;
         }
     };
     for req in rx {
-        let result = get_outlook_events(&req.calendar_name, req.days_ahead);
-        let _ = req.reply.send(result);
+        match req {
+            WorkerRequest::Fetch(req) => { let result = get_outlook_events(&req.calendar_name, req.range); let _ = req.reply.send(result); },
+            WorkerRequest::Write(request, reply) => { let _ = reply.send(write_outlook_event(&request)); },
+        }
     }
     // _com_guardのDropでCoUninitializeが呼ばれる(ここまでスレッド生存)。
 }
@@ -128,21 +175,113 @@ fn outlook_worker_loop(rx: std_mpsc::Receiver<OutlookRequest>) {
 /// Outlookカレンダーから予定一覧を取得する(F-OUTLOOK-001, 002, 005)。
 /// ブロッキングCOM呼び出しは専用ワーカースレッドへ委譲し、HTTPサーバー
 /// 側のtokioランタイムをブロックしない。
+#[cfg(test)]
 pub async fn fetch_events(
     calendar_name: String,
     days_ahead: i64,
 ) -> Result<OutlookSnapshot, String> {
+    fetch_events_in_range(calendar_name, OutlookSyncRange::new(chrono::Local::now().naive_local(), days_ahead)).await
+}
+
+pub async fn fetch_events_in_range(calendar_name: String, range: OutlookSyncRange) -> Result<OutlookSnapshot, String> {
     let tx = worker_sender();
     let (reply_tx, reply_rx) = oneshot::channel();
-    tx.send(OutlookRequest {
+    tx.send(WorkerRequest::Fetch(OutlookRequest {
         calendar_name,
-        days_ahead,
+        range,
         reply: reply_tx,
-    })
+    }))
     .map_err(|_| "Outlookワーカースレッドが終了しています".to_string())?;
     reply_rx
         .await
         .map_err(|_| "Outlookワーカーからの応答がありませんでした".to_string())?
+}
+
+pub async fn write_event(request: WriteRequest) -> Result<WriteIdentity,String> {
+    let (reply, response) = oneshot::channel();
+    worker_sender().send(WorkerRequest::Write(Box::new(request),reply)).map_err(|_| "Outlook worker stopped")?;
+    response.await.map_err(|_| "Outlook worker did not return a response")?
+}
+
+const TASK_KEY_PROPERTY: &str = "TCPlusTaskKey";
+
+fn imported_memo(body: &str, location: &str, managed: bool) -> String {
+    if managed { body.to_string() } else { location.to_string() }
+}
+
+#[test]
+fn managed_appointments_preserve_body_as_task_memo() {
+    assert_eq!(imported_memo("User memo","Room A",true),"User memo");
+    assert_eq!(imported_memo("External body","Room A",false),"Room A");
+}
+
+fn task_property(item: &w::IDispatch) -> Result<Option<String>,String> {
+    let properties = item.invoke_get("UserProperties", &[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook user properties unavailable")?;
+    let property = properties.invoke_method("Find", &[&w::Variant::from_str(TASK_KEY_PROPERTY), &w::Variant::Bool(true)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt();
+    match property { Some(property) => Ok(variant_to_opt_string(&property.invoke_get("Value",&[]).map_err(|e|e.to_string())?)), None => Ok(None) }
+}
+
+fn outlook_date(date: &str, time: &str) -> Result<w::Variant,String> {
+    use chrono::{Datelike,Timelike};
+    let day = chrono::NaiveDate::parse_from_str(date,"%Y-%m-%d").map_err(|_| "Invalid appointment date")?;
+    let value = if time == "24:00" { day.succ_opt().ok_or("Invalid appointment end")?.and_hms_opt(0,0,0).unwrap() } else {
+        day.and_time(chrono::NaiveTime::parse_from_str(time,"%H:%M").map_err(|_| "Invalid appointment time")?)
+    };
+    Ok(w::Variant::Date(w::SYSTEMTIME { wYear:value.year() as u16,wMonth:value.month() as u16,wDay:value.day() as u16,wHour:value.hour() as u16,wMinute:value.minute() as u16,..Default::default() }))
+}
+
+fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
+    let outlook = connect_outlook()?;
+    let namespace = outlook.invoke_method("GetNamespace", &[&w::Variant::from_str("MAPI")]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook namespace unavailable")?;
+    let folder = if is_default_calendar_name(&request.calendar_name) { default_calendar_folder(&namespace)? } else {
+        resolve_named_calendar(&request.calendar_name,lookup_named_calendar(&namespace,&request.calendar_name,true))?
+    };
+    let items = folder.invoke_get("Items", &[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook items unavailable")?;
+    let store_id = variant_to_opt_string(&folder.invoke_get("StoreID",&[]).map_err(|e|e.to_string())?).ok_or("Outlook store ID unavailable")?;
+    // Register the folder field before Restrict. Then no matches is a proven absence,
+    // including a retry after Save succeeded but its response was lost.
+    let definitions = folder.invoke_get("UserDefinedProperties",&[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook field definitions unavailable")?;
+    if definitions.invoke_method("Find", &[&w::Variant::from_str(TASK_KEY_PROPERTY)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().is_none() {
+        definitions.invoke_method("Add", &[&w::Variant::from_str(TASK_KEY_PROPERTY),&w::Variant::I4(1)]).map_err(|e|e.to_string())?;
+    }
+    let known = match (&request.entry_id,&request.store_id) {
+        (Some(id),Some(store)) => namespace.invoke_method("GetItemFromID", &[&w::Variant::from_str(id),&w::Variant::from_str(store)]).ok().and_then(|value| value.unwrap_dispatch_opt()),
+        _ => None,
+    };
+    let found = if let Some(item) = known {
+        if task_property(&item)?.as_deref() != Some(&request.external_key) { return Err("Outlook appointment identity does not match this task; refusing to modify it".into()); }
+        Some(item)
+    } else {
+        let filter = format!("[{TASK_KEY_PROPERTY}] = '{}'",request.external_key.replace('\'',"''"));
+        let matching = items.invoke_method("Restrict", &[&w::Variant::from_str(&filter)]).map_err(|e|format!("Cannot safely reconcile Outlook appointment: {e}"))?.unwrap_dispatch_opt().ok_or("Outlook reconciliation unavailable")?;
+        let count = variant_to_i32(&matching.invoke_get("Count", &[]).map_err(|e|e.to_string())?).ok_or("Outlook reconciliation returned invalid count")?;
+        if count > 1 { return Err("Multiple Outlook appointments have the same task identity".into()); }
+        if count == 1 { matching.invoke_method("Item", &[&w::Variant::I4(1)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt() } else { None }
+    };
+    if request.operation == "delete" {
+        if let Some(item) = found { item.invoke_method("Delete",&[]).map_err(|e|e.to_string())?; }
+        return Ok(WriteIdentity::default());
+    }
+    if request.operation != "upsert" { return Err("Invalid Outlook write operation".into()); }
+    let item = match found { Some(item) => item, None => items.invoke_method("Add", &[&w::Variant::I4(1)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Could not create Outlook appointment")? };
+    let payload = &request.payload;
+    let start = outlook_date(&payload.date, if payload.is_all_day { "00:00" } else { payload.start_time.as_deref().ok_or("Start time missing")? })?;
+    let end = outlook_date(&payload.date, if payload.is_all_day { "24:00" } else { payload.end_time.as_deref().ok_or("End time missing")? })?;
+    item.invoke_put("Subject",&w::Variant::from_str(&payload.title)).map_err(|e|e.to_string())?;
+    item.invoke_put("Body",&w::Variant::from_str(&payload.memo)).map_err(|e|e.to_string())?;
+    item.invoke_put("Start",&start).map_err(|e|e.to_string())?;
+    item.invoke_put("End",&end).map_err(|e|e.to_string())?;
+    item.invoke_put("AllDayEvent",&w::Variant::Bool(payload.is_all_day)).map_err(|e|e.to_string())?;
+    let properties = item.invoke_get("UserProperties",&[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook properties unavailable")?;
+    let property = match properties.invoke_method("Find", &[&w::Variant::from_str(TASK_KEY_PROPERTY),&w::Variant::Bool(true)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt() {
+        Some(property) => property,
+        None => properties.invoke_method("Add", &[&w::Variant::from_str(TASK_KEY_PROPERTY),&w::Variant::I4(1),&w::Variant::Bool(true)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Could not tag Outlook appointment")?,
+    };
+    property.invoke_put("Value",&w::Variant::from_str(&request.external_key)).map_err(|e|e.to_string())?;
+    item.invoke_method("Save",&[]).map_err(|e|e.to_string())?;
+    let entry_id = variant_to_opt_string(&item.invoke_get("EntryID",&[]).map_err(|e|e.to_string())?).ok_or("Saved Outlook appointment did not return its ID")?;
+    let series_id = variant_to_opt_string(&item.invoke_get("GlobalAppointmentID",&[]).map_err(|e|e.to_string())?).unwrap_or_else(||entry_id.clone());
+    Ok(WriteIdentity {entry_id,store_id,occurrence_key:format!("tcplus:{}",request.external_key),series_id})
 }
 
 fn connect_outlook() -> Result<w::IDispatch, String> {
@@ -243,7 +382,7 @@ fn find_calendar_folder(
     }
     resolve_named_calendar(
         calendar_name,
-        lookup_named_calendar(namespace, calendar_name),
+        lookup_named_calendar(namespace, calendar_name, false),
     )
 }
 
@@ -266,6 +405,7 @@ fn default_calendar_folder(namespace: &w::IDispatch) -> Result<w::IDispatch, Str
 fn lookup_named_calendar(
     namespace: &w::IDispatch,
     calendar_name: &str,
+    exact: bool,
 ) -> Result<Option<w::IDispatch>, String> {
     if calendar_name.trim().is_empty() {
         return Err("予定表名が空です".into());
@@ -300,13 +440,27 @@ fn lookup_named_calendar(
                 .map_err(|e| format!("Outlookの子フォルダ名を取得できません: {e}"))?;
             let name = variant_to_opt_string(&name_value)
                 .ok_or_else(|| "Outlookの子フォルダ名が不正です".to_string())?;
-            if name.contains(calendar_name) {
+            let item_type = variant_to_i32(&subfolder.invoke_get("DefaultItemType",&[]).map_err(|e|e.to_string())?).ok_or("Cannot identify Outlook folder type")?;
+            if item_type == 1 && if exact { name.eq_ignore_ascii_case(calendar_name) } else { name.contains(calendar_name) } {
                 if found.is_some() {
                     return Err(format!(
                         "予定表名「{calendar_name}」に複数のフォルダが一致します"
                     ));
                 }
-                found = Some(subfolder);
+                found = Some(subfolder.clone());
+            }
+            if item_type == 1 {
+                // Secondary calendars are commonly children of the default calendar.
+                let children = subfolder.invoke_get("Folders",&[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Calendar folders unavailable")?;
+                for child_index in 1..=folder_count(&children)? {
+                    let child = children.invoke_method("Item",&[&w::Variant::I4(child_index)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Calendar folder unavailable")?;
+                    let child_name = variant_to_opt_string(&child.invoke_get("Name",&[]).map_err(|e|e.to_string())?).ok_or("Calendar name unavailable")?;
+                    let child_type = variant_to_i32(&child.invoke_get("DefaultItemType",&[]).map_err(|e|e.to_string())?);
+                    if child_type == Some(1) && if exact { child_name.eq_ignore_ascii_case(calendar_name) } else { child_name.contains(calendar_name) } {
+                        if found.is_some() { return Err(format!("Multiple calendars match {calendar_name}")); }
+                        found=Some(child);
+                    }
+                }
             }
         }
     }
@@ -485,9 +639,9 @@ fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDi
     }
 }
 
-fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<OutlookSnapshot, String> {
-    let now = chrono::Local::now().naive_local();
-    let range = OutlookSyncRange::new(now, days_ahead);
+fn get_outlook_events(calendar_name: &str, range: OutlookSyncRange) -> Result<OutlookSnapshot, String> {
+    let now = range.start;
+    let days_ahead = (range.end_exclusive.date() - now.date()).num_days();
     let outlook = connect_outlook()?;
     let namespace = outlook
         .invoke_method("GetNamespace", &[&w::Variant::from_str("MAPI")])
@@ -559,17 +713,12 @@ fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<OutlookSna
         let end_dt = variant_to_naive_datetime(&end_value)
             .ok_or_else(|| format!("Outlookの予定{i}の終了時刻が不正です"))?;
 
-        let start_date = start_dt.date();
-        if start_date > range.end_date {
-            continue;
-        }
         let all_day_value = item
             .invoke_get("AllDayEvent", &[])
             .map_err(|e| format!("Outlookの予定{i}の終日設定を取得できません: {e}"))?;
         let is_all_day = variant_to_required_bool(&all_day_value)
             .ok_or_else(|| format!("Outlookの予定{i}の終日設定が不正です"))?;
-        // 時間指定・終日とも今日0時から。過去の時刻を除外すると、削除照合で
-        // 「Outlookから消えた予定」と誤判定してしまう。
+        // Use the same exact boundary for fetching and stale-row reconciliation.
         if !range.contains(start_dt) {
             continue;
         }
@@ -610,11 +759,13 @@ fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<OutlookSna
         } else {
             format!("{}T{}", date_key(start_dt.date()), time_key(start_dt))
         };
-        let occurrence_key = format!("{stable_series_id}|{occurrence_stamp}");
+        let managed_key = task_property(&item)?;
+        let occurrence_key = match &managed_key { Some(key) => format!("tcplus:{key}"), None => format!("{stable_series_id}|{occurrence_stamp}") };
         let body_value = item
             .invoke_get("Body", &[])
             .map_err(|e| format!("Outlookの予定{i}の本文を取得できません: {e}"))?;
         let body = variant_to_opt_string(&body_value).unwrap_or_default();
+        let location = imported_memo(&body,&location,managed_key.is_some());
         let meeting_url = extract_teams_meeting_url(&body);
         let title_value = item
             .invoke_get("Subject", &[])
@@ -810,12 +961,11 @@ mod sync_range_tests {
                 range.contains(start)
             })
             .collect();
-        let result = crate::repositories::outlook_auto_sync(
+        let result = crate::repositories::outlook_sync_in_range(
             &conn,
             &fetched,
             "",
-            &range.start_key(),
-            &range.end_key(),
+            range,
         )
         .unwrap();
         assert_eq!(
@@ -826,11 +976,11 @@ mod sync_range_tests {
     }
 
     #[test]
-    fn range_includes_all_of_today_and_the_last_day() {
+    fn range_includes_current_time_and_the_last_day() {
         let range = OutlookSyncRange::new(at("2026-09-25 13:00:00"), 1);
         assert!(!range.contains(at("2026-09-24 23:59:59")));
-        assert!(range.contains(at("2026-09-25 00:00:00")), "今日の終日予定");
-        assert!(range.contains(at("2026-09-25 09:00:00")), "終了済みの予定");
+        assert!(!range.contains(at("2026-09-25 00:00:00")), "今日の終日予定は過去に開始");
+        assert!(!range.contains(at("2026-09-25 09:00:00")), "過去に開始した予定");
         assert!(range.contains(at("2026-09-25 13:00:00")));
         assert!(
             range.contains(at("2026-09-26 23:59:59")),
@@ -839,7 +989,7 @@ mod sync_range_tests {
         assert!(!range.contains(at("2026-09-27 00:00:00")));
         assert_eq!(
             range.restrict_filter(),
-            "[Start] >= '09/25/2026' AND [Start] < '09/27/2026'"
+            "[Start] >= '09/25/2026 01:00 PM' AND [Start] < '09/27/2026 12:00 AM'"
         );
         assert_eq!(
             (range.start_key(), range.end_key()),
@@ -858,7 +1008,7 @@ mod sync_range_tests {
         assert_eq!(snapshot.range.end_key(), "2027-01-01");
         assert_eq!(
             snapshot.range.restrict_filter(),
-            "[Start] >= '12/31/2026' AND [Start] < '01/02/2027'"
+            "[Start] >= '12/31/2026 11:59 PM' AND [Start] < '01/02/2027 12:00 AM'"
         );
     }
 }

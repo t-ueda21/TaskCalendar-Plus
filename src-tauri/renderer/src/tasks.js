@@ -1,3 +1,5 @@
+import { t as translate, th as translateHtml } from './i18n.js';
+import { copyIconHtml, checkIconHtml, errorIconHtml } from './ui-icons.js';
 /**
  * tasks.js — タスク一覧ページのロジック
  *
@@ -69,7 +71,7 @@ function _setFocusedTaskRow(taskId = "") {
 function _chooseDeleteModeForTask(task) {
   const count = Store.getTaskSeriesCount(task);
   if (count <= 1) return "single";
-  const answer = window.prompt("削除方法: 1=選択した予定のみ / 2=繰り返し予定をすべて / 3=今日以降すべて", "1");
+  const answer = window.prompt(translate('ui.4615c4d76e'), "1");
   if (answer == null) return null;
   const token = String(answer).trim();
   if (token === "2") return "series";
@@ -118,14 +120,14 @@ function _openTaskTagMenu(task, clientX, clientY, sourceRow = null) {
     menu.appendChild(btn);
   };
 
-  addActionItem("編集", async () => {
+  addActionItem(translate('ui.11f9049dda'), async () => {
     openEditDialog($dialog, task, _getDialogTagsForDateKey(task.date, task.tagId));
   });
-  addActionItem("削除（この予定）", async () => {
+  addActionItem(translate('ui.fdc17259a9'), async () => {
     await _deleteTaskByChoice(task.id, "single");
   }, { danger: true });
   if (seriesCount > 1) {
-    addActionItem(`削除（繰り返し全体: ${seriesCount}件）`, async () => {
+    addActionItem(translate('ui.2a4fe5975d', { p0: (seriesCount) }), async () => {
       await _deleteTaskByChoice(task.id, "series");
     }, { danger: true });
   }
@@ -136,7 +138,7 @@ function _openTaskTagMenu(task, clientX, clientY, sourceRow = null) {
 
   const title = document.createElement("div");
   title.className = "taskTagContextTitle";
-  title.textContent = "タグを選択";
+  title.textContent = translate('ui.4400fedd36');
   menu.appendChild(title);
 
   const addItem = (label, value, color = "", active = false) => {
@@ -147,15 +149,9 @@ function _openTaskTagMenu(task, clientX, clientY, sourceRow = null) {
     btn.textContent = label;
 
     if (value) {
-      const tagColor = normalizeHexColor(color, DEFAULT_TAG_COLOR);
-      btn.style.background = tagColor;
-      btn.style.border = `1px solid ${tagColor}`;
-      btn.style.color = buildUiPalette(tagColor)["--on-accent"];
-      if (active) {
-        btn.style.outline = "2px solid rgba(255, 255, 255, 0.75)";
-        btn.style.outlineOffset = "-2px";
-        btn.style.fontWeight = "700";
-      }
+      const swatch = document.createElement('span'); swatch.className = 'contextTagSwatch';
+      swatch.style.background = normalizeHexColor(color, DEFAULT_TAG_COLOR); swatch.setAttribute('aria-hidden', 'true');
+      btn.prepend(swatch); btn.setAttribute('aria-pressed', String(active));
     }
 
     btn.addEventListener("click", async () => {
@@ -165,13 +161,13 @@ function _openTaskTagMenu(task, clientX, clientY, sourceRow = null) {
     menu.appendChild(btn);
   };
 
-  addItem("タグなし", "", "", !task.tagId);
+  addItem(translate('ui.af1cc864e3'), "", "", !task.tagId);
   tags.forEach((tag) => addItem(tag.name, tag.id, tag.color, tag.id === task.tagId));
 
   if (tags.length === 0) {
     const empty = document.createElement("div");
     empty.className = "taskTagContextEmpty";
-    empty.textContent = "この月に利用できるタグがありません。";
+    empty.textContent = translate('ui.9ffd96ece9');
     menu.appendChild(empty);
   }
 
@@ -246,16 +242,16 @@ export function init(rootEl) {
     const text = btn.getAttribute("data-copy-text");
     if (!text) return;
 
-    const original = btn.textContent;
+    const original = btn.innerHTML;
     _copyTextToClipboard(text)
       .then(() => {
-        btn.textContent = "✓";
-        setTimeout(() => { btn.textContent = original; }, 1500);
+        btn.innerHTML = checkIconHtml();
+        setTimeout(() => { btn.innerHTML = original; }, 1500);
       })
       .catch(() => {
         console.warn("[tasks] clipboard write failed");
-        btn.textContent = "✗";
-        setTimeout(() => { btn.textContent = original; }, 1500);
+        btn.innerHTML = errorIconHtml();
+        setTimeout(() => { btn.innerHTML = original; }, 1500);
       });
   });
 }
@@ -387,8 +383,8 @@ function _renderDaySummaryBubble(dateKey, dayTasks) {
 
   if (summaryExcluded) {
     $daySummaryWrap.hidden = false;
-    $daySummaryMeta.textContent = `${formatDateJP(parseLocalDate(dateKey))} | タスク${allDayTasks.length}件 | メモ${notes.length}件`;
-    $daySummaryText.textContent = "この日は休日で、タグ未設定の予定のみのためAIサマリーは作成しません。";
+    $daySummaryMeta.textContent = translate('ui.ded7ba9926', { p0: (formatDateJP(parseLocalDate(dateKey))), p1: (allDayTasks.length), p2: (notes.length) });
+    $daySummaryText.textContent = translate('ui.f74cd68ca7');
     $daySummaryHighlights.innerHTML = "";
     return;
   }
@@ -408,15 +404,15 @@ function _renderDaySummaryBubble(dateKey, dayTasks) {
   }
 
   $daySummaryWrap.hidden = false;
-  $daySummaryMeta.textContent = `${formatDateJP(parseLocalDate(dateKey))} | タスク${allDayTasks.length}件 | メモ${notes.length}件`;
+  $daySummaryMeta.textContent = translate('ui.ded7ba9926', { p0: (formatDateJP(parseLocalDate(dateKey))), p1: (allDayTasks.length), p2: (notes.length) });
 
   if (!summary) {
     const generating = _summaryGeneratingDates.has(dateKey);
     $daySummaryText.textContent = !isAiConfigured()
-      ? "AIの接続先を設定すると、日次サマリーを自動で作ります（⚙設定 →「基本」→「AI」）。"
+      ? translate('ui.fb12c74329')
       : generating
-        ? "この日のサマリーをAIで作成中です。"
-        : "この日のサマリーはまだありません。過去の日を開いたとき、または気づきを保存したときに作ります。";
+        ? translate('ui.da24ace836')
+        : translate('ui.9a1375af30');
     _setDaySummaryComment("");
     $daySummaryHighlights.innerHTML = "";
     return;
@@ -437,11 +433,11 @@ function _setInsightBusy(nextBusy) {
   if ($dayInsightSend instanceof HTMLButtonElement) {
     $dayInsightSend.disabled = _insightBusy;
     if (!$dayInsightSend.dataset.idleLabel) {
-      $dayInsightSend.dataset.idleLabel = $dayInsightSend.textContent || "保存してサマリー反映";
+      $dayInsightSend.dataset.idleLabel = $dayInsightSend.textContent || translate('ui.2923874991');
     }
     $dayInsightSend.textContent = _insightBusy
-      ? "保存中..."
-      : ($dayInsightSend.dataset.idleLabel || "保存してサマリー反映");
+      ? translate('ui.917b1c1f18')
+      : ($dayInsightSend.dataset.idleLabel || translate('ui.2923874991'));
   }
   if ($dayInsightInput instanceof HTMLTextAreaElement) {
     $dayInsightInput.disabled = _insightBusy;
@@ -451,7 +447,7 @@ function _setInsightBusy(nextBusy) {
 function _renderInsightMeta(dateKey) {
   if (!$dayInsightMeta) return;
   const notes = Store.getDailyNotes(dateKey);
-  $dayInsightMeta.textContent = `${formatDateJP(parseLocalDate(dateKey))} | 既存メモ${notes.length}件`;
+  $dayInsightMeta.textContent = translate('ui.02fe6cf82f', { p0: (formatDateJP(parseLocalDate(dateKey))), p1: (notes.length) });
 }
 
 async function _renderTaskDayWeather(dateKey) {
@@ -459,7 +455,7 @@ async function _renderTaskDayWeather(dateKey) {
   if (!$dayWeather) return;
   const token = ++_dayWeatherRenderToken;
   $dayWeather.classList.add("loading");
-  $dayWeather.textContent = "天気取得中...";
+  $dayWeather.textContent = translate('ui.e766dd8d41');
 
   try {
     const weather = await getWeatherByDate(dateKey);
@@ -470,7 +466,7 @@ async function _renderTaskDayWeather(dateKey) {
     console.warn("[tasks] weather rendering failed:", e);
     if (token !== _dayWeatherRenderToken || _root.hidden) return;
     $dayWeather.classList.remove("loading");
-    $dayWeather.textContent = "天気取得に失敗しました";
+    $dayWeather.textContent = translate('ui.545c4f248f');
   }
 }
 
@@ -486,7 +482,7 @@ async function _sendDayInsight() {
   }
 
   _setInsightBusy(true);
-  $dayInsightReply.textContent = "入力内容を保存し、今日のサマリーへ直接反映中...";
+  $dayInsightReply.textContent = translate('ui.aff8fa69cb');
 
   try {
     const note = Store.addDailyNote(dateKey, text, { source: "tasks-user-note" });
@@ -498,13 +494,13 @@ async function _sendDayInsight() {
     _renderInsightMeta(dateKey);
 
     $dayInsightReply.textContent = summary
-      ? "今日のサマリーへ直接反映しました。修正があれば、この入力欄やAIモードのチャットで追記してください。"
+      ? translate('ui.f93b3cee1c')
       : !isAiConfigured()
-        ? "メモは保存しました。AIの接続先を設定すると、サマリーにも反映されます。"
-        : "メモは保存しました。サマリーには反映できませんでした(サマリー対象外の日、またはAIの呼び出しに失敗)。";
+        ? translate('ui.21aa07d6bc')
+        : translate('ui.920234e636');
   } catch (e) {
     console.error("[tasks] day insight send failed:", e);
-    $dayInsightReply.textContent = "気づき保存またはサマリー反映に失敗しました。時間をおいて再試行してください。";
+    $dayInsightReply.textContent = translate('ui.e956fdabb0');
   } finally {
     _setInsightBusy(false);
   }
@@ -515,7 +511,7 @@ function _wireDayInsightInput() {
     void _sendDayInsight().catch((e) => {
       console.error("[tasks] day insight send failed (uncaught):", e);
       if ($dayInsightReply) {
-        $dayInsightReply.textContent = "保存処理で予期しないエラーが発生しました。再試行してください。";
+        $dayInsightReply.textContent = translate('ui.7bb8edb0ed');
       }
       _setInsightBusy(false);
     });
@@ -528,7 +524,7 @@ function _wireDayInsightInput() {
     void _sendDayInsight().catch((err) => {
       console.error("[tasks] day insight send failed (uncaught):", err);
       if ($dayInsightReply) {
-        $dayInsightReply.textContent = "保存処理で予期しないエラーが発生しました。再試行してください。";
+        $dayInsightReply.textContent = translate('ui.7bb8edb0ed');
       }
       _setInsightBusy(false);
     });
@@ -584,7 +580,7 @@ function _selectDate(date) {
   const dateKey = syncViewDate(_selectedDate);
   if ($dayInsightInput) $dayInsightInput.value = "";
   if ($dayInsightReply) {
-    $dayInsightReply.textContent = "この日の思ったことや気づいたことを入力して保存すると、今日のサマリーへ直接反映します。";
+    $dayInsightReply.textContent = translate('ui.f6d3613523');
   }
   if ($dayLabel) $dayLabel.textContent = formatDateJP(_selectedDate);
   _miniCalInst?.highlightDate(formatDateKey(_selectedDate));
@@ -605,7 +601,7 @@ function _renderEmptyState(dateKey, visibleTasks) {
   const allTasks = Store.getAllTasks();
   if (allTasks.length === 0) {
     $emptyState.hidden = false;
-    $emptyState.textContent = "保存済みの予定はありません。";
+    $emptyState.textContent = translate('ui.5b6097779a');
     return;
   }
 
@@ -617,7 +613,7 @@ function _renderEmptyState(dateKey, visibleTasks) {
 
   if (otherDates.length === 0) {
     $emptyState.hidden = false;
-    $emptyState.textContent = `${formatDateJP(_selectedDate)} に表示対象の予定はありません。`;
+    $emptyState.textContent = translate('ui.0fc51bc7a1', { p0: (formatDateJP(_selectedDate)) });
     return;
   }
 
@@ -628,7 +624,7 @@ function _renderEmptyState(dateKey, visibleTasks) {
     .map((taskDate) => formatDateJP(parseLocalDate(taskDate)));
 
   $emptyState.hidden = false;
-  $emptyState.textContent = `${formatDateJP(_selectedDate)} に表示対象の予定はありません。他の日付には予定があります: ${nearestDates.join(" / ")}`;
+  $emptyState.textContent = translate('ui.076b47e53b', { p0: (formatDateJP(_selectedDate)), p1: (nearestDates.join(" / ")) });
 }
 
 // ── 描画 ──────────────────────────────────────────────
@@ -703,12 +699,12 @@ function _render() {
     tr.innerHTML = `
       <td>${escHtml(task.startTime ?? "──")}</td>
       <td>${escHtml(task.endTime   ?? "──")}</td>
-      <td class="taskTitleCell"${isRecurring ? " data-recurring=\"1\"" : ""}>${escHtml(task.title || "無題")}</td>
+      <td class="taskTitleCell"${isRecurring ? " data-recurring=\"1\"" : ""}>${escHtml(task.title || translate('ui.6ada6dbdde'))}</td>
       <td><span class="taskTagBadge" style="background:${escHtml(tag?.color ?? "#888")}22;border-color:${escHtml(tag?.color ?? "#888")}66">${escHtml(tag?.name ?? "")}</span></td>
       <td>${formatDurationHtml(minutes)}</td>
       <td class="taskActions">
-        <button class="btn" type="button" data-edit aria-label="編集">✎</button>
-        <button class="btn danger" type="button" data-del aria-label="削除">✕</button>
+        <button class="btn" type="button" data-edit aria-label="${translateHtml('ui.11f9049dda')}">✎</button>
+        <button class="btn danger" type="button" data-del aria-label="${translateHtml('ui.e9653dc3ed')}">✕</button>
       </td>
     `;
 
@@ -747,7 +743,7 @@ function _render() {
 function _syncTagFilter(tags) {
   if (!$tagFilterSel) return;
   const current = $tagFilterSel.value;
-  $tagFilterSel.innerHTML = `<option value="__all__">全て</option>` +
+  $tagFilterSel.innerHTML = `<option value="__all__">${translateHtml('ui.bb7d147bc0')}</option>` +
     tags.map((t) => `<option value="${escHtml(t.id)}"${t.id === current ? " selected" : ""}>${escHtml(t.name)}</option>`).join("");
 }
 
@@ -774,7 +770,7 @@ function _renderDayTotals(dateKey, tags) {
     .forEach((task) => {
       const tagId = String(task.tagId ?? "").trim();
       if (!tagId) return;
-      const title = String(task.title ?? "").trim() || "無題";
+      const title = String(task.title ?? "").trim() || translate('ui.6ada6dbdde');
       const list = titlesByTag.get(tagId) ?? [];
       if (!list.includes(title)) list.push(title);
       titlesByTag.set(tagId, list);
@@ -801,15 +797,15 @@ function _renderDayTotals(dateKey, tags) {
       .map((tagId) => {
       const mins = byTag.get(tagId) ?? 0;
       const tag = tagById.get(tagId);
-      const tagName = String(tag?.name ?? "タグなし");
+      const tagName = String(tag?.name ?? translate('ui.af1cc864e3'));
       const tagColor = String(tag?.color ?? "#888");
       const titles = titlesByTag.get(tagId) ?? [];
       const titleText = titles.join("、");
       const titleLabel = titles.length ? `（${escHtml(titleText)}）` : "";
       return `<div class="tag">
-        <div class="name"><span class="swatch" style="background:${escHtml(tagColor)}"></span><span class="tagNameLabel">${escHtml(tagName)}</span>${titleLabel ? `<span class="tagTaskTitles"><span class="tagTaskTitlesText">${titleLabel}</span>${titleText ? `<button class="copySummaryBtn" type="button" aria-label="コピー" data-copy-text="${escHtml(titleText)}">📋</button>` : ""}</span>` : ""}</div>
+        <div class="name"><span class="swatch" style="background:${escHtml(tagColor)}"></span><span class="tagNameLabel">${escHtml(tagName)}</span>${titleLabel ? `<span class="tagTaskTitles"><span class="tagTaskTitlesText">${titleLabel}</span>${titleText ? `<button class="copySummaryBtn" type="button" aria-label="${translateHtml('ui.4beb295c47')}" title="${translateHtml('ui.4beb295c47')}" data-copy-text="${escHtml(titleText)}">${copyIconHtml()}</button>` : ""}</span>` : ""}</div>
         <span class="tagRowRight">
-          <span class="small" data-tag-total="${escHtml(tagId)}">${formatDurationHtml(mins)}</span><button class="copySummaryBtn" type="button" aria-label="分数をコピー" data-copy-text="${Math.round(mins)}">📋</button>
+          <span class="small" data-tag-total="${escHtml(tagId)}">${formatDurationHtml(mins)}</span><button class="copySummaryBtn" type="button" aria-label="${translateHtml('ui.15eaf2f54e')}" title="${translateHtml('ui.15eaf2f54e')}" data-copy-text="${Math.round(mins)}">${copyIconHtml()}</button>
         </span>
       </div>`;
       }).join("");
@@ -866,12 +862,12 @@ function _wireDialog() {
   const saveTask = async () => {
     if (_saving) return;
     const form = readDialogForm($dialog);
-    if (!form.title) { alert("タイトルを入力してください。"); return; }
+    if (!form.title) { alert(translate('ui.f611575d37')); return; }
     const { editScope, ...taskPatch } = form;
 
     const saveBtn = $dialog.querySelector("[data-save]");
     _saving = true;
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.dataset.origText = saveBtn.textContent; saveBtn.textContent = "保存中…"; }
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.dataset.origText = saveBtn.textContent; saveBtn.textContent = translate('ui.ff509c9ba0'); }
     try {
       const editId = $dialog.getAttribute("data-edit-id");
       if (editId) {
@@ -882,10 +878,10 @@ function _wireDialog() {
       }
       $dialog.close();
     } catch (error) {
-      alert(`予定を保存できませんでした。\n${String(error?.message ?? error)}`);
+      alert(translate('ui.20817f47e9', { p0: (String(error?.message ?? error)) }));
     } finally {
       _saving = false;
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.origText || "保存"; }
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.origText || translate('ui.a3030bf8f1'); }
     }
   };
 

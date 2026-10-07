@@ -12,8 +12,10 @@
  * Store自体はimportしない(必要な関数は呼び出し側から引数として渡す)。
  */
 
+import { setupPicker } from "./mini-calendar-picker.js";
 import { getHolidaysInMonth } from "./holidays.js";
 import { getCompanyHolidaysInMonthMap } from "./company-holidays.js";
+import { t as translate, formatDuration, formatDate, getLocale, th as translateHtml, weekdayLabels } from './i18n.js';
 
 // ── 文字列フォーマット ─────────────────────────────────
 /** 新しいタグの既定の色。 */
@@ -41,7 +43,7 @@ export function formatYearMonth(date) {
 }
 
 export function formatDateJP(date) {
-  return `${date.getFullYear()}年${pad2(date.getMonth() + 1)}月${pad2(date.getDate())}日`;
+  return translate('ui.666a239028', { p0: (date.getFullYear()), p1: (pad2(date.getMonth() + 1)), p2: (pad2(date.getDate())) });
 }
 
 function formatNow(date) {
@@ -54,7 +56,7 @@ export function formatDurationHtml(minutes) {
   const abs = Math.abs(Math.round(minutes));
   const hoursText = (abs / 60).toFixed(2);
   const minsText = String(abs);
-  return `<span class="durationNum durationNumHours">${hoursText}</span>時間  （<span class="durationNum durationNumMins">${minsText}</span>分）`;
+  return `<span class="durationNum durationNumHours">${hoursText}</span>${translateHtml('ui.bf6267da60')}  （<span class="durationNum durationNumMins">${minsText}</span>${translateHtml('ui.b6a993c256')}）`;
 }
 
 // 月次集計向けの「x時間y分」表記。月単位の合計は分の総量が
@@ -64,14 +66,14 @@ function formatDurationHmHtml(minutes) {
   const abs = Math.abs(Math.round(minutes));
   const hours = Math.floor(abs / 60);
   const mins = abs % 60;
-  return `<span class="durationNum durationNumHmHours">${hours}</span>時間<span class="durationNum durationNumHmMins">${mins}</span>分`;
+  return `<span class="durationNum durationNumHmHours">${hours}</span>${translateHtml('ui.bf6267da60')}<span class="durationNum durationNumHmMins">${mins}</span>${translateHtml('ui.b6a993c256')}`;
 }
 
 // タグの月間予定工数(下限・上限)は時間単位で入力させているため、分は出さず
 // 「X時間」のみにする(小数第2位までに丸めて統一する)。
 function formatBudgetHours(minutes) {
   const hours = Math.round((minutes / 60) * 100) / 100;
-  return `${hours}時間`;
+  return translate('ui.d1a0f36132', { p0: (hours) });
 }
 
 // 残り/超過の表記(実績との差分)は「X時間Y分」で表示する。
@@ -79,7 +81,7 @@ function formatRemainHm(minutes) {
   const abs = Math.abs(Math.round(minutes));
   const hours = Math.floor(abs / 60);
   const mins = abs % 60;
-  return `${hours}時間${mins}分`;
+  return translate('ui.9b8b93a739', { p0: (hours), p1: (mins) });
 }
 
 // サイドバー「月次集計（タグ別）」の行HTML。calendar/tasks/ai-modeで共用する。
@@ -108,12 +110,12 @@ export function renderTagBudgetRowsHtml(tags, byTag) {
       const isOver = remain < 0;
       const pct = Math.max(0, Math.min(100, Math.round((mins / max) * 100)));
       const barClass = isOver ? " over" : pct >= 80 ? " warn" : "";
-      const remainText = isOver ? `超過 ${formatRemainHm(remain)}` : `残り ${formatRemainHm(remain)}`;
+      const remainText = isOver ? translate('ui.76f66d7d35', { p0: (formatRemainHm(remain)) }) : translate('ui.8a37f864ee', { p0: (formatRemainHm(remain)) });
       const rangeText = min == null
-        ? `上限: ${formatBudgetHours(max)}`
-        : `下限: ${formatBudgetHours(min)}　上限: ${formatBudgetHours(max)}`;
+        ? translate('ui.10182bc821', { p0: (formatBudgetHours(max)) })
+        : translate('ui.ba210e9c05', { p0: (formatBudgetHours(min)), p1: (formatBudgetHours(max)) });
       const minPct = min == null ? null : Math.max(0, Math.min(100, Math.round((min / max) * 100)));
-      const minLineHtml = minPct == null ? "" : `<div class="tagBudgetMinLine" style="left:${minPct}%" title="下限: ${escHtml(formatBudgetHours(min))}"></div>`;
+      const minLineHtml = minPct == null ? "" : `<div class="tagBudgetMinLine" style="left:${minPct}%" title="${translateHtml('ui.2c3f8d6ce4')}: ${escHtml(formatBudgetHours(min))}"></div>`;
       return `<div class="tag tagBudgetRow" data-tag-id="${escHtml(t.id)}">
         <div class="tagBudgetHead">
           <div class="name">${nameHtml}</div>　<span class="tagBudgetUsed small">${formatDurationHmHtml(mins)}</span>
@@ -149,8 +151,8 @@ export function renderDaySummaryRowsHtml(tags, byTag) {
 function formatRemaining(minutes) {
   const abs = Math.abs(Math.round(minutes));
   const hoursDec = Math.round((abs / 60) * 100) / 100;
-  const prefix = minutes < 0 ? "定時超過 +" : "";
-  return `${prefix}${hoursDec.toFixed(2)}時間（${abs}分）`;
+  const prefix = minutes < 0 ? translate('ui.2a05ddcfd8') : "";
+  return translate('ui.f17796d2ec', { p0: (prefix), p1: (hoursDec.toFixed(2)), p2: (abs) });
 }
 
 // ── 時刻変換 ───────────────────────────────────────────
@@ -256,7 +258,7 @@ export function syncViewDate(dateLike) {
 }
 
 // ── ミニカレンダー ─────────────────────────────────────
-const DOW_LABELS = ["日","月","火","水","木","金","土"];
+const DOW_LABELS = weekdayLabels();
 
 /**
  * @param {HTMLElement} containerEl
@@ -336,7 +338,7 @@ function wireMiniCalendarDisclosure(containerEl, toggle) {
     body.hidden = !miniCalendarExpanded;
     toggle.textContent = miniCalendarExpanded ? '▼' : '▶';
     toggle.setAttribute('aria-expanded', String(miniCalendarExpanded));
-    const label = miniCalendarExpanded ? 'ミニカレンダーを折りたたむ' : 'ミニカレンダーを表示';
+    const label = miniCalendarExpanded ? translate('ui.b59467a165') : translate('ui.142c310e66');
     toggle.setAttribute('aria-label', label);
     toggle.title = label;
   };
@@ -350,123 +352,10 @@ function wireMiniCalendarDisclosure(containerEl, toggle) {
 /**
  * ミニカレンダーを初期化し、操作オブジェクトを返す。
  */
-export function setupMiniCalendar({ containerEl, monthLabelEl, prevBtn, nextBtn, collapseBtn, onDateSelect, initialDate, getHolidaysInMonth: getHols }) {
-  if (!containerEl) return null;
-  wireMiniCalendarDisclosure(containerEl, collapseBtn);
-  const calendarBody = containerEl.closest('[data-mini-calendar-body]');
-  if (calendarBody?.id) monthLabelEl?.setAttribute('aria-controls', calendarBody.id);
-  const init = initialDate ?? new Date();
-  let calYear  = init.getFullYear();
-  let calMonth = init.getMonth();
-  let selectedDateKey = formatDateKey(init);
-  let choosingMonth = false;
-  let pickerYear = calYear;
-
-  function highlightSelectedDate() {
-    containerEl.querySelectorAll('[data-date]').forEach(el => {
-      el.classList.toggle('selected', el.dataset.date === selectedDateKey);
-    });
-  }
-
-  function renderMonth() {
-    // 日付一覧の高さを引き継ぎ、月の選択画面へ切り替えても集計欄を動かさない。
-    if (choosingMonth && !containerEl.classList.contains('monthPicker')) {
-      const height = containerEl.getBoundingClientRect().height;
-      if (height > 0) containerEl.style.setProperty('--mini-calendar-grid-height', `${height}px`);
-    }
-    containerEl.classList.toggle('monthPicker', choosingMonth);
-    containerEl.setAttribute('aria-label', choosingMonth ? `${pickerYear}年の月を選択` : 'ミニカレンダー');
-    if (choosingMonth) {
-      containerEl.replaceChildren();
-      for (let month = 0; month < 12; month++) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'miniMonth';
-        button.dataset.miniMonth = String(month);
-        button.textContent = `${month + 1}月`;
-        button.setAttribute('aria-label', `${pickerYear}年${month + 1}月`);
-        button.setAttribute('aria-pressed', String(pickerYear === calYear && month === calMonth));
-        button.addEventListener('click', () => {
-          calYear = pickerYear;
-          calMonth = month;
-          choosingMonth = false;
-          renderMonth();
-          monthLabelEl?.focus({ preventScroll: true });
-        });
-        containerEl.appendChild(button);
-      }
-    } else {
-      const hols = getHols ? getHols(calYear, calMonth) : new Map();
-      buildMiniCalendarCells(containerEl, calYear, calMonth, hols, onDateSelect);
-      highlightSelectedDate();
-    }
-    if (monthLabelEl) {
-      monthLabelEl.textContent = choosingMonth ? `${pickerYear}年` : `${calYear}年${calMonth + 1}月`;
-      monthLabelEl.dataset.yearmonth = `${calYear}-${pad2(calMonth + 1)}`;
-      monthLabelEl.setAttribute('aria-expanded', String(choosingMonth));
-      monthLabelEl.title = choosingMonth ? '日付表示に戻る' : '月を選択';
-    }
-    prevBtn?.setAttribute('aria-label', choosingMonth ? '前の年' : '前の月');
-    nextBtn?.setAttribute('aria-label', choosingMonth ? '次の年' : '次の月');
-    for (const [button, label] of [[prevBtn, choosingMonth ? '前年' : '前月'], [nextBtn, choosingMonth ? '翌年' : '翌月']]) {
-      const text = button?.querySelector('[data-nav-label]');
-      if (text) text.textContent = label;
-      if (button) button.title = button.getAttribute('aria-label');
-    }
-  }
-
-  prevBtn?.addEventListener("click", () => {
-    if (choosingMonth) { pickerYear--; }
-    else if (calMonth === 0) { calMonth = 11; calYear--; } else { calMonth--; }
-    renderMonth();
-  });
-  nextBtn?.addEventListener("click", () => {
-    if (choosingMonth) { pickerYear++; }
-    else if (calMonth === 11) { calMonth = 0; calYear++; } else { calMonth++; }
-    renderMonth();
-  });
-
-  monthLabelEl?.addEventListener('click', () => {
-    choosingMonth = miniCalendarExpanded ? !choosingMonth : true;
-    pickerYear = calYear;
-    setMiniCalendarExpanded(true);
-    renderMonth();
-    if (choosingMonth) containerEl.querySelector(`[data-mini-month="${calMonth}"]`)?.focus({ preventScroll: true });
-  });
-
-  (containerEl.closest('.miniCalSticky') ?? containerEl).addEventListener('keydown', event => {
-    if (!choosingMonth) return;
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      choosingMonth = false;
-      renderMonth();
-      monthLabelEl?.focus({ preventScroll: true });
-      return;
-    }
-    const month = event.target.closest?.('[data-mini-month]');
-    if (!month) return;
-    const index = Number(month.dataset.miniMonth);
-    const target = { ArrowLeft: index - 1, ArrowRight: index + 1, ArrowUp: index - 4, ArrowDown: index + 4, Home: 0, End: 11 }[event.key];
-    if (target === undefined) return;
-    event.preventDefault();
-    containerEl.querySelector(`[data-mini-month="${Math.max(0, Math.min(11, target))}"]`)?.focus({ preventScroll: true });
-  });
-
-  renderMonth();
-
-  return {
-    highlightDate(dateKey) {
-      selectedDateKey = dateKey;
-      if (!choosingMonth) highlightSelectedDate();
-    },
-    navigateToMonth(year, month) {
-      if (calYear === year && calMonth === month && !choosingMonth) return;
-      choosingMonth = false;
-      calYear = year; calMonth = month;
-      renderMonth();
-    },
-    refresh() { renderMonth(); },
-  };
+export function setupMiniCalendar(opts) {
+  if (!opts.containerEl) return null;
+  wireMiniCalendarDisclosure(opts.containerEl, opts.collapseBtn);
+  return setupPicker({ ...opts, buildCells: buildMiniCalendarCells, formatDateKey, expanded: () => miniCalendarExpanded, expand: setMiniCalendarExpanded });
 }
 
 // ── カスタム時刻ピッカー ──────────────────────────────
@@ -566,7 +455,7 @@ function _wireTimeStepper(input) {
   upBtn.className = "timeStepperBtn";
   upBtn.textContent = "▲";
   upBtn.tabIndex = -1;
-  upBtn.setAttribute("aria-label", "1分進める");
+  upBtn.setAttribute("aria-label", translate('ui.29436834c8'));
   upBtn.addEventListener("mousedown", (e) => e.preventDefault()); // input の blur を防ぐ
   upBtn.addEventListener("click", () => _stepTimeInput(input, 1));
 
@@ -575,7 +464,7 @@ function _wireTimeStepper(input) {
   downBtn.className = "timeStepperBtn";
   downBtn.textContent = "▼";
   downBtn.tabIndex = -1;
-  downBtn.setAttribute("aria-label", "1分戻す");
+  downBtn.setAttribute("aria-label", translate('ui.0efbc33e84'));
   downBtn.addEventListener("mousedown", (e) => e.preventDefault());
   downBtn.addEventListener("click", () => _stepTimeInput(input, -1));
 
@@ -626,7 +515,7 @@ function populateTagOptions(containerEl, tags, selectedTagId) {
   noneBtn.type = "button";
   noneBtn.className = "btnGroupItem" + (!selected ? " active" : "");
   noneBtn.dataset.value = "";
-  noneBtn.textContent = "タグなし";
+  noneBtn.textContent = translate('ui.af1cc864e3');
   noneBtn.addEventListener("click", () => _activate(noneBtn));
   containerEl.appendChild(noneBtn);
 
@@ -819,13 +708,15 @@ export function getDialogTagsForDateKey(Store, dateKey, currentTagId, getFallbac
  */
 export function openCreateDialog(dialog, opts = {}) {
   const titleEl = dialog.querySelector("[data-dialog-title]");
-  if (titleEl) titleEl.textContent = opts.dialogTitle ?? "新しいタスクを追加";
+  if (titleEl) titleEl.textContent = opts.dialogTitle ?? translate('ui.d3dd6281b0');
 
   dialog.querySelector("[name='title']").value     = "";
   dialog.querySelector("[name='startTime']").value = opts.startTime ?? "09:00";
   dialog.querySelector("[name='endTime']").value   = opts.endTime   ?? "10:00";
   dialog.querySelector("[name='allDay']").checked  = Boolean(opts.isAllDay);
   dialog.querySelector("[name='memo']").value      = "";
+  const outlook = dialog.querySelector('[name="outlookEnabled"]');
+  if (outlook) { outlook.checked = opts.outlookEnabled ?? dialog.dataset.outlookDefault === 'true'; outlook.disabled = false; }
   if (dialog.querySelector("[name='date']")) {
     dialog.querySelector("[name='date']").value = opts.date ?? formatDateKey(new Date());
   }
@@ -853,13 +744,15 @@ export function openCreateDialog(dialog, opts = {}) {
  */
 export function openEditDialog(dialog, task, tags) {
   const titleEl = dialog.querySelector("[data-dialog-title]");
-  if (titleEl) titleEl.textContent = "タスクを編集";
+  if (titleEl) titleEl.textContent = translate('ui.31894d4e1e');
 
   dialog.querySelector("[name='title']").value     = task.title     ?? "";
   dialog.querySelector("[name='startTime']").value = task.startTime ?? "09:00";
   dialog.querySelector("[name='endTime']").value   = task.endTime   ?? "10:00";
   dialog.querySelector("[name='allDay']").checked  = Boolean(task.isAllDay);
   dialog.querySelector("[name='memo']").value      = task.memo      ?? "";
+  const outlook = dialog.querySelector('[name="outlookEnabled"]');
+  if (outlook) { outlook.checked = Boolean(task.outlookEnabled); outlook.disabled = true; }
   if (dialog.querySelector("[name='date']")) {
     dialog.querySelector("[name='date']").value = task.date ?? formatDateKey(new Date());
   }
@@ -902,6 +795,7 @@ export function readDialogForm(dialog) {
 
   return {
     title:    (dialog.querySelector("[name='title']")?.value     ?? "").trim(),
+    outlookEnabled: dialog.querySelector('[name="outlookEnabled"]')?.checked ?? false,
     startTime: dialog.querySelector("[name='startTime']")?.value ?? "09:00",
     endTime:   dialog.querySelector("[name='endTime']")?.value   ?? "10:00",
     isAllDay:  dialog.querySelector("[name='allDay']")?.checked  ?? false,
@@ -929,7 +823,7 @@ export function startHeaderClock({ workEnd = "18:00", getWorkEnd } = {}) {
     if (dateEl) dateEl.textContent = formatDateJP(now);
 
     const currentWorkEnd = typeof getWorkEnd === "function" ? getWorkEnd() : workEnd;
-    const minKey = `${formatDateKey(now)}-${now.getHours()}-${now.getMinutes()}-${currentWorkEnd}`;
+    const minKey = `${formatDateKey(now)}-${now.getHours()}-${now.getMinutes()}-${currentWorkEnd}-${getLocale()}`;
     if (minKey !== lastMinKey) {
       const endMinutes = timeToMinutes(currentWorkEnd);
       const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -940,6 +834,7 @@ export function startHeaderClock({ workEnd = "18:00", getWorkEnd } = {}) {
   }
 
   tick();
+  document.addEventListener?.('tcplus:language', tick);
   setInterval(tick, 1000);
 }
 
@@ -1032,7 +927,7 @@ export function wireSidebarToggle(root) {
       "d", collapsed ? "m13 9 3 3-3 3" : "m16 9-3 3 3 3",
     );
     btn.setAttribute("aria-expanded", String(!collapsed));
-    btn.title = collapsed ? "サイドバーを開く" : "サイドバーを折りたたむ";
+    btn.title = collapsed ? translate('ui.d545bd0c1e') : translate('ui.cd3379e939');
     btn.setAttribute("aria-label", btn.title);
   });
 }
@@ -1043,19 +938,22 @@ export function wireSidebarToggle(root) {
  * @param {{monthEl?: Element, dayEl?: Element, Store: object, dateKey: string, emptyText?: {month: string, day: string}}} opts
  */
 export function renderSideSummaries({ monthEl, dayEl, Store, dateKey, emptyText = {
-  month: "この月の集計データはまだありません。",
-  day: "この日の集計データはまだありません。",
+  month: translate('ui.f8709d84bf'),
+  day: translate('ui.71a82f49d0'),
 } }) {
   const yearMonth = String(dateKey).slice(0, 7);
   const monthTags = Store.getTagsForMonth(yearMonth);
   const tags = monthTags.length > 0 ? monthTags : Store.getAllTags();
+  const totals = summary => `<div class="sideWorkTotals"><div><span>${escHtml(translate('work.total'))}</span><strong>${escHtml(formatDuration(summary.total))}</strong></div><div><span>${escHtml(translate('work.overtime'))}</span><strong>${escHtml(formatDuration(summary.overtime))}</strong></div></div>`;
   if (monthEl) {
-    const html = renderTagBudgetRowsHtml(tags, Store.calcMonthSummary(yearMonth).byTag);
-    monthEl.innerHTML = html || (emptyText ? `<div class="small">${escHtml(emptyText.month)}</div>` : "");
+    const summary = Store.calcMonthSummary(yearMonth);
+    const html = renderTagBudgetRowsHtml(tags, summary.byTag);
+    monthEl.innerHTML = totals(summary) + (html || (emptyText ? `<div class="small">${escHtml(emptyText.month)}</div>` : ""));
   }
   if (dayEl) {
-    const html = renderDaySummaryRowsHtml(tags, Store.calcDaySummary(dateKey).byTag);
-    dayEl.innerHTML = html || (emptyText ? `<div class="small">${escHtml(emptyText.day)}</div>` : "");
+    const summary = Store.calcDaySummary(dateKey);
+    const html = renderDaySummaryRowsHtml(tags, summary.byTag);
+    dayEl.innerHTML = totals(summary) + (html || (emptyText ? `<div class="small">${escHtml(emptyText.day)}</div>` : ""));
   }
 }
 
@@ -1086,7 +984,7 @@ function _openMonthTagPopup(Store, yearMonth, clientX, clientY) {
   const title = document.createElement("div");
   title.className = "taskTagContextTitle";
   const [y, m] = yearMonth.split("-");
-  title.textContent = `${y}年${Number(m)}月のタグ`;
+  title.textContent = translate('ui.539db9c358', { p0: (y), p1: (Number(m)) });
   popup.appendChild(title);
 
   const sep = document.createElement("div");
@@ -1097,7 +995,7 @@ function _openMonthTagPopup(Store, yearMonth, clientX, clientY) {
     const empty = document.createElement("div");
     empty.className = "taskTagContextTitle";
     empty.style.paddingTop = "6px";
-    empty.textContent = "この月にタグはありません";
+    empty.textContent = translate('ui.8e4b246a11');
     popup.appendChild(empty);
   } else {
     tags.forEach((tag) => {

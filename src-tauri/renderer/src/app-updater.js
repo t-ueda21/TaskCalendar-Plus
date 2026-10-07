@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 import { createUpdateController, isUpdateApplying, isUpdateBusy } from './app-update-controller.js';
 
 // Preserve the existing module API for callers of the standalone controller.
@@ -5,7 +6,7 @@ export { createUpdateController } from './app-update-controller.js';
 
 function createNativeUpdater(bridge) {
   const invoke = (command, args) => bridge?.core?.invoke(command, args)
-    ?? Promise.reject(new Error('デスクトップアプリから確認してください。'));
+    ?? Promise.reject(new Error(translate('ui.d71fe06e63')));
   return {
     info: () => invoke('get_update_info'),
     check: () => invoke('check_app_update'),
@@ -18,15 +19,15 @@ function createNativeUpdater(bridge) {
 }
 
 function updateStatus(state, supported) {
-  if (!supported) return 'インストール版で更新を利用できます。';
+  if (!supported) return translate('ui.d3a8a5b1ae');
   switch (state.phase) {
-    case 'checking': return '更新を確認しています…';
-    case 'current': return '最新版です。';
-    case 'available': return `v${state.latest.version} に更新できます。`;
-    case 'downloading': return `ダウンロード中${state.percent == null ? '…' : `… ${state.percent}%`}`;
-    case 'installing': return '更新して再起動しています…';
+    case 'checking': return translate('ui.a134f8e299');
+    case 'current': return translate('ui.c2e7d35cca');
+    case 'available': return translate('ui.d0904a76f9', { p0: (state.latest.version) });
+    case 'downloading': return translate('ui.1553ebcc89', { p0: (state.percent == null ? '…' : `… ${state.percent}%`) });
+    case 'installing': return translate('ui.729931a79b');
     case 'error': return state.error;
-    default: return '「更新を確認」で最新版を確認できます。';
+    default: return translate('ui.a70855b644');
   }
 }
 
@@ -54,26 +55,26 @@ function createUpdateView(root, dialog, supported) {
       view.openButtons.forEach(el => {
         const entry = view.entries.includes(el);
         el.hidden = !entry && !state.latest;
-        if (!entry) el.textContent = el.closest('[data-settings-dialog]') ? '設定を保存して更新'
-          : state.latest ? '更新あり' : busy ? '確認中…' : '更新を確認';
-        el.title = state.latest ? `v${state.latest.version} の更新内容を見る` : 'アプリの更新を確認する';
+        if (!entry) el.textContent = el.closest('[data-settings-dialog]') ? translate('ui.1c0e325f78')
+          : state.latest ? translate('ui.c5837a6813') : busy ? translate('ui.0064397763') : translate('ui.d0e7d03d32');
+        el.title = state.latest ? translate('ui.728be0b322', { p0: (state.latest.version) }) : translate('ui.916ee83f1b');
         if (entry) {
           el.classList.toggle('hasUpdate', Boolean(state.latest));
-          el.setAttribute('aria-label', state.latest ? `更新あり: ${el.title}` : busy ? '更新を確認中' : el.title);
+          el.setAttribute('aria-label', state.latest ? translate('ui.439ecd40e6', { p0: (el.title) }) : busy ? translate('ui.7ad2329c15') : el.title);
         }
         el.disabled = applying;
       });
       const hasUpdate = Boolean(state.latest);
-      dialog.querySelector('#update-title').textContent = hasUpdate ? '新しいアップデートがあります' : 'アプリのアップデート';
+      dialog.querySelector('#update-title').textContent = hasUpdate ? translate('ui.08ba844851') : translate('ui.f156c3dde4');
       dialog.querySelector('.updateIntro').textContent = hasUpdate
-        ? 'TaskCalendar+ を最新のバージョンに更新できます。' : '現在のバージョンと更新の有無を確認できます。';
+        ? translate('ui.83b81c3e1c') : translate('ui.ad25ca5044');
       for (const selector of ['.updateNotesHeading', '.updateSafetyNote', '.updateLatestVersion']) {
         dialog.querySelector(selector).hidden = !hasUpdate;
       }
       const arrow = dialog.querySelector('.updateVersionComparison [aria-hidden]');
       if (arrow) arrow.hidden = !hasUpdate;
       view.install.hidden = !hasUpdate;
-      view.close.textContent = hasUpdate ? 'あとで' : '閉じる';
+      view.close.textContent = hasUpdate ? translate('ui.c829aa2489') : translate('ui.f6c244f988');
       view.latest.forEach(el => { el.textContent = state.latest ? `v${state.latest.version}` : '—'; });
       view.notes.textContent = state.latest?.notes || '';
       view.install.disabled = !supported || !state.latest || busy;

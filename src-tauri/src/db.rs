@@ -20,6 +20,7 @@ pub fn open_database(path: &Path) -> Result<Connection> {
 /// 呼び出し側(main.rs)がシステム時刻から算出して渡す。
 pub fn migrate(conn: &Connection, current_month: &str) -> Result<()> {
     create_tables(conn)?;
+    crate::outlook_jobs::migrate(conn)?;
     create_task_revision(conn)?;
     add_tags_budget_range_columns(conn)?;
     dedupe_outlook_occurrence_keys(conn)?;
@@ -200,7 +201,7 @@ mod tests {
         names.sort();
         assert_eq!(
             names,
-            vec!["ai_memory", "settings", "tags", "task_revision", "tasks", "weather_cache"]
+            vec!["ai_memory", "outlook_identity", "outlook_jobs", "outlook_links", "settings", "tags", "task_revision", "tasks", "weather_cache"]
         );
     }
 
