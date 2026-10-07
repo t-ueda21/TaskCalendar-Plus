@@ -909,6 +909,21 @@ async function updateTasksBatch(snapshots, patch) {
   return saved;
 }
 
+/** Delete exactly the captured occurrences in one revision-checked transaction. */
+async function deleteTasksBatch(snapshots) {
+  if (!Array.isArray(snapshots) || !snapshots.length || snapshots.some(task => !validateTask(task))
+    || new Set(snapshots.map(task => task.id)).size !== snapshots.length) {
+    throw new Error(translate('errors.generic'));
+  }
+  if (snapshots.some(task => {
+    const current = _tasks.find(row => row.id === task.id);
+    return !current || current.updatedAt !== task.updatedAt;
+  })) throw new Error(translate('errors.conflict'));
+  const saved = await _batchTasks([], snapshots, snapshots);
+  publish('task-bulk-changed', {ids:snapshots.map(task => task.id)});
+  return saved;
+}
+
 /** Restore a previously deleted task without changing its identity or recurrence. */
 async function restoreTask(task) {
   if (!validateTask(task) || _tasks.some((row) => row.id === task.id)) {
@@ -1580,6 +1595,7 @@ export {
   restoreTask,
   updateTask,
   updateTasksBatch,
+  deleteTasksBatch,
   updateTaskWithMode,
   deleteTask,
   deleteTaskWithMode,

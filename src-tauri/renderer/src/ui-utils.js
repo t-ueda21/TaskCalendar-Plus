@@ -1089,7 +1089,7 @@ export function ensureTaskTagMenu() {
 }
 
 /** メニューの描画と配置を共通化する。タグ更新の待ち方とUndoは呼び出し側で維持する。 */
-export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clientY, onEdit, onDelete, onTagSelect, selectionCount = 1, selectedTagId = task.tagId }) {
+export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clientY, onEdit, onDelete, onTagSelect, onBulkEdit, onBulkDelete, selectionCount = 1, selectedTagId = task.tagId }) {
   menu.innerHTML = "";
   const multiple = selectionCount > 1;
 
@@ -1104,6 +1104,7 @@ export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clie
       hideTaskTagMenu();
     });
     menu.appendChild(btn);
+    return btn;
   };
 
   if (!multiple) {
@@ -1169,6 +1170,12 @@ export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clie
     empty.className = "taskTagContextEmpty";
     empty.textContent = translate('ui.9ffd96ece9');
     menu.appendChild(empty);
+  }
+
+  if (multiple) {
+    const separator = document.createElement('div');separator.className = 'taskTagContextSeparator';menu.appendChild(separator);
+    addActionItem(translate('batch.edit'), onBulkEdit).dataset.bulkEdit = '';
+    addActionItem(translate('batch.delete', { count: selectionCount }), onBulkDelete, {danger:true}).dataset.bulkDelete = '';
   }
 
   menu.hidden = false;

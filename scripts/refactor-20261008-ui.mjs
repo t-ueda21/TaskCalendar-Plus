@@ -16,6 +16,10 @@ const view=name=>p.locator('[data-view="'+name+'"]');
 const tasks=()=>view('tasks');
 const editor=()=>tasks().locator('[data-task-dialog]');
 const navigateTasks=async()=>{await p.locator('nav.nav [data-nav-target="tasks"]').click();await tasks().waitFor({state:'visible'});};
+const openBulkEditor=async()=>{
+  await tasks().locator('[data-task-id="task-plan"]:visible').click({button:'right'});
+  await p.locator('.taskTagContextMenu [data-bulk-edit]').click();
+};
 const stateTasks=()=>h.state().tasks;
 const waitForTask=async(title)=>p.waitForFunction(async expected=>(await import('/src/store.js')).getAllTasks().some(row=>row.title===expected),title);
 const write=()=>fs.writeFileSync(path.join(output,'cases.json'),JSON.stringify({scope:h.meta.scope,cases,browserDialogs},null,2));
@@ -55,7 +59,8 @@ try{
       await task('task-plan').click({modifiers:['Control']});assert.deepEqual(await selected(),['task-early','task-plan']);
       await task('task-early').click({modifiers:['Control']});assert.deepEqual(await selected(),['task-plan']);
       await task('task-plan').click();await task('task-late').click({modifiers:['Shift']});assert.deepEqual(await selected(),['task-late','task-meeting','task-personal','task-plan']);
-      assert.equal(await scope.locator('[data-bulk-edit]').isEnabled(),true);await p.keyboard.press('Escape');assert.deepEqual(await selected(),[]);
+      assert.equal(await scope.locator('[data-task-selection-bar]').count(),0);
+      await p.keyboard.press('Escape');assert.deepEqual(await selected(),[]);
     }
   });
   await run('UI-SELECTION-PRUNE','Filtering and changing date removes hidden selections',async()=>{
@@ -66,21 +71,21 @@ try{
   });
   await run('UI-BULK-SAVE','Bulk changes only enabled fields on selected task IDs',async()=>{
     await navigateTasks();const before=stateTasks();await tasks().locator('[data-task-id="task-plan"] .taskTitleCell').click();await tasks().locator('[data-task-id="task-meeting"] .taskTitleCell').click({modifiers:['Control']});
-    await tasks().locator('[data-bulk-edit]').click();const dialog=p.locator('[data-bulk-dialog]');assert.equal(await dialog.locator('[data-bulk-apply]').isEnabled(),false);
+    await openBulkEditor();const dialog=p.locator('[data-bulk-dialog]');assert.equal(await dialog.locator('[data-bulk-apply]').isEnabled(),false);
     await dialog.locator('[data-bulk-enable="memo"]').check();await dialog.locator('[data-bulk-memo]').fill('一括更新したメモ');await dialog.locator('[data-bulk-apply]').click();await dialog.waitFor({state:'detached'});
     for(const id of ['task-plan','task-meeting']){const actual=stateTasks().find(row=>row.id===id);const original=before.find(row=>row.id===id);assert.deepEqual({...actual,updatedAt:original.updatedAt},{...original,memo:'一括更新したメモ'});}
     assert.deepEqual(stateTasks().filter(row=>!['task-plan','task-meeting'].includes(row.id)),before.filter(row=>!['task-plan','task-meeting'].includes(row.id)));
   });
   await run('UI-BULK-FAILURE','Failed bulk request changes nothing, keeps dialog open and permits retry',async()=>{
     await navigateTasks();const before=stateTasks();await tasks().locator('[data-task-id="task-plan"] .taskTitleCell').click();await tasks().locator('[data-task-id="task-meeting"] .taskTitleCell').click({modifiers:['Control']});
-    await tasks().locator('[data-bulk-edit]').click();const dialog=p.locator('[data-bulk-dialog]');await dialog.locator('[data-bulk-enable="tag"]').check();await dialog.locator('[data-bulk-tag]').selectOption('');
+    await openBulkEditor();const dialog=p.locator('[data-bulk-dialog]');await dialog.locator('[data-bulk-enable="tag"]').check();await dialog.locator('[data-bulk-tag]').selectOption('');
     h.failNext('POST','/api/tasks/batch',409);await dialog.locator('[data-bulk-apply]').click();await p.waitForFunction(()=>Boolean(document.querySelector('[data-bulk-error]')?.textContent));
     assert.deepEqual(stateTasks(),before);assert.equal(await dialog.isVisible(),true);assert.equal(await dialog.locator('[data-bulk-apply]').isEnabled(),true);
     await dialog.locator('[data-bulk-apply]').click();await dialog.waitFor({state:'detached'});
     assert.equal(stateTasks().find(row=>row.id==='task-plan').tagId,'');assert.equal(stateTasks().find(row=>row.id==='task-meeting').tagId,'');assert.deepEqual(stateTasks().filter(row=>!['task-plan','task-meeting'].includes(row.id)),before.filter(row=>!['task-plan','task-meeting'].includes(row.id)));
   });
   await run('UI-BULK-STALE','Stale bulk snapshots preserve concurrent edits and other selected tasks',async()=>{
-    await navigateTasks();await tasks().locator('[data-task-id="task-plan"] .taskTitleCell').click();await tasks().locator('[data-task-id="task-meeting"] .taskTitleCell').click({modifiers:['Control']});await tasks().locator('[data-bulk-edit]').click();
+    await navigateTasks();await tasks().locator('[data-task-id="task-plan"] .taskTitleCell').click();await tasks().locator('[data-task-id="task-meeting"] .taskTitleCell').click({modifiers:['Control']});await openBulkEditor();
     const concurrent=stateTasks().map(row=>row.id==='task-plan'?{...row,memo:'別の場所で保存したメモ',updatedAt:'2026-10-08T01:16:00.000Z'}:row);h.setTasks(concurrent);
     const dialog=p.locator('[data-bulk-dialog]');await dialog.locator('[data-bulk-enable="memo"]').check();await dialog.locator('[data-bulk-memo]').fill('古い内容からの更新');await dialog.locator('[data-bulk-apply]').click();await p.waitForFunction(()=>Boolean(document.querySelector('[data-bulk-error]')?.textContent));
     assert.deepEqual(stateTasks(),concurrent);assert.equal(await dialog.isVisible(),true);await dialog.locator('[data-bulk-cancel]').click();

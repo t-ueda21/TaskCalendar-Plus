@@ -140,11 +140,12 @@ export async function captureGallery(h,output) {
   await page.locator('[data-view="calendar"] [data-mini-month-label]').click();
   await page.locator('nav.nav [data-nav-target="tasks"]').click();await page.locator('[data-view="tasks"]:not([hidden])').waitFor();await shot('tasks');
   await page.locator('[data-view="tasks"] [data-task-id="task-plan"] [data-edit]').click();await shot('task-edit');await page.locator('[data-view="tasks"] [data-task-dialog] [data-cancel]').click();
-  if(await page.locator('[data-view="tasks"] [data-bulk-edit]').count()){
+  {
     await page.locator('[data-view="tasks"] [data-task-id="task-plan"] .taskTitleCell').click();
     await page.locator('[data-view="tasks"] [data-task-id="task-meeting"] .taskTitleCell').click({modifiers:['Control']});await shot('tasks-selection');
-    await page.locator('[data-view="tasks"] [data-bulk-edit]').click();await shot('task-bulk-edit');await page.locator('[data-bulk-cancel]').click();
-    await page.locator('[data-view="tasks"] [data-selection-clear]').click();
+    await page.locator('[data-view="tasks"] [data-task-id="task-plan"]').click({button:'right'});
+    await page.locator('.taskTagContextMenu [data-bulk-edit]').click();await shot('task-bulk-edit');await page.locator('[data-bulk-cancel]').click();
+    await page.keyboard.press('Escape');
     await page.locator('[data-view="tasks"] [data-task-id="task-personal"] [data-del]').click();await page.locator('[data-app-dialog]').waitFor();await shot('task-delete-confirm');await page.locator('[data-app-dialog-cancel]').click();
   }
   await page.locator('[data-view="tasks"] [data-settings-btn]').click();await page.locator('[data-settings-dialog][open]').waitFor();

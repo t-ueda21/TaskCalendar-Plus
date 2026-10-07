@@ -1,6 +1,6 @@
 # v3.0.0 スクリーンショット（未公開）
 
-追加Issueの対応後と右クリックによる一括タグ変更の24画面です。**アプリの画面コードを隔離したChromiumで表示**し、API・ネイティブ連携・天気の応答には検証用データを使いました。Windowsアプリを再起動して撮影した画像ではありません。
+追加Issueの対応後と右クリックによる一括操作の26画面です。**アプリの画面コードを隔離したChromiumで表示**し、API・ネイティブ連携・天気の応答には検証用データを使いました。Windowsアプリを再起動して撮影した画像ではありません。
 
 1440×1000、倍率1、日時は2026年10月8日10時15分に固定しています。予定6件のうちタグ付き4件の合計は4時間30分、勤務時間9:00〜18:00の外に1時間です。タグなし2件は合計・残業に含めません。日次サイドバーは合計・残業のみ非表示で、タグ別の内訳を残しています。
 
@@ -12,8 +12,8 @@
 | [日表示](images/v3.0.0-review/calendar-day.png) | 時間帯と予定の配置 |
 | [タスク一覧](images/v3.0.0-review/tasks.png) | タグなしの中立色バッジと操作アイコン |
 | [複数選択](images/v3.0.0-review/tasks-selection.png) | Ctrl／Shiftによる選択と件数表示 |
-| [一覧での右クリック一括タグ変更](images/v3.0.0-review/tasks-context-bulk.png) | 選択中の予定を右クリックして全件のタグを変更。上部に一括変更ボタンも表示 |
-| [カレンダーでの右クリック一括タグ変更](images/v3.0.0-review/calendar-context-bulk.png) | 選択中のどれかから同じタグを全件へ適用 |
+| [一覧での右クリック一括操作](images/v3.0.0-review/tasks-context-bulk.png) | タグ変更・一括変更・一括削除を右クリックに集約。選択しても追加操作欄は表示しない |
+| [カレンダーでの右クリック一括操作](images/v3.0.0-review/calendar-context-bulk.png) | 選択中の予定から一括変更・削除。選択件数はメニュー内に表示 |
 | [一括変更](images/v3.0.0-review/task-bulk-edit.png) | 選択した予定のタグ・日付・メモの変更 |
 | [タスク編集](images/v3.0.0-review/task-edit.png) | 入力欄・余白・保存と取消・Outlook登録選択 |
 | [削除確認](images/v3.0.0-review/task-delete-confirm.png) | アプリ内の確認ダイアログ |
@@ -29,6 +29,8 @@
 | [設定：アプリ](images/v3.0.0-review/settings-app.png) | 起動・常駐・更新・クイックリンク |
 | [設定：ショートカット](images/v3.0.0-review/settings-shortcuts.png) | キー操作の一覧 |
 | [ダークモード：一覧](images/v3.0.0-review/tasks-dark.png) | 暗い配色での一覧と集計 |
+| [ダークモード：一覧のメニュー](images/v3.0.0-review/tasks-context-dark.png) | 暗い配色での右クリックメニュー |
+| [ダークモード：カレンダーのメニュー](images/v3.0.0-review/calendar-context-dark.png) | 暗い配色での右クリックメニュー |
 | [ダークモード：勤務時間](images/v3.0.0-review/settings-work-dark.png) | 暗い配色での設定 |
 | [英語](images/v3.0.0-review/calendar-en.png) | 英語のUIと日本の地域設定 |
 | [韓国語](images/v3.0.0-review/calendar-ko.png) | 韓国語のUIと日本の地域設定 |
@@ -77,6 +79,6 @@
 
 <a href="images/v3.0.0-review/calendar-ko.png"><img src="images/v3.0.0-review/calendar-ko.png" alt="韓国語" width="800"></a>
 
-18画面の撮影情報は[gallery.json](images/v3.0.0-review/gallery.json)、追加4画面は[extra-capture.json](images/v3.0.0-review/extra-capture.json)、右クリック一括変更2画面は[context-bulk-capture.json](images/v3.0.0-review/context-bulk-capture.json)に記録しています。[隔離した撮影ハーネス](../scripts/refactor-20261008-harness.mjs)を使用しました。過去のネイティブ撮影画像は `images/v3.0.0/` に履歴として残しています。
+20画面の撮影情報は[gallery.json](images/v3.0.0-review/gallery.json)、追加4画面は[extra-capture.json](images/v3.0.0-review/extra-capture.json)、右クリック一括操作2画面は[context-bulk-capture.json](images/v3.0.0-review/context-bulk-capture.json)に記録しています。[隔離した撮影ハーネス](../scripts/refactor-20261008-harness.mjs)を使用しました。過去のネイティブ撮影画像は `images/v3.0.0/` に履歴として残しています。
 
 [READMEへ戻る](../README.md)

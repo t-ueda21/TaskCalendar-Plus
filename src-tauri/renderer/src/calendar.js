@@ -328,6 +328,8 @@ function _openTaskTagMenu(task, clientX, clientY, sourceEl = null) {
     task, tags, seriesCount, clientX, clientY,
     selectionCount: contextTasks.length,
     selectedTagId: contextTasks.every(row => row.tagId === task.tagId) ? task.tagId : null,
+    onBulkEdit: () => _batchControl.openEditor(),
+    onBulkDelete: () => _batchControl.deleteSelected(contextTasks),
     onEdit: async () => {
       openEditDialog($dialog, task, _getDialogTagsForDateKey(task.date, task.tagId));
     },

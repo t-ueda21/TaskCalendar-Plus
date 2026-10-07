@@ -703,7 +703,10 @@
     "dialog.scope.series": "繰り返し予定すべて",
     "dialog.scope.singleHint": "選択した1件だけに適用します。",
     "dialog.scope.futureHint": "選択した日から後の予定に適用します。",
-    "dialog.scope.seriesHint": "同じ繰り返しの予定に適用します。"
+    "dialog.scope.seriesHint": "同じ繰り返しの予定に適用します。",
+    "batch.delete": "選択した{count}件を削除…",
+    "batch.deleteConfirm": "選択した{count}件の予定を削除しますか？ 繰り返し予定も、選択した回だけが対象です。",
+    "batch.deleted": "{count}件を削除しました"
   },
   "en": {
     "common.save": "Save",
@@ -1409,7 +1412,10 @@
     "dialog.scope.series": "All events in this series",
     "dialog.scope.singleHint": "Apply only to the selected event.",
     "dialog.scope.futureHint": "Apply from the selected date onward.",
-    "dialog.scope.seriesHint": "Apply to every event in this series."
+    "dialog.scope.seriesHint": "Apply to every event in this series.",
+    "batch.delete": "Delete {count} selected tasks…",
+    "batch.deleteConfirm": "Delete the {count} selected tasks? For repeating tasks, only the selected occurrences will be deleted.",
+    "batch.deleted": "Deleted {count} tasks"
   },
   "ko": {
     "common.save": "저장",
@@ -2115,7 +2121,10 @@
     "dialog.scope.series": "모든 반복 일정",
     "dialog.scope.singleHint": "선택한 일정 하나에만 적용합니다.",
     "dialog.scope.futureHint": "선택한 날짜부터 이후 일정에 적용합니다.",
-    "dialog.scope.seriesHint": "같은 반복의 모든 일정에 적용합니다."
+    "dialog.scope.seriesHint": "같은 반복의 모든 일정에 적용합니다.",
+    "batch.delete": "선택한 {count}개 삭제…",
+    "batch.deleteConfirm": "선택한 일정 {count}개를 삭제할까요? 반복 일정도 선택한 회차만 삭제됩니다.",
+    "batch.deleted": "{count}개를 삭제했습니다"
   },
   "zh-CN": {
     "common.save": "保存",
@@ -2821,7 +2830,10 @@
     "dialog.scope.series": "系列中的所有日程",
     "dialog.scope.singleHint": "仅应用于选中的日程。",
     "dialog.scope.futureHint": "应用于选定日期及以后的日程。",
-    "dialog.scope.seriesHint": "应用于此系列的所有日程。"
+    "dialog.scope.seriesHint": "应用于此系列的所有日程。",
+    "batch.delete": "删除选中的{count}项…",
+    "batch.deleteConfirm": "删除选中的{count}项任务吗？重复任务也仅删除所选日程。",
+    "batch.deleted": "已删除{count}项"
   },
   "zh-TW": {
     "common.save": "儲存",
@@ -3527,7 +3539,10 @@
     "dialog.scope.series": "系列中的所有行程",
     "dialog.scope.singleHint": "僅套用至選取的行程。",
     "dialog.scope.futureHint": "套用至選取日期及以後的行程。",
-    "dialog.scope.seriesHint": "套用至此系列的所有行程。"
+    "dialog.scope.seriesHint": "套用至此系列的所有行程。",
+    "batch.delete": "刪除選取的{count}項…",
+    "batch.deleteConfirm": "要刪除選取的{count}項任務嗎？重複任務也僅刪除所選行程。",
+    "batch.deleted": "已刪除{count}項"
   },
   "es": {
     "common.save": "Guardar",
@@ -4233,7 +4248,10 @@
     "dialog.scope.series": "Todos los eventos de la serie",
     "dialog.scope.singleHint": "Se aplica solo al evento seleccionado.",
     "dialog.scope.futureHint": "Se aplica desde la fecha seleccionada.",
-    "dialog.scope.seriesHint": "Se aplica a toda la serie."
+    "dialog.scope.seriesHint": "Se aplica a toda la serie.",
+    "batch.delete": "Eliminar {count} tareas seleccionadas…",
+    "batch.deleteConfirm": "¿Eliminar las {count} tareas seleccionadas? En tareas repetidas, solo se eliminarán las apariciones seleccionadas.",
+    "batch.deleted": "Se eliminaron {count} tareas"
   },
   "fr": {
     "common.save": "Enregistrer",
@@ -4939,7 +4957,10 @@
     "dialog.scope.series": "Tous les événements de la série",
     "dialog.scope.singleHint": "S’applique uniquement à l’événement choisi.",
     "dialog.scope.futureHint": "S’applique à partir de la date choisie.",
-    "dialog.scope.seriesHint": "S’applique à toute la série."
+    "dialog.scope.seriesHint": "S’applique à toute la série.",
+    "batch.delete": "Supprimer les {count} tâches sélectionnées…",
+    "batch.deleteConfirm": "Supprimer les {count} tâches sélectionnées ? Pour les tâches répétées, seules les occurrences sélectionnées seront supprimées.",
+    "batch.deleted": "{count} tâches supprimées"
   },
   "de": {
     "common.save": "Speichern",
@@ -5645,7 +5666,10 @@
     "dialog.scope.series": "Alle Termine der Serie",
     "dialog.scope.singleHint": "Gilt nur für den ausgewählten Termin.",
     "dialog.scope.futureHint": "Gilt ab dem ausgewählten Datum.",
-    "dialog.scope.seriesHint": "Gilt für alle Termine dieser Serie."
+    "dialog.scope.seriesHint": "Gilt für alle Termine dieser Serie.",
+    "batch.delete": "{count} ausgewählte Aufgaben löschen…",
+    "batch.deleteConfirm": "Die {count} ausgewählten Aufgaben löschen? Bei Wiederholungen werden nur die ausgewählten Termine gelöscht.",
+    "batch.deleted": "{count} Aufgaben gelöscht"
   },
   "pt": {
     "common.save": "Salvar",
@@ -6351,6 +6375,9 @@
     "dialog.scope.series": "Todos os eventos da série",
     "dialog.scope.singleHint": "Aplica-se apenas ao evento selecionado.",
     "dialog.scope.futureHint": "Aplica-se a partir da data selecionada.",
-    "dialog.scope.seriesHint": "Aplica-se a todos os eventos da série."
+    "dialog.scope.seriesHint": "Aplica-se a todos os eventos da série.",
+    "batch.delete": "Excluir {count} tarefas selecionadas…",
+    "batch.deleteConfirm": "Excluir as {count} tarefas selecionadas? Em tarefas repetidas, apenas as ocorrências selecionadas serão excluídas.",
+    "batch.deleted": "{count} tarefas excluídas"
   }
 }

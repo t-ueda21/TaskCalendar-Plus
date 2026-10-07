@@ -29,7 +29,7 @@ try{
     await menu.getByRole('button',{name:'設計',exact:true}).click();
     await waitTags([selected[0]],'tag-design');await menu.waitFor({state:'hidden'});
     assert.deepEqual(canonical(h.state().tasks),expected(before,selected,'tag-design'),name+': selected tasks only');
-    assert.match(await view(name).locator('[data-selection-count]').innerText(),/2/);
+    assert.equal(await view(name).locator('[data-task-id][aria-selected="true"]:visible').count(),2);
     // Remove tags through the other selected member, keeping the selection usable.
     before=h.state().tasks;await open(name,selected[1]);
     await menu.getByRole('button',{name:'タグなし',exact:true}).click();await waitTags(selected,'');
@@ -48,7 +48,7 @@ try{
     assert.match(await menu.innerText(),/2/);
     assert.equal(await menu.locator('button.active').count(),0,'mixed tags have no common active tag');
     assert.equal(await menu.getByRole('button',{name:'編集',exact:true}).count(),0,'bulk tag menu must not offer single-task edit');
-    assert.equal(await menu.locator('button.danger').count(),0,'bulk tag menu must not offer single-task delete');
+    assert.equal(await menu.getByRole('button',{name:'削除（この予定）',exact:true}).count(),0,'bulk menu must not offer single-task delete');
     await p.keyboard.press('Escape');assert.deepEqual(h.state().tasks,before);
     passed++;console.log('PASS: '+name+' mixed-tag menu and cancellation');
 
