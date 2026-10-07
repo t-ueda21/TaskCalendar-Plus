@@ -104,14 +104,18 @@ function _openTaskTagMenu(task, clientX, clientY, sourceRow = null) {
 
   const tags = _getDialogTagsForDateKey(task.date, task.tagId);
   const seriesCount = Store.getTaskSeriesCount(task);
+  const contextTasks = _batchControl.getContextTasks(task.id);
 
   renderTaskTagMenu(menu, {
     task, tags, seriesCount, clientX, clientY,
+    selectionCount: contextTasks.length,
+    selectedTagId: contextTasks.every(row => row.tagId === task.tagId) ? task.tagId : null,
     onEdit: async () => {
       openEditDialog($dialog, task, _getDialogTagsForDateKey(task.date, task.tagId));
     },
     onDelete: (mode) => _deleteTaskByChoice(task.id, mode),
     onTagSelect: async (value) => {
+      if (contextTasks.length > 1) return _batchControl.applyContextTag(contextTasks, value);
       await Store.updateTask(task.id, { tagId: value });
       hideTaskTagMenu();
     },

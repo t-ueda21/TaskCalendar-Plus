@@ -1089,8 +1089,9 @@ export function ensureTaskTagMenu() {
 }
 
 /** メニューの描画と配置を共通化する。タグ更新の待ち方とUndoは呼び出し側で維持する。 */
-export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clientY, onEdit, onDelete, onTagSelect }) {
+export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clientY, onEdit, onDelete, onTagSelect, selectionCount = 1, selectedTagId = task.tagId }) {
   menu.innerHTML = "";
+  const multiple = selectionCount > 1;
 
   const addActionItem = (label, onClick, { danger = false } = {}) => {
     const btn = document.createElement("button");
@@ -1105,24 +1106,43 @@ export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clie
     menu.appendChild(btn);
   };
 
-  addActionItem(translate('ui.11f9049dda'), onEdit);
-  addActionItem(translate('ui.fdc17259a9'), async () => {
-    await onDelete("single");
-  }, { danger: true });
-  if (seriesCount > 1) {
-    addActionItem(translate('ui.2a4fe5975d', { p0: (seriesCount) }), async () => {
-      await onDelete("series");
+  if (!multiple) {
+    addActionItem(translate('ui.11f9049dda'), onEdit);
+    addActionItem(translate('ui.fdc17259a9'), async () => {
+      await onDelete("single");
     }, { danger: true });
-  }
+    if (seriesCount > 1) {
+      addActionItem(translate('ui.2a4fe5975d', { p0: (seriesCount) }), async () => {
+        await onDelete("series");
+      }, { danger: true });
+    }
 
-  const sep = document.createElement("div");
-  sep.className = "taskTagContextSeparator";
-  menu.appendChild(sep);
+    const sep = document.createElement("div");
+    sep.className = "taskTagContextSeparator";
+    menu.appendChild(sep);
+  }
 
   const title = document.createElement("div");
   title.className = "taskTagContextTitle";
-  title.textContent = translate('ui.4400fedd36');
+  title.textContent = multiple
+    ? `${translate('batch.count', { count: selectionCount })} · ${translate('ui.4400fedd36')}`
+    : translate('ui.4400fedd36');
   menu.appendChild(title);
+
+  let busy = false;
+  const selectTag = async value => {
+    if (busy) return;
+    busy = true;
+    menu.querySelectorAll('button').forEach(button => { button.disabled = true; });
+    try {
+      const saved = await onTagSelect(value);
+      if (saved !== false && menu.contains(title)) hideTaskTagMenu();
+    } finally {
+      // A later right-click may have replaced this menu while the request was pending.
+      if (menu.contains(title)) menu.querySelectorAll('button').forEach(button => { button.disabled = false; });
+      busy = false;
+    }
+  };
 
   const addItem = (label, value, color = "", active = false) => {
     const btn = document.createElement("button");
@@ -1137,12 +1157,12 @@ export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clie
       btn.prepend(swatch); btn.setAttribute('aria-pressed', String(active));
     }
 
-    btn.addEventListener("click", () => onTagSelect(value));
+    btn.addEventListener("click", () => multiple ? selectTag(value) : onTagSelect(value));
     menu.appendChild(btn);
   };
 
-  addItem(translate('ui.af1cc864e3'), "", "", !task.tagId);
-  tags.forEach((tag) => addItem(tag.name, tag.id, tag.color, tag.id === task.tagId));
+  addItem(translate('ui.af1cc864e3'), "", "", multiple ? selectedTagId === '' : !task.tagId);
+  tags.forEach((tag) => addItem(tag.name, tag.id, tag.color, tag.id === selectedTagId));
 
   if (tags.length === 0) {
     const empty = document.createElement("div");

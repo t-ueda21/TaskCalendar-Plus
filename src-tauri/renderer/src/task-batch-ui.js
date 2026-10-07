@@ -55,6 +55,29 @@ export function wireTaskBatch(root, Store, {orderedIds,onFocus}={}) {
   document.addEventListener('tcplus:language',render);
   panel.setAttribute('aria-description',t('batch.shortcuts'));
 
+  function getContextTasks(taskId) {
+    selection.prune(visibleIds());
+    if(!selection.ids.has(taskId))selection.select(taskId);
+    status.textContent='';render();
+    // Freeze both the target IDs and revisions when the menu opens.
+    return Store.getAllTasks().filter(task=>selection.ids.has(task.id)).map(task=>structuredClone(task));
+  }
+  let contextSaving=false;
+  async function applyContextTag(snapshots,tagId) {
+    if(contextSaving)return false;
+    contextSaving=true;status.textContent=t('batch.saving');render();
+    try {
+      await Store.updateTasksBatch(snapshots,{tagId});
+      status.textContent=t('batch.saved',{count:snapshots.length});
+      return true;
+    } catch(cause) {
+      status.textContent=String(cause?.message??cause);
+      return false;
+    } finally {
+      contextSaving=false;render();
+    }
+  }
+
   function openEditor() {
     const ids=new Set(selection.ids);
     const snapshots=Store.getAllTasks().filter(task=>ids.has(task.id)).map(task=>structuredClone(task));
@@ -92,5 +115,5 @@ export function wireTaskBatch(root, Store, {orderedIds,onFocus}={}) {
     dialog.querySelector('form').addEventListener('submit',event=>{event.preventDefault();void save();});
     document.body.append(dialog);dialog.showModal();sync();
   }
-  return {clear:reset,refresh:render,selection};
+  return {clear:reset,refresh:render,selection,getContextTasks,applyContextTag};
 }
