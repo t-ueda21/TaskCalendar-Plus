@@ -4,6 +4,8 @@
 
 **予定を入れる。作業時間を見渡す。日報にまとめる。**
 
+Pre.2は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.0-pre.2/TaskCalendar%2B_3.0.0-pre.2_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.0-pre.2/TaskCalendar%2B_3.0.0-pre.2_x64-setup.zip)から手動で取得できます。[再公開の変更内容](docs/releases/v3.0.0-pre.2.md)を確認してください。ZIPは展開後にインストーラーを実行します。
+
 TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windows アプリです。案件や作業の種類ごとにタグを付けると、一日・一か月の工数を集計できます。
 
 [Windows版をダウンロード](https://github.com/t-ueda21/TaskCalendar-Plus/releases/latest) ・ [変更履歴](CHANGELOG.md) ・ [サンプルデータ](docs/examples/sample-backup.json)

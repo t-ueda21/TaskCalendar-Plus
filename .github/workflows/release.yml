@@ -9,6 +9,10 @@ on:
         description: 'Existing version tag (for example v0.1.0)'
         required: true
         type: string
+      stage_only:
+        description: 'Build and upload workflow artifacts without editing a GitHub Release'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ inputs.stage_only && github.sha || inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
@@ -67,7 +71,25 @@ jobs:
         run: npx --yes @tauri-apps/cli@2.11.5 build --ci --bundles nsis -- --locked
       - name: Create stable update feed (skip prereleases)
         run: node scripts/release-manifest.mjs
+      - name: Stage distribution files
+        if: inputs.stage_only == true
+        shell: pwsh
+        run: |
+          $assetJson = node scripts/release-manifest.mjs --assets
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $distribution = Join-Path $env:RUNNER_TEMP 'taskcalendar-distribution'
+          New-Item -ItemType Directory -Path $distribution -Force | Out-Null
+          foreach ($asset in @($assetJson | ConvertFrom-Json)) {
+            Copy-Item -LiteralPath $asset -Destination $distribution
+          }
+      - uses: actions/upload-artifact@v4
+        if: inputs.stage_only == true
+        with:
+          name: taskcalendar-distribution
+          path: ${{ runner.temp }}/taskcalendar-distribution/*
+          if-no-files-found: error
       - name: Create draft release
+        if: inputs.stage_only != true
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
