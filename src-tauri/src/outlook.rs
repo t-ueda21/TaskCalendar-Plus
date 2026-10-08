@@ -17,6 +17,10 @@ const OL_FOLDER_CALENDAR: i32 = 9;
 const OL_APPOINTMENT_CLASS: i32 = 26;
 const SAFETY_MAX_ITEMS: i32 = 5000;
 
+#[cfg(test)]
+#[path = "outlook/enumeration_tests.rs"]
+mod enumeration_tests;
+
 fn meeting_status_is_active(status: i32) -> Result<bool, String> {
     // Outlook.OlMeetingStatus: 5=主催者側のキャンセル、7=受信したキャンセル。
     // 件名では判定しない。状態を確認できない場合は同期全体を中止して既存タスクを守る。
@@ -608,14 +612,43 @@ fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDi
     let id = items
         .GetIDsOfNames(&[method], w::LCID::USER_DEFAULT)
         .map_err(|e| format!("Outlookの予定列挙({method})に失敗しました: {e}"))?[0];
-    let raw = items
-        .Invoke(
-            id,
-            w::LCID::USER_DEFAULT,
-            co::DISPATCH::METHOD,
-            &mut w::DISPPARAMS::default(),
-        )
-        .map_err(|e| format!("Outlookの予定列挙({method})に失敗しました: {e}"))?;
+    // winsafe 0.0.28のInvokeはS_OK以外をすべてErrにするため、成功応答の
+    // S_FALSE(0x00000001)まで「ファンクションが間違っています」と表示する。
+    // windows-rsの呼び出しでHRESULTの成功/失敗を判定し、成功時は返却値を
+    // 必ず確認する。S_FALSEだけで終端と決めると返却された予定を失う恐れがある。
+    use windows::Win32::System::Com::{DISPATCH_METHOD, DISPPARAMS, IDispatch};
+    use windows::core::{GUID, Interface};
+
+    let mut raw = w::VARIANT::default();
+    let mut exception = w::EXCEPINFO::default();
+    let ptr = items.ptr();
+    // 両クレートの構造体は同じWindows COM ABI。winsafe側がDropで
+    // VARIANT/BSTRを解放し、借用したIDispatchの所有権はitemsが保持する。
+    let result = unsafe {
+        IDispatch::from_raw_borrowed(&ptr)
+            .expect("items is a non-null IDispatch")
+            .Invoke(
+                id,
+                &GUID::zeroed(),
+                w::LCID::USER_DEFAULT.raw(),
+                DISPATCH_METHOD,
+                &DISPPARAMS::default(),
+                Some((&mut raw as *mut w::VARIANT).cast()),
+                Some((&mut exception as *mut w::EXCEPINFO).cast()),
+                None,
+            )
+    };
+    if let Err(error) = result {
+        let hr = unsafe { co::HRESULT::from_raw(error.code().0 as u32) };
+        let detail = if hr == co::HRESULT::DISP_E_EXCEPTION {
+            exception.to_string()
+        } else {
+            hr.to_string()
+        };
+        return Err(format!(
+            "Outlookの予定列挙({method})に失敗しました: {detail}"
+        ));
+    }
     match raw.vt() {
         co::VT::EMPTY | co::VT::NULL => Ok(None),
         co::VT::DISPATCH => {

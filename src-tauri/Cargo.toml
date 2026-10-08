@@ -1,6 +1,6 @@
 [package]
 name = "taskcalendar-plus"
-version = "3.0.0"
+version = "3.0.0-pre.1"
 license = "MIT"
 edition = "2024"
 
@@ -18,7 +18,7 @@ tauri-plugin-shell = "2.3.5"
 tauri-plugin-single-instance = "=2.4.5"
 tauri-plugin-updater = "2"
 tokio = { version = "1.53.1", features = ["fs", "io-util", "macros", "net", "process", "rt-multi-thread", "sync", "time"] }
-windows = { version = "0.61.3", features = ["Win32_System_Com", "Win32_System_Ole", "Win32_Foundation", "Win32_Globalization", "Win32_System_Threading", "Win32_Security"] }
+windows = { version = "0.61.3", features = ["Win32_System_Com", "Win32_System_Ole", "Win32_System_Variant", "Win32_Foundation", "Win32_Globalization", "Win32_System_Threading", "Win32_Security"] }
 winsafe = { version = "0.0.28", features = ["ole", "oleaut"] }
 
 [build-dependencies]
