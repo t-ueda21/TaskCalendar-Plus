@@ -4,6 +4,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import { openHarness, fixture } from './refactor-20261008-harness.mjs';
 import { runContextMenuContracts } from './refactor-20261008-context-menu.mjs';
+import { assertSettingsArchitecture, settingsPageIds, settingsPageLabelsJa } from './refactor-20261008-settings-contract.mjs';
 
 const root=path.resolve(process.argv[2]||'.');
 const output=path.resolve(process.argv[3]||'out/refactor-20261008/ui-contract-probe');
@@ -143,13 +144,13 @@ try{
   });
   await run('UI-SETTINGS-PAGES','Purpose-specific setting pages show one panel and preserve cancel/save',async()=>{
     await view('calendar').locator('[data-settings-btn]').click();const dialog=p.locator('[data-settings-dialog]');
-    const expected=['general','advanced','tags','ai','outlook','about','app','shortcuts'];assert.deepEqual((await dialog.locator('[data-settings-tab]').evaluateAll(nodes=>nodes.map(node=>node.dataset.settingsTab))).sort(),expected.sort());
+    await assertSettingsArchitecture(dialog);
+    assert.deepEqual(await dialog.locator('[data-settings-tab]').allTextContents(),settingsPageLabelsJa);
+    const expected=settingsPageIds;
     for(const tab of expected){await dialog.locator('[data-settings-tab="'+tab+'"]').click();assert.equal(await dialog.locator('[data-settings-tab][aria-selected="true"]').count(),1);assert.equal(await dialog.locator('[data-settings-tab-panel]:not([hidden])').count(),1);assert.equal(await dialog.locator('[data-settings-tab-panel]:not([hidden])').getAttribute('data-settings-tab-panel'),tab);}
-    const expectedPanels={'[data-language-select]':'general','[name="workStart"]':'advanced','[data-ai-provider-select]':'ai','[name="launchAtLogin"]':'app','[data-tag-list]':'tags'};
-    for(const [selector,tab]of Object.entries(expectedPanels))assert.equal(await dialog.locator(selector).evaluate(node=>node.closest('[data-settings-tab-panel]').dataset.settingsTabPanel),tab);
-    const before=h.state().settings;await dialog.locator('[data-settings-tab="advanced"]').click();await dialog.locator('[name="workStart"]').selectOption('08:00');await dialog.locator('[data-settings-cancel]').click();assert.deepEqual(h.state().settings,before);
-    await view('calendar').locator('[data-settings-btn]').click();await dialog.locator('[data-settings-tab="advanced"]').click();await dialog.locator('[name="workStart"]').selectOption('08:00');await dialog.locator('[data-settings-save]').click();
-    await p.waitForFunction(async()=> (await import('/src/store.js')).getSettings().workStart==='08:00');assert.equal(h.state().settings.workStart,'08:00');
+    const before=h.state().settings;await dialog.locator('[data-settings-tab="work"]').click();await dialog.locator('[name="workStart"]').selectOption('08:00');await dialog.locator('[data-settings-cancel]').click();assert.deepEqual(h.state().settings,before);
+    await view('calendar').locator('[data-settings-btn]').click();await dialog.locator('[data-settings-tab="work"]').click();await dialog.locator('[name="workStart"]').selectOption('08:00');await dialog.locator('[data-settings-save]').click();
+    await dialog.waitFor({state:'hidden'});assert.equal(h.state().settings.workStart,'08:00');
   });
   await run('UI-LOCALES','English and Korean render translated controls while task text is preserved',async()=>{
     await navigateTasks();
@@ -157,6 +158,62 @@ try{
       await p.evaluate(async locale=>(await import('/src/store.js')).updateSettings({uiLanguage:locale}),locale);
       assert.equal(await p.locator('html').getAttribute('lang'),locale);assert.match(await p.locator('nav.nav').innerText(),new RegExp(label));assert.match(await tasks().locator('[data-task-id="task-plan"]').innerText(),/計画を整理/);
     }
+  });
+  await run('UI-SETTINGS-SEPARATED-SAVE','Links, startup and updates keep save/cancel behavior and existing serialized keys',async()=>{
+    const dialog=p.locator('[data-settings-dialog]');
+    const edit=async()=>{
+      await dialog.locator('[data-settings-tab="links"]').click();
+      await dialog.locator('[name="quickLinksText"]').fill('検証リンク,https://example.invalid/docs');
+      await dialog.locator('label.uiToggle:has([name="urlAutoOpenEnabled"])').click();assert.equal(await dialog.locator('[name="urlAutoOpenEnabled"]').isChecked(),true);
+      await dialog.locator('[name="urlAutoOpenUrl"]').fill('https://example.invalid/scheduled');
+      await dialog.locator('[name="urlAutoOpenTimesText"]').fill('09:10, 16:40');
+      await dialog.locator('[data-settings-tab="startup"]').click();await dialog.locator('label.uiToggle:has([name="trayEnabled"])').click();
+      await dialog.locator('label.uiToggle:has([name="startMinimizedToTray"])').click();
+      await dialog.locator('[data-settings-tab="updates"]').click();await dialog.locator('label.uiToggle:has([name="checkUpdatesOnStartup"])').click();
+    };
+    const before=h.state();await view('calendar').locator('[data-settings-btn]').click();await edit();
+    await dialog.locator('[data-settings-cancel]').click();assert.deepEqual(h.state(),before);
+    await view('calendar').locator('[data-settings-btn]').click();await edit();await dialog.locator('[data-settings-save]').click();await dialog.waitFor({state:'hidden'});
+    const state=h.state();assert.deepEqual(state.tasks,before.tasks);assert.deepEqual(state.tags,before.tags);
+    assert.deepEqual(state.settings.quickLinks,[{label:'検証リンク',url:'https://example.invalid/docs'}]);
+    assert.deepEqual(state.settings.urlAutoOpenTimes,['09:10','16:40']);assert.equal(state.settings.urlAutoOpenUrl,'https://example.invalid/scheduled');
+    for(const key of ['urlAutoOpenEnabled','trayEnabled','startMinimizedToTray','checkUpdatesOnStartup'])assert.equal(state.settings[key],true,key);
+    await view('calendar').locator('[data-settings-btn]').click();await dialog.locator('[data-settings-tab="links"]').click();
+    assert.match(await dialog.locator('[name="quickLinksText"]').inputValue(),/検証リンク/);
+    assert.equal(await dialog.locator('[name="urlAutoOpenUrl"]').inputValue(),'https://example.invalid/scheduled');
+    await dialog.locator('[data-settings-cancel]').click();
+  });
+  await run('UI-SETTINGS-LOCALES','All eleven pages have resolved titles and descriptions in all nine shipped languages',async()=>{
+    const dialog=p.locator('[data-settings-dialog]');
+    for(const locale of ['ja','en','ko','zh-CN','zh-TW','es','fr','de','pt']){
+      await p.evaluate(async locale=>(await import('/src/store.js')).updateSettings({uiLanguage:locale}),locale);
+      await view('calendar').locator('[data-settings-btn]').click();
+      assert.equal(await p.locator('html').getAttribute('lang'),locale);
+      for(const id of settingsPageIds){
+        const button=dialog.locator(`[data-settings-tab="${id}"]`);await button.click();
+        const panel=dialog.locator(`[data-settings-tab-panel="${id}"]`),label=(await button.innerText()).trim();
+        assert.ok(label.length>0);assert.doesNotMatch(label,/^settings\.|^ui\./);
+        assert.equal((await panel.locator('.settingsPageHeading h2').innerText()).trim(),label);
+        const description=(await panel.locator('.settingsPageHeading p').innerText()).trim();assert.ok(description.length>0);assert.doesNotMatch(description,/^settings\.|^ui\./);
+      }
+      await dialog.locator('[data-settings-cancel]').click();
+    }
+  });
+  await run('UI-SETTINGS-NARROW','All pages remain reachable at 600px with horizontal keyboard navigation and visible actions',async()=>{
+    try{
+      await p.setViewportSize({width:600,height:900});await view('calendar').locator('[data-settings-btn]').click();const dialog=p.locator('[data-settings-dialog]');
+      assert.equal(await dialog.locator('[role="tablist"]').getAttribute('aria-orientation'),'horizontal');
+      await dialog.locator('[data-settings-tab="display"]').focus();
+      for(let index=0;index<settingsPageIds.length;index++){
+        assert.equal(await p.evaluate(()=>document.activeElement.dataset.settingsTab),settingsPageIds[index]);
+        assert.equal(await dialog.locator('[data-settings-tab-panel]:not([hidden])').getAttribute('data-settings-tab-panel'),settingsPageIds[index]);
+        const bounds=await dialog.boundingBox();assert.ok(bounds.x>=0&&bounds.x+bounds.width<=601);
+        for(const selector of ['[data-settings-save]','[data-settings-cancel]']){const rect=await dialog.locator(selector).boundingBox();assert.ok(rect&&rect.x>=0&&rect.y>=0&&rect.x+rect.width<=601&&rect.y+rect.height<=901,selector);}
+        await p.keyboard.press('ArrowRight');
+      }
+      assert.equal(await p.evaluate(()=>document.activeElement.dataset.settingsTab),'display');
+      await dialog.locator('[data-settings-cancel]').click();
+    }finally{await p.setViewportSize({width:1440,height:1000});}
   });
   await runContextMenuContracts(h,run);
   cases.push({id:'UI-NO-NATIVE-DIALOG',description:'No browser alert/confirm/prompt emitted during required flows',required:true,status:browserDialogs.length?'failed':'passed',evidence:'cases.json'});

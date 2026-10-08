@@ -178,7 +178,7 @@ try {
   }
   await inPage(()=>document.querySelector('[data-nav-target=calendar]').click());await sleep(100);
   await inPage(()=>document.querySelector('[data-view=calendar] [data-settings-btn]').click());
-  for(const tab of ['general','advanced','tags','outlook','about']) {
+  for(const tab of ['display','work','tags','ai','outlook','links','startup','data','updates','shortcuts','info']) {
     await inPage(tab=>document.querySelector('[data-settings-tab="'+tab+'"]').click(),tab);
     check('設定 '+tab+' タブを表示できる',await inPage(tab=>!document.querySelector('[data-settings-tab-panel="'+tab+'"]').hidden,tab));
     await capture('settings-'+tab+'-light');

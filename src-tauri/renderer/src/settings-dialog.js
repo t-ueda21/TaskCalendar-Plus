@@ -33,7 +33,6 @@ import { readPersonalization, populatePersonalization } from "./ai-personalizati
 import { wireOutlookSync as wireOutlookSyncV3 } from "./outlook-settings.js";
 import { wireTransferUi } from "./transfer-ui.js";
 import { showAppAlert, showAppConfirm } from './app-dialogs.js';
-import { prepareSettingsPages } from './settings-pages.js';
 
 // ── 設定ダイアログ共通ヘルパー(3画面(calendar/tasks/ai-mode)で共用) ──
 /**
@@ -166,18 +165,24 @@ function populateWeatherLocationSelect(settingsDialog, selectedKey, options) {
 }
 
 /**
- * 設定ダイアログのタブ切り替えを配線する。
+ * 設定ダイアログのページ切り替えを配線する。
  */
-function wireSettingsTabs(settingsDialog) {
+function wireSettingsPages(settingsDialog) {
   const tabButtons = Array.from(settingsDialog.querySelectorAll("[data-settings-tab]"));
   const tabPanels = Array.from(settingsDialog.querySelectorAll("[data-settings-tab-panel]"));
   if (!tabButtons.length || !tabPanels.length) {
     return { activate: () => {} };
   }
 
-  const activate = (tabName) => {
-    const requested = String(tabName || 'general');
-    const target = tabButtons.some(button => button.dataset.settingsTab === requested) ? requested : 'general';
+  const tabs = settingsDialog.querySelector('.settingsTabs');
+  const narrow = window.matchMedia('(max-width: 620px)');
+  const syncOrientation = () => tabs.setAttribute('aria-orientation', narrow.matches ? 'horizontal' : 'vertical');
+  narrow.addEventListener('change', syncOrientation);
+  syncOrientation();
+
+  const activate = (pageName) => {
+    const requested = String(pageName || 'display');
+    const target = tabButtons.some(button => button.dataset.settingsTab === requested) ? requested : 'display';
 
     tabButtons.forEach((btn) => {
       const active = btn.getAttribute("data-settings-tab") === target;
@@ -208,7 +213,7 @@ function wireSettingsTabs(settingsDialog) {
     });
   });
 
-  activate("general");
+  activate("display");
   return { activate };
 }
 
@@ -424,7 +429,6 @@ function _wireThemeToggle(settingsDialog) {
 // onAfterSave/getTagMgrSeedDate等は「どの画面の⚙設定ボタンが押されたか」に応じて
 // state.activeConfigへ都度差し替える。
 function _wireSettingsDialogCore(settingsDialog, Store) {
-  prepareSettingsPages(settingsDialog);
   wireUiColorPicker(settingsDialog, Store);
   const timeValues = buildSettingsTimeValues(15);
   let _tagMgrMonth = formatYearMonth(new Date());
@@ -474,7 +478,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   wireAiProviderSettings(settingsDialog);
   wireOutlookSyncV3(settingsDialog, Store, { getTagMgrMonth: () => _tagMgrMonth, getSelectedDate: () => getConfig().getTagMgrSeedDate?.() ?? new Date() });
 
-  const tabControl = wireSettingsTabs(settingsDialog);
+  const pageControl = wireSettingsPages(settingsDialog);
 
   // 全画面で実際には同じ既定色(DEFAULT_TAG_COLOR)を渡してくるため、
   // ピッカー自体はコア配線時の1回だけ生成すればよい。
@@ -605,7 +609,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     }
   };
 
-  const openDialog = (initialTab) => {
+  const openDialog = (initialPage) => {
     dialogSession += 1;
     const { getTagMgrSeedDate, getWeatherLocationOptions } = getConfig();
     const s = Store.getSettings();
@@ -654,7 +658,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
         }).catch(() => {});
       }
     }
-    tabControl.activate(initialTab || "general");
+    pageControl.activate(initialPage || "display");
     _tagMgrMonth = formatYearMonth(getTagMgrSeedDate ? getTagMgrSeedDate() : new Date());
     renderTagManager();
     settingsDialog.showModal();
@@ -712,11 +716,11 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     saveSettings();
   });
 
-  return { state, openDialog, tabControl, saveSettings };
+  return { state, openDialog, pageControl, saveSettings };
 }
 
 /**
- * 設定ダイアログ全体(タブ切替・休憩時間・会社休日・URL自動オープン・
+ * 設定ダイアログ全体(ページ切替・休憩時間・会社休日・URL自動オープン・
  * AIモデル管理・タグ管理・Outlook同期・保存/キャンセル)を配線する。
  * calendar/tasks/ai-modeの3画面から画面ごとに呼ばれる(それぞれ自身の
  * ⚙設定ボタンをtriggerRootで指定)が、ダイアログ本体の実配線は初回呼び出し時
@@ -743,18 +747,18 @@ export function wireSettingsDialog(settingsDialog, Store, {
   const core = settingsDialog._wsdCore;
   const config = { getTagMgrSeedDate, onAfterSave, getWeatherLocationOptions };
 
-  const open = (initialTab) => {
+  const open = (initialPage) => {
     core.state.activeConfig = config;
-    core.openDialog(initialTab);
+    core.openDialog(initialPage);
   };
 
   triggerRoot.querySelector("[data-settings-btn]")?.addEventListener("click", () => open());
 
-  return { open, tabControl: core.tabControl };
+  return { open, pageControl: core.pageControl };
 }
 
 // サイドバーの月次/日次集計のタグ行をクリックしたら、設定ダイアログを
-// タグ管理タブが開いた状態で起動する。行の描画がStore更新のたびに再生成される
+// タグ管理ページが開いた状態で起動する。行の描画がStore更新のたびに再生成される
 // ため、親要素(サイドバー全体)へのイベント委譲で対応する。calendar.js/tasks.js/
 // ai-mode.jsの3画面で共用する。getSettingsDialogControlは
 // 呼び出し側のwireSettingsDialog()戻り値を毎回最新の状態で参照するための

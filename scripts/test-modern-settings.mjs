@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { openHarness } from './refactor-20261008-harness.mjs';
+import { assertSettingsArchitecture } from './refactor-20261008-settings-contract.mjs';
 
 const h = await openHarness();
 const page = h.page;
@@ -16,18 +17,22 @@ try {
     return {before:names(original),after:names(document.querySelector('[data-settings-dialog]'))};
   },fs.readFileSync('src-tauri/renderer/assets/app.html','utf8'));
   assert.deepEqual(fields.after, fields.before, 'every existing named setting is retained exactly once');
-  assert.deepEqual(await settings.locator('[data-settings-tab]').evaluateAll(nodes => nodes.map(node => node.dataset.settingsTab)), ['general','advanced','tags','ai','outlook','about','app','shortcuts']);
-  const expectedPages = {uiLanguage:'general',granularity:'general',workStart:'advanced',companyHolidaysText:'advanced',aiProvider:'ai',outlookWriteDefault:'outlook',trayEnabled:'app',checkUpdatesOnStartup:'app'};
-  for (const [name, tab] of Object.entries(expectedPages)) {
-    assert.equal(await settings.locator(`[name="${name}"]`).evaluate(node => node.closest('[data-settings-tab-panel]').dataset.settingsTabPanel), tab, name);
-  }
+  await assertSettingsArchitecture(settings);
   await settings.locator('[data-settings-tab="shortcuts"]').click();
   await settings.locator('.settingsDialogBody').evaluate(node => { node.scrollTop = 250; });
-  await settings.locator('[data-settings-tab="general"]').click();
+  await settings.locator('[data-settings-tab="display"]').click();
   assert.equal(await settings.locator('.settingsDialogBody').evaluate(node => node.scrollTop), 0);
-  await settings.locator('[data-settings-tab="general"]').focus();
+  await settings.locator('[data-settings-tab="display"]').focus();
   await page.keyboard.press('ArrowDown');
-  assert.equal(await page.evaluate(() => document.activeElement.dataset.settingsTab), 'advanced');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.settingsTab), 'work');
+  await page.keyboard.press('End');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.settingsTab), 'info');
+  await page.keyboard.press('ArrowDown');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.settingsTab), 'display');
+  await page.keyboard.press('ArrowUp');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.settingsTab), 'info');
+  await page.keyboard.press('Home');
+  assert.equal(await page.evaluate(() => document.activeElement.dataset.settingsTab), 'display');
 
   await settings.locator('[data-settings-save]').focus();
   await page.evaluate(() => { window.result = undefined; window.dialogs.showAppConfirm('Keep settings open?').then(value => { window.result = value; }); });
@@ -58,7 +63,7 @@ try {
   assert.deepEqual(await page.evaluate(() => window.results), [false,true]);
 
   await opener.click();
-  await settings.locator('[data-settings-tab="general"]').click();
+  await settings.locator('[data-settings-tab="display"]').click();
   await settings.locator('[name="granularity"]').selectOption('15');
   await settings.locator('[data-settings-cancel]').click();
   assert.equal(h.state().settings.granularity,30,'cancel does not save form changes');
@@ -131,7 +136,7 @@ try {
   await page.keyboard.press('Escape');
 
   await opener.click();
-  await settings.locator('[data-settings-tab="about"]').click();
+  await settings.locator('[data-settings-tab="data"]').click();
   await settings.locator('[data-settings-import-file]').setInputFiles({name:'synthetic-settings.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({format:'taskcalendar-plus-settings',version:1,settings:{granularity:60},tags:[]}))});
   await page.locator('[data-settings-import-btn]:not([disabled])').waitFor();
   await settings.locator('[data-settings-import-btn]').click();
@@ -140,5 +145,5 @@ try {
   assert.equal(await settings.evaluate(node => node.open),true);
   await page.keyboard.press('Escape');
   assert.deepEqual(h.pageErrors, []);
-  console.log('PASS: eight setting pages, controls retained, scroll/navigation, nested modal cancellation, queue, scope, busy retry and text safety');
+  console.log('PASS: eleven setting pages, complete control ownership, ARIA navigation, nested modal cancellation, queue, scope, busy retry and text safety');
 } finally { await h.close(); }

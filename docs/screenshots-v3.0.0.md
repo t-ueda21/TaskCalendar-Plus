@@ -1,6 +1,6 @@
 # v3.0.0 スクリーンショット（未公開）
 
-追加Issueの対応後と右クリックによる一括操作の26画面です。**アプリの画面コードを隔離したChromiumで表示**し、API・ネイティブ連携・天気の応答には検証用データを使いました。Windowsアプリを再起動して撮影した画像ではありません。
+現在の11ページ設定と主要操作の29画面です。**アプリの画面コードを隔離したChromiumで表示**し、API・ネイティブ連携・天気の応答には検証用データを使いました。Windowsアプリを再起動して撮影した画像ではありません。
 
 1440×1000、倍率1、日時は2026年10月8日10時15分に固定しています。予定6件のうちタグ付き4件の合計は4時間30分、勤務時間9:00〜18:00の外に1時間です。タグなし2件は合計・残業に含めません。日次サイドバーは合計・残業のみ非表示で、タグ別の内訳を残しています。
 
@@ -20,30 +20,33 @@
 | [月選択](images/v3.0.0-review/mini-month.png) | 12か月の選択 |
 | [年選択](images/v3.0.0-review/mini-year.png) | 12年の選択 |
 | [右クリックのタグ選択](images/v3.0.0-review/tag-menu.png) | 背景と色見本を分けた表示 |
-| [設定：表示](images/v3.0.0-review/settings-general.png) | テーマ・配色・表示言語・カレンダー |
-| [設定：勤務時間と休日](images/v3.0.0-review/settings-advanced.png) | 勤務時間・休憩・会社休日 |
-| [設定：タグ管理](images/v3.0.0-review/settings-tags.png) | タグと工数の設定 |
-| [設定：AI](images/v3.0.0-review/settings-ai.png) | 接続先とAIの話し方 |
-| [設定：Outlook](images/v3.0.0-review/settings-outlook.png) | 取得方法・期間・登録の既定値 |
-| [設定：データ](images/v3.0.0-review/settings-about.png) | 書き出し・読み込み・復元の入口 |
-| [設定：アプリ](images/v3.0.0-review/settings-app.png) | 起動・常駐・更新・クイックリンク |
-| [設定：ショートカット](images/v3.0.0-review/settings-shortcuts.png) | キー操作の一覧 |
+| [設定：表示](images/v3.0.0-settings/settings-display.png) | テーマ・カラー・言語・時間粒度・営業日のみ・天気地点 |
+| [設定：勤務時間と休日](images/v3.0.0-settings/settings-work.png) | 勤務開始・終了、休憩と工数算入、会社休日 |
+| [設定：タグ管理](images/v3.0.0-settings/settings-tags.png) | 追加・変更・削除、色、順序、月別工数上下限 |
+| [設定：AI](images/v3.0.0-settings/settings-ai.png) | 接続先、モデル、接続設定、話し方・カスタム指示 |
+| [設定：Outlook](images/v3.0.0-settings/settings-outlook.png) | 取得・同期・登録、反映状況・再試行 |
+| [設定：リンク](images/v3.0.0-settings/settings-links.png) | クイックリンク、指定時刻のURL自動オープン |
+| [設定：起動・常駐](images/v3.0.0-settings/settings-startup.png) | ログイン時起動、トレイ格納、起動時の表示状態 |
+| [設定：データ](images/v3.0.0-settings/settings-data.png) | 設定移行、全データのバックアップ・復元 |
+| [設定：アップデート](images/v3.0.0-settings/settings-updates.png) | 現在のバージョン、更新確認・実行、起動時の更新確認 |
+| [設定：ショートカット](images/v3.0.0-settings/settings-shortcuts.png) | キー操作と使用条件 |
+| [設定：説明](images/v3.0.0-settings/settings-info.png) | アプリ概要、機能紹介、GitHubへのリンク |
 | [ダークモード：一覧](images/v3.0.0-review/tasks-dark.png) | 暗い配色での一覧と集計 |
 | [ダークモード：一覧のメニュー](images/v3.0.0-review/tasks-context-dark.png) | 暗い配色での右クリックメニュー |
 | [ダークモード：カレンダーのメニュー](images/v3.0.0-review/calendar-context-dark.png) | 暗い配色での右クリックメニュー |
-| [ダークモード：勤務時間](images/v3.0.0-review/settings-work-dark.png) | 暗い配色での設定 |
+| [ダークモード：勤務時間](images/v3.0.0-settings/settings-work-dark.png) | 暗い配色での設定 |
 | [英語](images/v3.0.0-review/calendar-en.png) | 英語のUIと日本の地域設定 |
 | [韓国語](images/v3.0.0-review/calendar-ko.png) | 韓国語のUIと日本の地域設定 |
 
-## UI変更の前後
+## 設定画面の変更前後
 
-設定を目的別の8ページに分け、タスク編集では入力欄と操作の間隔を整理しました。同じ画面サイズ・合成データで撮影した画像を左右に並べています。画像内の画面は加工せず、見出しと間隔だけを加えています。
+従来の8ページから11ページへ整理しました。「アップデート」と「説明」を分け、クイックリンクとURL自動オープンを「リンク」にまとめています。左は変更前、右は変更後です。
 
-![設定の変更前後](images/v3.0.0-comparison/settings-general.png)
+![アップデートの分離](images/v3.0.0-settings/comparisons/updates.png)
 
-![タスク編集の変更前後](images/v3.0.0-comparison/task-edit.png)
+![説明の分離](images/v3.0.0-settings/comparisons/info.png)
 
-これは機能改善の前後です。その後の純粋なリファクタリングでは、別に固定した18画面が画素単位で一致しています。[比較・計測報告](reviews/v3.0.0-refactor.md)を参照してください。
+[全11ページの比較・命名整理・検証結果](reviews/v3.0.0-settings-mece.md)を確認できます。その後の純粋な内部整理では45状態の画素差分が0でした。旧8ページ化やタスク編集の比較は[前回の報告](reviews/v3.0.0-refactor.md)に残しています。
 
 ## 代表画面
 
@@ -65,11 +68,11 @@
 
 ### AI設定
 
-<a href="images/v3.0.0-review/settings-ai.png"><img src="images/v3.0.0-review/settings-ai.png" alt="AI設定" width="800"></a>
+<a href="images/v3.0.0-settings/settings-ai.png"><img src="images/v3.0.0-settings/settings-ai.png" alt="AI設定" width="800"></a>
 
 ### データ設定
 
-<a href="images/v3.0.0-review/settings-about.png"><img src="images/v3.0.0-review/settings-about.png" alt="データ設定" width="800"></a>
+<a href="images/v3.0.0-settings/settings-data.png"><img src="images/v3.0.0-settings/settings-data.png" alt="データ設定" width="800"></a>
 
 ### 英語
 
@@ -79,6 +82,6 @@
 
 <a href="images/v3.0.0-review/calendar-ko.png"><img src="images/v3.0.0-review/calendar-ko.png" alt="韓国語" width="800"></a>
 
-20画面の撮影情報は[gallery.json](images/v3.0.0-review/gallery.json)、追加4画面は[extra-capture.json](images/v3.0.0-review/extra-capture.json)、右クリック一括操作2画面は[context-bulk-capture.json](images/v3.0.0-review/context-bulk-capture.json)に記録しています。[隔離した撮影ハーネス](../scripts/refactor-20261008-harness.mjs)を使用しました。過去のネイティブ撮影画像は `images/v3.0.0/` に履歴として残しています。
+設定の最新撮影情報は[設定capture.json](images/v3.0.0-settings/capture.json)に記録しています。設定以外の既存画面の撮影情報は[gallery.json](images/v3.0.0-review/gallery.json)、追加4画面は[extra-capture.json](images/v3.0.0-review/extra-capture.json)、右クリック一括操作2画面は[context-bulk-capture.json](images/v3.0.0-review/context-bulk-capture.json)に記録しています。[隔離した撮影ハーネス](../scripts/refactor-20261008-harness.mjs)を使用しました。旧8ページの設定画像は `images/v3.0.0-review/`、過去のネイティブ撮影画像は `images/v3.0.0/` に履歴として残しています。
 
 [READMEへ戻る](../README.md)

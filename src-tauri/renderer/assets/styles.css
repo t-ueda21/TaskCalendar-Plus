@@ -2796,32 +2796,11 @@ label.uiToggle { position: relative; width: fit-content; }
 }
 
 /* タグタブのみ、タグリストが残り高さを最大限使えるようにする。
-   他タブ(詳細/Outlook等)は内容量に応じた高さのまま。 */
+   他のページは内容量に応じた高さのまま。 */
 .settingsTabPanel[data-settings-tab-panel="tags"].isActive {
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
-}
-
-/* 詳細タブはセクション数が多く、縦一列だと「起動設定」までスクロールしないと
-   見えない。一方、CSS columnsのカードウォールなどでは列間の高さが揃わず、
-   読み順も崩れる。そこで、可変長になりやすい「休憩時間」だけをDOM順で最後に
-   置いて全幅の下段に独立させ、内容量が近い残り4セクション(勤務時間/表示設定/
-   URL自動オープン/起動設定)を上段2×2グリッドに固定する。 */
-.settingsTabPanel[data-settings-tab-panel="advanced"].isActive {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.settingsTabPanel[data-settings-tab-panel="advanced"] > .settingsSection:last-child {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 720px) {
-  .settingsTabPanel[data-settings-tab-panel="advanced"].isActive {
-    grid-template-columns: 1fr;
-  }
 }
 
 .settingsSection {

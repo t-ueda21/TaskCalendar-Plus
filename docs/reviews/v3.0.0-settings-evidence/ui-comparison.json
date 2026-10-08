@@ -1,0 +1,1716 @@
+{
+  "states": {
+    "calendar-day": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "calendar-week": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "mini-month": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "mini-year": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "tasks": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "task-edit": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "tasks-selection": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "task-bulk-edit": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "task-delete-confirm": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-display": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-work": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-tags": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-ai": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-outlook": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-links": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-startup": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-data": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-updates": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-shortcuts": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-info": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-display-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-work-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-tags-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-ai-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-outlook-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-links-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-startup-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-data-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-updates-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-shortcuts-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-info-narrow": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-display-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-work-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-tags-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-ai-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-outlook-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-links-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-startup-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-data-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-updates-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-shortcuts-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "settings-info-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "tasks-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "tasks-context-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    },
+    "calendar-context-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    }
+  },
+  "images": [
+    {
+      "id": "calendar-day",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "53250bc5a09e70e73acb9beed91d3bd8925e5ce342ecf9b3d8bfd945a9935c83",
+      "afterSha256": "53250bc5a09e70e73acb9beed91d3bd8925e5ce342ecf9b3d8bfd945a9935c83",
+      "masks": [],
+      "comparisonImage": "comparisons/calendar-day.png"
+    },
+    {
+      "id": "calendar-week",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "0a62a0f0b1172c92fae916b96451f15c0546cd5e0e44a2b7a17d704d5ba28285",
+      "afterSha256": "0a62a0f0b1172c92fae916b96451f15c0546cd5e0e44a2b7a17d704d5ba28285",
+      "masks": [],
+      "comparisonImage": "comparisons/calendar-week.png"
+    },
+    {
+      "id": "mini-month",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "b5646d69b036263a7a0432e948969722a2f1c5001f76d55711b55b040d76a40b",
+      "afterSha256": "b5646d69b036263a7a0432e948969722a2f1c5001f76d55711b55b040d76a40b",
+      "masks": [],
+      "comparisonImage": "comparisons/mini-month.png"
+    },
+    {
+      "id": "mini-year",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "be83c9f60dcdc12575533448cabb3e4c0982655d5781e697e419acd417c39569",
+      "afterSha256": "be83c9f60dcdc12575533448cabb3e4c0982655d5781e697e419acd417c39569",
+      "masks": [],
+      "comparisonImage": "comparisons/mini-year.png"
+    },
+    {
+      "id": "tasks",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "c61f6746d96cadf3b7af50642c025b9186dd2eb09cc973a1b2f90a40902cd7b7",
+      "afterSha256": "c61f6746d96cadf3b7af50642c025b9186dd2eb09cc973a1b2f90a40902cd7b7",
+      "masks": [],
+      "comparisonImage": "comparisons/tasks.png"
+    },
+    {
+      "id": "task-edit",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "616e74f8c49cffa87e6c549cfae1e4f1c7997c2dbbe9fe4d0a2e5cb680b01712",
+      "afterSha256": "616e74f8c49cffa87e6c549cfae1e4f1c7997c2dbbe9fe4d0a2e5cb680b01712",
+      "masks": [],
+      "comparisonImage": "comparisons/task-edit.png"
+    },
+    {
+      "id": "tasks-selection",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "37487ba1b6f342b86615ea89ce64024b23931736e10a7e9497661dc740ae3641",
+      "afterSha256": "37487ba1b6f342b86615ea89ce64024b23931736e10a7e9497661dc740ae3641",
+      "masks": [],
+      "comparisonImage": "comparisons/tasks-selection.png"
+    },
+    {
+      "id": "task-bulk-edit",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "87b1356f35ad48c5550015631495a5177ecf882f84c13da4b7d1784b80086927",
+      "afterSha256": "87b1356f35ad48c5550015631495a5177ecf882f84c13da4b7d1784b80086927",
+      "masks": [],
+      "comparisonImage": "comparisons/task-bulk-edit.png"
+    },
+    {
+      "id": "task-delete-confirm",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "ecbe5cfeb5cdc1dc602b9f1e1b34cac03f438e165422eb865e48864a114f1d2c",
+      "afterSha256": "ecbe5cfeb5cdc1dc602b9f1e1b34cac03f438e165422eb865e48864a114f1d2c",
+      "masks": [],
+      "comparisonImage": "comparisons/task-delete-confirm.png"
+    },
+    {
+      "id": "settings-display",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "15ea4b91da76dd5616da1ebcdf8bddbe8a709683463794bfe0fbd1196832a324",
+      "afterSha256": "15ea4b91da76dd5616da1ebcdf8bddbe8a709683463794bfe0fbd1196832a324",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-display.png"
+    },
+    {
+      "id": "settings-work",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "c3c1d70bfb64769d344da444b9126165e813c92d3eb6ad0b1cf698d303791a7c",
+      "afterSha256": "c3c1d70bfb64769d344da444b9126165e813c92d3eb6ad0b1cf698d303791a7c",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-work.png"
+    },
+    {
+      "id": "settings-tags",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "02475d07f7ed613756fab788ecdc73c2f0216b7c0275ed6549d14e66d3b8bc72",
+      "afterSha256": "02475d07f7ed613756fab788ecdc73c2f0216b7c0275ed6549d14e66d3b8bc72",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-tags.png"
+    },
+    {
+      "id": "settings-ai",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "a9532002fbbd3baf310452fef6a70cb28d83a8f9ebcf4c8d78a1f2a1cd5fd3b2",
+      "afterSha256": "a9532002fbbd3baf310452fef6a70cb28d83a8f9ebcf4c8d78a1f2a1cd5fd3b2",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-ai.png"
+    },
+    {
+      "id": "settings-outlook",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "50734cc35644603815f7b04987e2034768900a6e7316886c7f94ab9b925acc2b",
+      "afterSha256": "50734cc35644603815f7b04987e2034768900a6e7316886c7f94ab9b925acc2b",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-outlook.png"
+    },
+    {
+      "id": "settings-links",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "92c257677afdc07e6c8a0a1a0aead23a895c904716f592dd31259f3eda3b718d",
+      "afterSha256": "92c257677afdc07e6c8a0a1a0aead23a895c904716f592dd31259f3eda3b718d",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-links.png"
+    },
+    {
+      "id": "settings-startup",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "9af7bfba3221a83a89396fb1f048c69b4bdabf8f9f49a1a470162bd4fb529b10",
+      "afterSha256": "9af7bfba3221a83a89396fb1f048c69b4bdabf8f9f49a1a470162bd4fb529b10",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-startup.png"
+    },
+    {
+      "id": "settings-data",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "4954b30083380ca61ba55ed607372d7cf4da89032727832b3c20bd6cc6f23aa5",
+      "afterSha256": "4954b30083380ca61ba55ed607372d7cf4da89032727832b3c20bd6cc6f23aa5",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-data.png"
+    },
+    {
+      "id": "settings-updates",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "6bf70e9f37cb2186796c6e1dc5145d742c05c96e48e8023aff4782920f4fa0b9",
+      "afterSha256": "6bf70e9f37cb2186796c6e1dc5145d742c05c96e48e8023aff4782920f4fa0b9",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-updates.png"
+    },
+    {
+      "id": "settings-shortcuts",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "6c82e3864eae17542bd109471fe9bdf2962b3dfcc12691f0f7d28c885fdf769f",
+      "afterSha256": "6c82e3864eae17542bd109471fe9bdf2962b3dfcc12691f0f7d28c885fdf769f",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-shortcuts.png"
+    },
+    {
+      "id": "settings-info",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "3fb4d3801187b9bc03164e83b5b78f1b4b92a5329b15793d432e4c9e580d5d0f",
+      "afterSha256": "3fb4d3801187b9bc03164e83b5b78f1b4b92a5329b15793d432e4c9e580d5d0f",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-info.png"
+    },
+    {
+      "id": "settings-display-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "b842f2c33d3d40709f8aa3b4883c496227a4cc58c1a9037d1428a83e8d4d3a70",
+      "afterSha256": "b842f2c33d3d40709f8aa3b4883c496227a4cc58c1a9037d1428a83e8d4d3a70",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-display-narrow.png"
+    },
+    {
+      "id": "settings-work-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "b9f026b183784bd49fd9a80f5e78cee0ab55aed4985ef87e23b2a2f0cd5b35f6",
+      "afterSha256": "b9f026b183784bd49fd9a80f5e78cee0ab55aed4985ef87e23b2a2f0cd5b35f6",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-work-narrow.png"
+    },
+    {
+      "id": "settings-tags-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "6e7564122c64f873f597d8cbc2d714f776f71b30ded4a152817fe09951ccc715",
+      "afterSha256": "6e7564122c64f873f597d8cbc2d714f776f71b30ded4a152817fe09951ccc715",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-tags-narrow.png"
+    },
+    {
+      "id": "settings-ai-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "fbc82925fc9cc9d3634149831c1a039c682dc2fed40f1d6be9d4caafb178602c",
+      "afterSha256": "fbc82925fc9cc9d3634149831c1a039c682dc2fed40f1d6be9d4caafb178602c",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-ai-narrow.png"
+    },
+    {
+      "id": "settings-outlook-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "2762a3e5e382699e4b6c2bed284fb7a27e1ef63007e8183bdcf3d5bf32fd4bad",
+      "afterSha256": "2762a3e5e382699e4b6c2bed284fb7a27e1ef63007e8183bdcf3d5bf32fd4bad",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-outlook-narrow.png"
+    },
+    {
+      "id": "settings-links-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "3672cf06d255a1c3aede32b879b35374a29d704393c616f918120667dbcebf8d",
+      "afterSha256": "3672cf06d255a1c3aede32b879b35374a29d704393c616f918120667dbcebf8d",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-links-narrow.png"
+    },
+    {
+      "id": "settings-startup-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "fd6ee1204fdef0b8f2b65bad7ca9546cbe8d40c444002e090f5b86cefaadb45a",
+      "afterSha256": "fd6ee1204fdef0b8f2b65bad7ca9546cbe8d40c444002e090f5b86cefaadb45a",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-startup-narrow.png"
+    },
+    {
+      "id": "settings-data-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "96e1bbf400dad27387b650bac85dd35ff15ee8b6076e97f6ee38fefefc4ef423",
+      "afterSha256": "96e1bbf400dad27387b650bac85dd35ff15ee8b6076e97f6ee38fefefc4ef423",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-data-narrow.png"
+    },
+    {
+      "id": "settings-updates-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "a62c2c7a3f2c03de5314617f3c6b6101916834abe1068ac1ae1fc6d3188b5225",
+      "afterSha256": "a62c2c7a3f2c03de5314617f3c6b6101916834abe1068ac1ae1fc6d3188b5225",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-updates-narrow.png"
+    },
+    {
+      "id": "settings-shortcuts-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "6e8cc836b62361df376f3589604ee460258dc9a5022510164e6098b0b7128ebb",
+      "afterSha256": "6e8cc836b62361df376f3589604ee460258dc9a5022510164e6098b0b7128ebb",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-shortcuts-narrow.png"
+    },
+    {
+      "id": "settings-info-narrow",
+      "pixels": 540000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        600,
+        900
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "7cf39264876e011166d85c15d731892ddb4007bada773e4ec8273efe8ebe4d57",
+      "afterSha256": "7cf39264876e011166d85c15d731892ddb4007bada773e4ec8273efe8ebe4d57",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-info-narrow.png"
+    },
+    {
+      "id": "settings-display-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "620940b41a2eafdde5a49ff5ae6f9625576851f420e30d5dcbfbb69079596c5a",
+      "afterSha256": "620940b41a2eafdde5a49ff5ae6f9625576851f420e30d5dcbfbb69079596c5a",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-display-dark.png"
+    },
+    {
+      "id": "settings-work-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "cc73e61bd029546dca5542e04bbc2a5b511deff3381b5b4298ff021c70b28e95",
+      "afterSha256": "cc73e61bd029546dca5542e04bbc2a5b511deff3381b5b4298ff021c70b28e95",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-work-dark.png"
+    },
+    {
+      "id": "settings-tags-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "67f3f75b98e6d6cc39a5879ee148d5b3aef72104bab06a37ed7ffbb533568ef6",
+      "afterSha256": "67f3f75b98e6d6cc39a5879ee148d5b3aef72104bab06a37ed7ffbb533568ef6",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-tags-dark.png"
+    },
+    {
+      "id": "settings-ai-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "6eb769f29e8b13d0c071442a21cd0aeb59ae66096c63a95212703bf5380aa019",
+      "afterSha256": "6eb769f29e8b13d0c071442a21cd0aeb59ae66096c63a95212703bf5380aa019",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-ai-dark.png"
+    },
+    {
+      "id": "settings-outlook-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "95d6bae07fa10ebc94f252482be1672a14209247400046e1bd6159561c0704f0",
+      "afterSha256": "95d6bae07fa10ebc94f252482be1672a14209247400046e1bd6159561c0704f0",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-outlook-dark.png"
+    },
+    {
+      "id": "settings-links-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "8ad3cfe1c0ab7cec0970d535d28ce99816c024a08405a1a8ef3c334b238f730c",
+      "afterSha256": "8ad3cfe1c0ab7cec0970d535d28ce99816c024a08405a1a8ef3c334b238f730c",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-links-dark.png"
+    },
+    {
+      "id": "settings-startup-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "4982a9ef16c1f420c3c3559232ad982aa04ba6a87fbd62cdf4dbda826626a0ce",
+      "afterSha256": "4982a9ef16c1f420c3c3559232ad982aa04ba6a87fbd62cdf4dbda826626a0ce",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-startup-dark.png"
+    },
+    {
+      "id": "settings-data-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "8b4d6904b6e935b1ba343b108df708fb8f614071e7cce3a902d57ceb32fe887c",
+      "afterSha256": "8b4d6904b6e935b1ba343b108df708fb8f614071e7cce3a902d57ceb32fe887c",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-data-dark.png"
+    },
+    {
+      "id": "settings-updates-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "2ce70d5b0c052f8541f0616ed12512520a1de832c051d7064aed16f9aea85a29",
+      "afterSha256": "2ce70d5b0c052f8541f0616ed12512520a1de832c051d7064aed16f9aea85a29",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-updates-dark.png"
+    },
+    {
+      "id": "settings-shortcuts-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "cb68fb89de7b6225c8e2054c16ceadc8cb3d98ff8859bb5fa84ab98d27c41b18",
+      "afterSha256": "cb68fb89de7b6225c8e2054c16ceadc8cb3d98ff8859bb5fa84ab98d27c41b18",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-shortcuts-dark.png"
+    },
+    {
+      "id": "settings-info-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "3b72f794266d617e1763582371edf954743502f5574ca753c89d0a4e409384d6",
+      "afterSha256": "3b72f794266d617e1763582371edf954743502f5574ca753c89d0a4e409384d6",
+      "masks": [],
+      "comparisonImage": "comparisons/settings-info-dark.png"
+    },
+    {
+      "id": "tasks-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "f0842bd5f347bc3410df60b2e2ea75f997aabed71f1f18f0ef578c4c2b836672",
+      "afterSha256": "f0842bd5f347bc3410df60b2e2ea75f997aabed71f1f18f0ef578c4c2b836672",
+      "masks": [],
+      "comparisonImage": "comparisons/tasks-dark.png"
+    },
+    {
+      "id": "tasks-context-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "e6e1b3e7da4f4a723fdc0ccdfe92893beaf5526dcb5bd54a133be6b7b77dacd7",
+      "afterSha256": "e6e1b3e7da4f4a723fdc0ccdfe92893beaf5526dcb5bd54a133be6b7b77dacd7",
+      "masks": [],
+      "comparisonImage": "comparisons/tasks-context-dark.png"
+    },
+    {
+      "id": "calendar-context-dark",
+      "pixels": 1440000,
+      "changedPixels": 0,
+      "changedPercent": 0.0,
+      "dimensions": [
+        1440,
+        1000
+      ],
+      "maxChannelDifference": 0,
+      "boundingBox": null,
+      "beforeSha256": "764ee57c7062faabc3489e595517ad3aaa1526bcfbe36e163c06aa186e103dfa",
+      "afterSha256": "764ee57c7062faabc3489e595517ad3aaa1526bcfbe36e163c06aa186e103dfa",
+      "masks": [],
+      "comparisonImage": "comparisons/calendar-context-dark.png"
+    }
+  ]
+}

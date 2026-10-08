@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "type": "metadata-correction-only",
+  "createdAt": "2026-10-08T00:37:42.577099+00:00",
+  "author_agent": "/root/settings_a",
+  "appliesToRun": "settings-mece-20261008",
+  "originalGuardSha256": "ec4466eec636a26886b0755f53f32f933e4d252db11049081d073aed3d5d81e1",
+  "originalContractSha256": "19392274c2cf8f05d78e91ec56c601df33e50c779d0420d820004b5221ecf1c1",
+  "originalBaselineSha256": "6419e19c890178fe9a35bfef81b2805440f85812a793158c606f83cd30e52260",
+  "correctionReason": "Role C caught inherited metadata from a previous run. A reviewed related fields and found one additional manual inventory count error.",
+  "corrections": [
+    {
+      "field": "supersedes",
+      "old": "../baseline-v2/frozen-baseline.json",
+      "corrected": null,
+      "reason": "First frozen baseline for this run; no baseline-v2 exists in this run. Original eight-page source and evidence are preserved as initial-*; this is a feature transition followed by a pure-refactor baseline, not a replacement of an old refactor baseline."
+    },
+    {
+      "field": "initialFeatureScreenshots",
+      "old": "../initial-ui-v4",
+      "corrected": "initial-ui",
+      "evidence": "initial-ui/gallery.json",
+      "images": 20,
+      "settingsPages": 8
+    },
+    {
+      "field": "measurement_conditions.darkCapture",
+      "old": "Click production Settings General theme toggle; wait for pressed=true and enabled, close settings, wait for data-theme=dark plus seven expected generated palette variables. Record palette state per image; no direct theme attribute mutation and no image masking.",
+      "corrected": "Select the Display (display) settings page and click its production theme toggle; wait for pressed=true and enabled. Capture all eleven dark settings pages with palette checks. Close settings, wait with a synchronous predicate for data-theme=dark and the previously obtained expected palette, then capture the dark task/menu states. The frozen harness defines the precise sequence.",
+      "evidence": "before-source/source/scripts/refactor-20261008-harness.mjs"
+    },
+    {
+      "field": "measurement_conditions.captureReproducibility",
+      "old": {
+        "evidence": "before-ui/capture-repeat-comparison.json",
+        "images": 18,
+        "exactRgbaEqual": true,
+        "masks": []
+      },
+      "corrected": {
+        "status": "not-performed-in-this-run",
+        "evidence": null,
+        "exactRgbaEqual": null
+      },
+      "reason": "The 18-image repeated-capture assertion was copied from a previous run and is withdrawn. This run has one A baseline capture of 45 states. C must independently compare all 45 states with zero unapproved pixel differences; that machine acceptance condition is unchanged."
+    },
+    {
+      "field": "case_design.architecture",
+      "old": "Assert exact eleven navigation IDs and Japanese labels, all 31 original named controls and 16 additional controls occur once on specified pages, reciprocal ARIA labels; walk every page with exactly one active panel",
+      "corrected": "Assert exact eleven navigation IDs and Japanese labels, all 32 original named controls and 16 additional controls occur once on specified pages, reciprocal ARIA labels; walk every page with exactly one active panel",
+      "evidence": "scripts/refactor-20261008-settings-contract.mjs",
+      "reason": "Manual description undercounted by one; the executable assertion already contains and validates all 32 named fields. No field, expectation, or executable test is being added or removed."
+    }
+  ],
+  "audit": {
+    "reviewed": [
+      "contract.json (all metadata and full requiredCases reconciled to executed cases)",
+      "contract-draft.json (same five stale metadata fields)",
+      "frozen-baseline.json",
+      "roles.json",
+      "baseline-design-notes.json",
+      "initial-ui/gallery.json",
+      "before-ui/gallery.json",
+      "before-checks/checks.json",
+      "before-ui-tests/cases.json",
+      "before-benchmark/metrics.json",
+      "before-source/manifest.json",
+      "frozen test helper inventory"
+    ],
+    "roles": {
+      "design": "/root/settings_a",
+      "implementation": "/root/settings_b",
+      "verification": "/root/settings_c"
+    },
+    "designAgentMatches": true,
+    "caseIdsMatchActual": true,
+    "requiredPassed": 178,
+    "nodeSuites": 24,
+    "rustRequired": 114,
+    "syntaxAndClippy": 2,
+    "uiRequired": 38,
+    "initialImages": 20,
+    "baselineImages": 45,
+    "namedControlCount": 32,
+    "additionalControlCount": 16,
+    "metrics": 16,
+    "samplesPerMetric": 7,
+    "nodeVersionMatches": true,
+    "nodeShaMatches": true,
+    "rendererShaMatches": true,
+    "paletteVariableCount": 7,
+    "historicalStringsRetainedIntentionally": [
+      "general/advanced/about/app in migration rationale describes removed identifiers, not active IDs",
+      "refactor-20261008 script filenames are reused actual scripts, not stale run directories",
+      "existing tests cover broader app behavior deliberately; their original case IDs remain valid"
+    ],
+    "limitations": "This addendum audits baseline metadata; it does not represent C final verification, repeat image capture, native execution, or a new benchmark."
+  },
+  "machineContractUnchanged": true,
+  "unchanged": [
+    "required case IDs, flags and expectations",
+    "test and fixture code",
+    "source archive and manifest",
+    "all baseline images and measured values",
+    "pixel acceptance: zero unapproved differences for all 45 states",
+    "performance tolerances and 16x7 sample plan",
+    "allowed application file changes/removal",
+    "safe execution prohibitions"
+  ],
+  "rerunRequired": false,
+  "rerunReason": "Only narrative metadata and false historical evidence claims are corrected; executable baseline and actual evidence are unchanged. No prior unperformed action is counted as performed."
+}

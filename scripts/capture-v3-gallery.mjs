@@ -65,12 +65,13 @@ try {
   await app.evaluate(`const mode=document.querySelector('[data-outlook-fetch-mode]');mode.value='range';mode.dispatchEvent(new Event('change'));document.querySelector('[data-outlook-preset="view"]').click();`);
   await capture('outlook-range');
   await cancel();
-  await settings('general');
+  await settings('display');
   await capture('language-settings');
+  await settings('ai');
   await app.evaluate(`document.querySelector('[data-ai-personality="customInstructions"]').value='相棒のように親しみやすく、結論から簡潔に答えてください。';document.querySelector('[data-ai-personality="warmth"]').value='warm';document.querySelector('[data-ai-personality="customInstructions"]').scrollIntoView({block:'center'});`);
   await capture('ai-personality');
   await cancel();
-  await settings('about');
+  await settings('data');
   const fixture = path.resolve('out/v3.0.0/gallery-settings.json');
   fs.writeFileSync(fixture, JSON.stringify({format:'taskcalendar-plus-settings',version:1,settings:{uiLanguage:'ja',workStart:'09:00',workEnd:'18:00'},tags:[]}));
   const document = await app.send('DOM.getDocument');
@@ -81,9 +82,9 @@ try {
   assert.equal(await app.evaluate(`document.querySelector('[data-settings-import-btn]').disabled`), false);
   await capture('transfer');
   await cancel();
-  await settings('general');
+  await settings('display');
   await app.evaluate(`document.querySelector('[data-theme-toggle]').click();`);
-  await app.evaluate(`document.querySelector('[data-ai-personality="customInstructions"]').scrollIntoView({block:'center'});`);
+  await app.evaluate(`document.querySelector('[data-theme-toggle]').scrollIntoView({block:'center'});`);
   await capture('appearance-dark');
   await cancel();
   await app.evaluate(`(async()=>{await (await import('/src/store.js')).updateSettings({uiLanguage:'en',theme:'light'});document.documentElement.dataset.theme='light';const select=document.querySelector('[data-viewmode]');select.value='week';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);

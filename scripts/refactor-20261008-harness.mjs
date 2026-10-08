@@ -151,13 +151,18 @@ export async function captureGallery(h,output) {
   await page.locator('[data-view="tasks"] [data-settings-btn]').click();await page.locator('[data-settings-dialog][open]').waitFor();
   const tabs=await page.locator('[data-settings-tab]').evaluateAll(nodes=>nodes.map(node=>node.dataset.settingsTab));
   for(const tab of tabs){await page.locator('[data-settings-tab="'+tab+'"]').click();await shot('settings-'+tab);}
+  await page.setViewportSize({width:600,height:900});
+  for(const tab of tabs){await page.locator('[data-settings-tab="'+tab+'"]').click();await shot('settings-'+tab+'-narrow');}
+  await page.setViewportSize(VIEWPORT);
   // Exercise the real theme control; direct data-theme mutation bypasses palette updates
   // and raced with the settings close callback in the preserved v2 capture.
-  await page.locator('[data-settings-tab="general"]').click();
+  await page.locator('[data-settings-tab="display"]').click();
   await page.locator('[data-theme-toggle]').click();
   await page.locator('[data-theme-toggle][aria-pressed="true"]:not([disabled])').waitFor();
+  for(const tab of tabs){await page.locator('[data-settings-tab="'+tab+'"]').click();await shot('settings-'+tab+'-dark');}
   await page.keyboard.press('Escape');await page.locator('[data-settings-dialog]').waitFor({state:'hidden'});
-  await page.waitForFunction(async()=>{const S=await import('/src/store.js'),C=await import('/src/ui-colors.js');const root=document.documentElement;return root.dataset.theme==='dark'&&Object.entries(C.buildUiPalette(S.getSettings().uiAccentColor,true)).every(([key,value])=>root.style.getPropertyValue(key)===value);});
+  const expectedDarkPalette=await page.evaluate(async()=>{const S=await import('/src/store.js'),C=await import('/src/ui-colors.js');return C.buildUiPalette(S.getSettings().uiAccentColor,true);});
+  await page.waitForFunction(expected=>{const root=document.documentElement;return root.dataset.theme==='dark'&&Object.entries(expected).every(([key,value])=>root.style.getPropertyValue(key)===value);},expectedDarkPalette);
   await shot('tasks-dark');
   await page.locator('[data-view="tasks"] [data-task-id="task-plan"]').click({button:'right'});
   await page.locator('.taskTagContextMenu').waitFor({state:'visible'});await shot('tasks-context-dark');await page.keyboard.press('Escape');

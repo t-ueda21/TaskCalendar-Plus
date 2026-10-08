@@ -628,7 +628,7 @@ try {
     window.updateKeyboardSaves=0;window.updateOriginalFetch=window.fetch;
     window.fetch=(url,init)=>{if(String(url)==='/api/settings'&&init?.method==='PUT')window.updateKeyboardSaves++;return window.updateOriginalFetch(url,init);};
     document.querySelector('[data-view="calendar"] [data-settings-btn]').click();
-    document.querySelector('[data-settings-tab="about"]').click();
+    document.querySelector('[data-settings-tab="data"]').click();
   })()`);
   await sleep(100);
   await evaluate(`document.querySelector('[data-settings-dialog] [data-update-open]').focus()`);

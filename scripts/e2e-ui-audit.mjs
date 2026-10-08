@@ -60,7 +60,7 @@ try{
     await app.evaluate(`document.querySelector('[data-view="calendar"] [data-new-task]').click();`);await inspect(`${condition.id}-create`);await close();
     await app.evaluate(`(async()=>{const S=await import('/src/store.js'),U=await import('/src/ui-utils.js');const task=S.getAllTasks().find(t=>!t.isAllDay);U.openEditDialog(document.querySelector('[data-view="calendar"] [data-task-dialog]'),task,S.getAllTags());})()`);await inspect(`${condition.id}-edit`);await close();
     await app.evaluate(`document.querySelector('[data-view="calendar"] [data-settings-btn]').click();`);
-    for(const tab of ['general','advanced','tags','outlook','about','shortcuts']){
+    for(const tab of ['display','work','tags','ai','outlook','links','startup','data','updates','shortcuts','info']){
       await app.evaluate(`document.querySelector('[data-settings-tab="${tab}"]').click();document.querySelector('.settingsDialogBody').scrollTop=0;`);
       await inspect(`${condition.id}-settings-${tab}`,condition.id==='ja-wide'||condition.id==='de-compact');
       if(condition.id==='ja-wide'){
@@ -98,8 +98,8 @@ try{
   await app.evaluate(`window.auditUpdateHost.remove();`);
   await app.evaluate(`window.__TAURI__.core.invoke('set_ui_zoom',{level:1.3});`);await delay(100);
   for(const view of ['calendar','tasks','ai']){await nav(view);await inspect(`zoom130-${view}`);}
-  await app.evaluate(`document.querySelector('[data-view="ai"] [data-settings-btn]').click();document.querySelector('[data-settings-tab="advanced"]').click();`);
-  await inspect('zoom130-settings-advanced');await close();
+  await app.evaluate(`document.querySelector('[data-view="ai"] [data-settings-btn]').click();document.querySelector('[data-settings-tab="work"]').click();`);
+  await inspect('zoom130-settings-work');await close();
   await app.evaluate(`window.__TAURI__.core.invoke('set_ui_zoom',{level:1});`);
 }finally{
   fs.writeFileSync(`${output}/observations.json`,JSON.stringify({observations,runtimeErrors:app.errors,liveOutlook:false,liveAi:false,liveUpdateChecks:false,mocks:['AI proposal stored directly, no inference','Update available response, no network/installer'],weather:'may use live read-only forecast API'},null,2));
