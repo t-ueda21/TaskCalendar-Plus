@@ -12,6 +12,7 @@ use std::thread;
 use tokio::sync::oneshot;
 use winsafe::prelude::*;
 use winsafe::{self as w, co};
+use windows::Win32::System::Variant::VARIANT as AutomationValue;
 
 const OL_FOLDER_CALENDAR: i32 = 9;
 const OL_APPOINTMENT_CLASS: i32 = 26;
@@ -221,7 +222,7 @@ fn managed_appointments_preserve_body_as_task_memo() {
 
 fn task_property(item: &w::IDispatch) -> Result<Option<String>,String> {
     let properties = item.invoke_get("UserProperties", &[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook user properties unavailable")?;
-    let property = properties.invoke_method("Find", &[&w::Variant::from_str(TASK_KEY_PROPERTY), &w::Variant::Bool(true)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt();
+    let property = invoke_optional_dispatch(&properties, "Find", &[AutomationValue::from(TASK_KEY_PROPERTY), AutomationValue::from(true)])?;
     match property { Some(property) => Ok(variant_to_opt_string(&property.invoke_get("Value",&[]).map_err(|e|e.to_string())?)), None => Ok(None) }
 }
 
@@ -245,7 +246,7 @@ fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
     // Register the folder field before Restrict. Then no matches is a proven absence,
     // including a retry after Save succeeded but its response was lost.
     let definitions = folder.invoke_get("UserDefinedProperties",&[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook field definitions unavailable")?;
-    if definitions.invoke_method("Find", &[&w::Variant::from_str(TASK_KEY_PROPERTY)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().is_none() {
+    if invoke_optional_dispatch(&definitions, "Find", &[AutomationValue::from(TASK_KEY_PROPERTY)])?.is_none() {
         definitions.invoke_method("Add", &[&w::Variant::from_str(TASK_KEY_PROPERTY),&w::Variant::I4(1)]).map_err(|e|e.to_string())?;
     }
     let known = match (&request.entry_id,&request.store_id) {
@@ -277,7 +278,7 @@ fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
     item.invoke_put("End",&end).map_err(|e|e.to_string())?;
     item.invoke_put("AllDayEvent",&w::Variant::Bool(payload.is_all_day)).map_err(|e|e.to_string())?;
     let properties = item.invoke_get("UserProperties",&[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook properties unavailable")?;
-    let property = match properties.invoke_method("Find", &[&w::Variant::from_str(TASK_KEY_PROPERTY),&w::Variant::Bool(true)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt() {
+    let property = match invoke_optional_dispatch(&properties, "Find", &[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(true)])? {
         Some(property) => property,
         None => properties.invoke_method("Add", &[&w::Variant::from_str(TASK_KEY_PROPERTY),&w::Variant::I4(1),&w::Variant::Bool(true)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Could not tag Outlook appointment")?,
     };
@@ -607,11 +608,18 @@ struct VariantDispatchLayout {
 }
 
 fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDispatch>, String> {
+    invoke_optional_dispatch(items, method, &[])
+        .map_err(|error| format!("Outlookの予定列挙({method})に失敗しました: {error}"))
+}
+
+/// Find/GetFirst/GetNext can successfully return VT_DISPATCH with a null pointer.
+/// Check that pointer before winsafe's Variant conversion, which otherwise AddRefs null.
+fn invoke_optional_dispatch(items: &w::IDispatch, method: &str, params: &[AutomationValue]) -> Result<Option<w::IDispatch>, String> {
     // winsafeのVariant::from_rawはVT_DISPATCHのnullポインタでもAddRefを呼ぶ。
-    // OutlookのNothing終端を安全に扱うため、この列挙呼び出しだけ生VARIANTを確認する。
+    // 列挙の終端やFindの未検出を安全に扱うため、生VARIANTを確認する。
     let id = items
         .GetIDsOfNames(&[method], w::LCID::USER_DEFAULT)
-        .map_err(|e| format!("Outlookの予定列挙({method})に失敗しました: {e}"))?[0];
+        .map_err(|e| format!("Outlook {method}: {e}"))?[0];
     // winsafe 0.0.28のInvokeはS_OK以外をすべてErrにするため、成功応答の
     // S_FALSE(0x00000001)まで「ファンクションが間違っています」と表示する。
     // windows-rsの呼び出しでHRESULTの成功/失敗を判定し、成功時は返却値を
@@ -621,6 +629,14 @@ fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDi
 
     let mut raw = w::VARIANT::default();
     let mut exception = w::EXCEPINFO::default();
+    // Automation arguments are passed in reverse order. The values own
+    // any BSTR/interface allocations until Invoke has finished.
+    let mut arguments: Vec<_> = params.iter().rev().cloned().collect();
+    let dispatch_params = DISPPARAMS {
+        rgvarg: arguments.as_mut_ptr().cast(),
+        cArgs: u32::try_from(arguments.len()).map_err(|_| "Too many Outlook arguments")?,
+        ..Default::default()
+    };
     let ptr = items.ptr();
     // 両クレートの構造体は同じWindows COM ABI。winsafe側がDropで
     // VARIANT/BSTRを解放し、借用したIDispatchの所有権はitemsが保持する。
@@ -632,7 +648,7 @@ fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDi
                 &GUID::zeroed(),
                 w::LCID::USER_DEFAULT.raw(),
                 DISPATCH_METHOD,
-                &DISPPARAMS::default(),
+                &dispatch_params,
                 Some((&mut raw as *mut w::VARIANT).cast()),
                 Some((&mut exception as *mut w::EXCEPINFO).cast()),
                 None,
@@ -646,7 +662,7 @@ fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDi
             hr.to_string()
         };
         return Err(format!(
-            "Outlookの予定列挙({method})に失敗しました: {detail}"
+            "Outlook {method}: {detail}"
         ));
     }
     match raw.vt() {
@@ -668,7 +684,7 @@ fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDi
             std::mem::forget(borrowed);
             Ok(Some(item))
         }
-        _ => Err("Outlookの予定列挙が不正な値を返しました".into()),
+        _ => Err(format!("Outlook {method} returned an invalid object value")),
     }
 }
 

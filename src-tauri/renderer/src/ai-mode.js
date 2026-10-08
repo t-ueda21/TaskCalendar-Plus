@@ -395,7 +395,7 @@ function _setActiveDate(dateKey) {
   _activeDateKey = key;
   syncViewDate(key);
   const dt = parseLocalDate(key);
-  if ($.dayLabel) $.dayLabel.textContent = formatDateJP(dt);
+  if ($.dayLabel) $.dayLabel.textContent = formatDateJP(dt, { withWeekday: true });
   _miniCalInst?.highlightDate(key);
   _miniCalInst?.navigateToMonth(dt.getFullYear(), dt.getMonth());
   _renderChatHistory();

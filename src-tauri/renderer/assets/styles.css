@@ -31,6 +31,7 @@
   --font-body: 13px;
   --font-section: 14px;
   --font-title: 16px;
+  --workspace-inset: 12px;
   --bg: #f3f4f9;
   --panel: #ffffff;
   --panel2: #f8f9fc;
@@ -234,7 +235,7 @@ a { color: inherit; text-decoration: none; }
   height: 100%;
   max-width: none;
   margin: 0;
-  padding: 6px 8px 0;
+  padding: var(--workspace-inset);
 }
 
 /* ── SPAシェル(app.html)のタブ切替 ──────────────
@@ -792,6 +793,9 @@ aside .panelBody::-webkit-scrollbar {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+
+.weatherIcon { display: inline-block; width: 18px; height: 18px; flex: 0 0 18px; margin-right: 4px; vertical-align: -4px; }
+.weatherChip .weatherIcon { margin-right: 0; }
 
 .weatherChip.loading {
   color: var(--muted);
@@ -3154,8 +3158,9 @@ label.uiToggle { position: relative; width: fit-content; }
   padding: 8px;
 }
 
-.sideWorkTotals { display: grid; gap: 6px; padding: 10px 0; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
-.sideWorkTotals > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; align-items: baseline; }
+.sideWorkTotals { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 0; margin-bottom: 4px; font-size: var(--font-caption); }
+.sideWorkTotals > div { display: inline-flex; flex-wrap: wrap; gap: 2px 4px; align-items: baseline; }
+.sideWorkTotals > div > span { color: var(--muted); }
 .sideWorkTotals strong { font-variant-numeric: tabular-nums; }
 .mini button.d { font: inherit; color: inherit; cursor: pointer; padding: 0; }
 .mini button.d:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }

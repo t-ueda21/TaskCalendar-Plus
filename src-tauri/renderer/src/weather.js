@@ -8,6 +8,7 @@ import { t as translate, th as translateHtml } from './i18n.js';
 
 import { formatDateKey, parseLocalDate, _isDateKey } from "./ui-utils.js";
 import * as Store from "./store.js";
+import { createWeatherIcon } from './weather-icons.js';
 
 const DEFAULT_LOCATION_KEY = "tokyo";
 // 都道府県庁所在地(北から都道府県コード順)。keyは設定に保存されるため変えない。
@@ -120,22 +121,23 @@ function _saveCache(locationKey) {
 }
 
 function _weatherInfoByCode(code) {
-  const n = Number(code);
-  if (n === 0) return { icon: "☀", text: translate('ui.2443f783d4') };
-  if (n === 1) return { icon: "🌤", text: translate('ui.7551041af2') };
-  if (n === 2) return { icon: "⛅", text: translate('ui.7f225a40ed') };
-  if (n === 3) return { icon: "☁", text: translate('ui.e7fab4605a') };
-  if (n === 45 || n === 48) return { icon: "🌫", text: translate('ui.ad7fe58cb6') };
-  if (n >= 51 && n <= 57) return { icon: "🌦", text: translate('ui.9a08a682c0') };
-  if (n >= 61 && n <= 67) return { icon: "🌧", text: translate('ui.124d60580d') };
-  if (n >= 71 && n <= 77) return { icon: "❄", text: translate('ui.53058fe2e0') };
-  if (n >= 80 && n <= 82) return { icon: "🌦", text: translate('ui.a622d33485') };
-  if (n >= 85 && n <= 86) return { icon: "🌨", text: translate('ui.92befce5d7') };
-  if (n >= 95 && n <= 99) return { icon: "⛈", text: translate('ui.562c94de29') };
-  return { icon: "🌡", text: translate('ui.bd5a8814a3') };
+  const n = code == null || code === '' ? NaN : Number(code);
+  if (n === 0) return { icon: "sun", text: translate('ui.2443f783d4') };
+  if (n === 1) return { icon: "sun-medium", text: translate('ui.7551041af2') };
+  if (n === 2) return { icon: "cloud-sun", text: translate('ui.7f225a40ed') };
+  if (n === 3) return { icon: "cloud", text: translate('ui.e7fab4605a') };
+  if (n === 45 || n === 48) return { icon: "cloud-fog", text: translate('ui.ad7fe58cb6') };
+  if (n >= 51 && n <= 57) return { icon: "cloud-drizzle", text: translate('ui.9a08a682c0') };
+  if (n >= 61 && n <= 67) return { icon: "cloud-rain", text: translate('ui.124d60580d') };
+  if (n >= 71 && n <= 77) return { icon: "snowflake", text: translate('ui.53058fe2e0') };
+  if (n >= 80 && n <= 82) return { icon: "cloud-sun-rain", text: translate('ui.a622d33485') };
+  if (n >= 85 && n <= 86) return { icon: "cloud-snow", text: translate('ui.92befce5d7') };
+  if (n >= 95 && n <= 99) return { icon: "cloud-lightning", text: translate('ui.562c94de29') };
+  return { icon: "thermometer", text: translate('ui.bd5a8814a3') };
 }
 
 function _toNumberOrNull(value) {
+  if (value == null || value === '') return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
 }
@@ -148,7 +150,7 @@ function _buildRecord(dateKey, weatherCode, tempMaxC, tempMinC) {
 
   return {
     date: dateKey,
-    weatherCode: Number.isFinite(Number(weatherCode)) ? Number(weatherCode) : null,
+    weatherCode: _toNumberOrNull(weatherCode),
     weatherText: info.text,
     icon: info.icon,
     tempMaxC: max,
@@ -278,18 +280,22 @@ export function getWeatherLocationOptions() {
 export function formatWeatherForDisplay(record, { withTemp = true } = {}) {
   if (!record) return translate('ui.5caed7fcdd');
 
-  const icon = String(record.icon ?? "🌡");
-  const text = record.weatherCode != null && Number.isFinite(Number(record.weatherCode))
-    ? _weatherInfoByCode(record.weatherCode).text
-    : String(record.weatherText ?? translate('ui.bd5a8814a3'));
-  if (!withTemp) return `${icon} ${text}`;
+  const text = _weatherInfoByCode(record.weatherCode).text;
+  if (!withTemp) return text;
 
-  const max = Number(record.tempMaxC);
-  const min = Number(record.tempMinC);
+  const max = _toNumberOrNull(record.tempMaxC);
+  const min = _toNumberOrNull(record.tempMinC);
   if (Number.isFinite(max) && Number.isFinite(min)) {
-    return `${icon} ${text} ${max.toFixed(1)}℃/${min.toFixed(1)}℃`;
+    return `${text} ${max.toFixed(1)}℃/${min.toFixed(1)}℃`;
   }
-  return `${icon} ${text}`;
+  return text;
+}
+
+// Derive icons and translated labels from the code, including caches written by v0.2.1.
+export function renderWeatherInto(element, record, options = {}) {
+  const doc = element.ownerDocument;
+  const text = doc.createTextNode(formatWeatherForDisplay(record, options));
+  element.replaceChildren(...(record ? [createWeatherIcon(_weatherInfoByCode(record.weatherCode).icon, doc)] : []), text);
 }
 
 export async function getWeatherByDate(dateKey, { force = false } = {}) {

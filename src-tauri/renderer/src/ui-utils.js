@@ -42,8 +42,9 @@ export function formatYearMonth(date) {
   return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
 }
 
-export function formatDateJP(date) {
-  return translate('ui.666a239028', { p0: (date.getFullYear()), p1: (pad2(date.getMonth() + 1)), p2: (pad2(date.getDate())) });
+export function formatDateJP(date, { withWeekday = false } = {}) {
+  const label = translate('ui.666a239028', { p0: (date.getFullYear()), p1: (pad2(date.getMonth() + 1)), p2: (pad2(date.getDate())) });
+  return withWeekday ? `${label}（${weekdayLabels()[date.getDay()]}）` : label;
 }
 
 function formatNow(date) {
@@ -968,7 +969,7 @@ export function renderSideSummaries({ monthEl, dayEl, Store, dateKey, emptyText 
   const yearMonth = String(dateKey).slice(0, 7);
   const monthTags = Store.getTagsForMonth(yearMonth);
   const tags = monthTags.length > 0 ? monthTags : Store.getAllTags();
-  const totals = summary => `<div class="sideWorkTotals"><div><span>${escHtml(translate('work.total'))}</span><strong>${escHtml(formatDuration(summary.total))}</strong></div><div><span>${escHtml(translate('work.overtime'))}</span><strong>${escHtml(formatDuration(summary.overtime))}</strong></div></div>`;
+  const totals = summary => `<div class="sideWorkTotals"><div><span>${escHtml(translate('work.totalShort'))}</span><strong>${escHtml(formatDuration(summary.total))}</strong></div><div><span>${escHtml(translate('work.overtimeShort'))}</span><strong>${escHtml(formatDuration(summary.overtime))}</strong></div></div>`;
   if (monthEl) {
     const summary = Store.calcMonthSummary(yearMonth);
     const html = renderTagBudgetRowsHtml(tags, summary.byTag);

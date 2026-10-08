@@ -1,6 +1,13 @@
 // Labels added by the settings pages and shared application dialogs.
 const codes = ['ja','en','ko','zh-CN','zh-TW','es','fr','de','pt'];
 const rows = [
+  ['settings.group.basic','基本','General','기본','基本','基本','General','Général','Allgemein','Geral'],
+  ['settings.group.integrations','連携','Connections','연동','连接','連線','Conexiones','Connexions','Verbindungen','Conexões'],
+  ['settings.group.app','アプリ','Application','앱','应用','應用程式','Aplicación','Application','Anwendung','Aplicativo'],
+  ['settings.language','言語','Language','언어','语言','語言','Idioma','Langue','Sprache','Idioma'],
+  ['settings.accent','アクセントカラー','Accent color','강조 색상','强调色','強調色','Color de acento','Couleur d’accent','Akzentfarbe','Cor de destaque'],
+  ['work.totalShort','合計','Total','합계','合计','合計','Total','Total','Gesamt','Total'],
+  ['work.overtimeShort','残業','Overtime','초과 근무','加班','加班','Horas extra','Heures sup.','Überstunden','Horas extras'],
   ['settings.page.display','表示','Display','화면','显示','顯示','Pantalla','Affichage','Anzeige','Exibição'],
   ['settings.page.work','勤務時間と休日','Work & holidays','근무 시간과 휴일','工作时间与休假','工作時間與休假','Trabajo y festivos','Travail et congés','Arbeit und freie Tage','Trabalho e feriados'],
   ['settings.page.ai','AI','AI','AI','AI','AI','IA','IA','KI','IA'],

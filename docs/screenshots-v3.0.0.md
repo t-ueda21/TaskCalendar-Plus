@@ -1,4 +1,18 @@
-# v3.0.0 スクリーンショット（未公開）
+# v3.0.0 スクリーンショット
+
+## v3.0.0-pre.2 の変更後
+
+隔離Chromium・合成データで撮影した画面です。実機インストール後の画像ではありません。
+
+| 画面 | 確認内容 |
+|---|---|
+| [カレンダー](images/v3.0.0-pre.2/calendar.png) | 分まで表示するコンパクトな集計・下端の余白・天気SVG |
+| [タスク一覧](images/v3.0.0-pre.2/tasks.png)／[AI](images/v3.0.0-pre.2/ai.png) | 外周12pxの共通余白 |
+| [表示設定](images/v3.0.0-pre.2/settings-display-1440.png) | 色付き見出し・目次の背景・操作欄の整列 |
+| [勤務設定](images/v3.0.0-pre.2/settings-work-1440.png) | グループの階層 |
+| [狭い画面](images/v3.0.0-pre.2/settings-display-600.png)／[ダーク表示](images/v3.0.0-pre.2/settings-outlook-dark.png) | 幅とテーマへの対応 |
+
+## pre.1以前の画面（未公開）
 
 現在の11ページ設定と主要操作の29画面です。**アプリの画面コードを隔離したChromiumで表示**し、API・ネイティブ連携・天気の応答には検証用データを使いました。Windowsアプリを再起動して撮影した画像ではありません。
 

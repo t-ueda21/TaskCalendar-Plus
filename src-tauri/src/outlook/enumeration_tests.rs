@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 use std::ffi::c_void;
 use std::sync::atomic::{AtomicU32, Ordering};
 use windows::Win32::System::Com::{DISPATCH_FLAGS, DISPPARAMS, EXCEPINFO, IDispatch_Vtbl};
-use windows::Win32::System::Variant::{VARENUM, VARIANT, VT_DISPATCH, VT_EMPTY, VT_I4, VT_NULL};
+use windows::Win32::System::Variant::{VARENUM, VARIANT, VT_BSTR, VT_DISPATCH, VT_EMPTY, VT_I4, VT_NULL};
 use windows::core::{GUID, HRESULT, IUnknown_Vtbl, Interface, PCWSTR};
 
 struct Reply {
@@ -85,6 +85,9 @@ unsafe extern "system" fn names(
         *out = match (*names).to_string().unwrap().as_str() {
             "GetFirst" => 1,
             "GetNext" => 2,
+            "UserProperties" => 3,
+            "Find" => 4,
+            "Value" => 5,
             _ => return HRESULT(0x80020006u32 as i32),
         };
     }
@@ -103,7 +106,19 @@ unsafe extern "system" fn invoke(
     _: *mut u32,
 ) -> HRESULT {
     unsafe {
-        if ![1, 2].contains(&id) || flags.0 != 1 || (*params).cArgs != 0 {
+        let valid = match id {
+            1 | 2 => flags.0 == 1 && (*params).cArgs == 0,
+            3 => flags.0 == 2 && (*params).cArgs == 0,
+            4 => {
+                let args = std::slice::from_raw_parts((*params).rgvarg, (*params).cArgs as usize);
+                flags.0 == 1 && (args.len() == 1 || args.len() == 2)
+                    && windows::core::BSTR::try_from(&args[args.len()-1]).is_ok_and(|s| s == TASK_KEY_PROPERTY)
+                    && (args.len() == 1 || bool::try_from(&args[0]) == Ok(true))
+            },
+            5 => flags.0 == 2 && (*params).cArgs == 0,
+            _ => false,
+        };
+        if !valid {
             return HRESULT(0x80070057u32 as i32);
         }
         let reply = (*this.cast::<Items>())
@@ -112,6 +127,10 @@ unsafe extern "system" fn invoke(
             .pop_front()
             .unwrap();
         (*(*out).Anonymous.Anonymous).vt = reply.kind;
+        if reply.kind == VT_BSTR {
+            (*(*out).Anonymous.Anonymous).Anonymous.bstrVal =
+                std::mem::ManuallyDrop::new(windows::core::BSTR::from("namespace:task-1"));
+        }
         if reply.item {
             add_ref(this);
             (*(*out).Anonymous.Anonymous).Anonymous.pdispVal = std::mem::ManuallyDrop::new(Some(
@@ -232,4 +251,58 @@ fn success_with_a_non_object_value_is_not_a_complete_snapshot() {
         }]);
         assert!(next_outlook_item(&source, "GetNext").is_err());
     }
+}
+
+#[test]
+fn ordinary_outlook_appointment_without_app_property_is_not_a_crash() {
+    // This test owns only a fake COM object, with no Outlook activation or profile.
+    // Suppress OS error dialogs in the isolated test process for a crashing regression.
+    #[link(name = "kernel32")]
+    unsafe extern "system" { fn SetErrorMode(mode: u32) -> u32; }
+    let previous = unsafe { SetErrorMode(0x0001 | 0x0002) };
+    for status in [0,1] {
+        for kind in [VT_EMPTY,VT_NULL,VT_DISPATCH] {
+            let source = items(vec![
+                Reply { status: HRESULT(0), kind: VT_DISPATCH, item: true },
+                Reply { status: HRESULT(status), kind, item: false },
+            ]);
+            assert_eq!(task_property(&source).expect("missing property is a normal appointment"),None);
+        }
+    }
+    unsafe { SetErrorMode(previous); }
+}
+
+#[test]
+fn custom_property_found_value_and_reference_ownership_are_preserved() {
+    let source = items(vec![
+        Reply { status: HRESULT(0), kind: VT_DISPATCH, item: true },
+        Reply { status: HRESULT(1), kind: VT_DISPATCH, item: true },
+        Reply { status: HRESULT(0), kind: VT_BSTR, item: false },
+    ]);
+    assert_eq!(task_property(&source).unwrap().as_deref(),Some("namespace:task-1"));
+    assert_eq!(unsafe { &*source.ptr().cast::<Items>() }.refs.load(Ordering::Relaxed),1);
+}
+
+#[test]
+fn folder_definition_find_accepts_absence_and_retains_failures() {
+    for status in [0,1] {
+        for kind in [VT_EMPTY,VT_NULL,VT_DISPATCH] {
+            let source=items(vec![Reply {status:HRESULT(status),kind,item:false}]);
+            assert!(invoke_optional_dispatch(&source,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY)]).unwrap().is_none());
+        }
+    }
+    for (status,kind) in [(0,VT_I4),(0x80020009u32 as i32,VT_EMPTY)] {
+        let source=items(vec![Reply {status:HRESULT(status),kind,item:false}]);
+        let error=invoke_optional_dispatch(&source,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY)]).err().unwrap();
+        assert!(error.contains("Find"));
+        if status!=0 {assert!(error.contains("calendar unavailable"));}
+    }
+}
+
+#[test]
+fn automation_result_structures_share_the_same_abi() {
+    assert_eq!(std::mem::size_of::<w::VARIANT>(),std::mem::size_of::<VARIANT>());
+    assert_eq!(std::mem::align_of::<w::VARIANT>(),std::mem::align_of::<VARIANT>());
+    assert_eq!(std::mem::size_of::<w::EXCEPINFO>(),std::mem::size_of::<EXCEPINFO>());
+    assert_eq!(std::mem::align_of::<w::EXCEPINFO>(),std::mem::align_of::<EXCEPINFO>());
 }

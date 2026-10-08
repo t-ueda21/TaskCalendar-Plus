@@ -1,6 +1,6 @@
 # TaskCalendar+
 
-> このブランチは **v3.0.0-pre.1** のソースです。[確認用プレリリース](https://github.com/t-ueda21/TaskCalendar-Plus/releases/tag/v3.0.0-pre.1)は手動ダウンロード用で、通常のアプリ内更新通知の対象には含めません。以下の操作説明は3.0系に合わせています。[変更内容](docs/releases/v3.0.0.md)、[スクリーンショット](docs/screenshots-v3.0.0.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)も確認できます。「最新版」へのダウンロードリンクは正式版を指します。
+> このブランチは **v3.0.0-pre.2** のソースです。[確認用プレリリース](https://github.com/t-ueda21/TaskCalendar-Plus/releases/tag/v3.0.0-pre.2)は手動ダウンロード用で、通常のアプリ内更新通知の対象には含めません。以下の操作説明は3.0系に合わせています。[変更内容](docs/releases/v3.0.0.md)、[スクリーンショット](docs/screenshots-v3.0.0.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)も確認できます。「最新版」へのダウンロードリンクは正式版を指します。
 
 **予定を入れる。作業時間を見渡す。日報にまとめる。**
 

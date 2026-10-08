@@ -320,18 +320,21 @@
       <header>
 
         <div class="settingsDialogTitle"><span data-i18n="ui.0d8619aae0">設定</span></div>
-        <div class="settingsDialogSub"><span data-i18n="settings.pagesHint">設定する項目を選択してください。</span></div>
+
       </header>
 
       <div class="settingsTabBar">
       <div class="settingsTabs" role="tablist" aria-label="設定タブ" data-i18n-attrs="aria-label=ui.3239a37983" aria-orientation="vertical">
 
+        <div class="settingsNavHeading" role="presentation" data-i18n="settings.group.basic">基本</div>
         <button class="settingsTabBtn isActive" type="button" role="tab" aria-selected="true" data-settings-tab="display" id="settings-tab-display" aria-controls="settings-panel-display"><span data-i18n="settings.page.display">表示</span></button>
         <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="work" id="settings-tab-work" aria-controls="settings-panel-work"><span data-i18n="settings.page.work">勤務時間と休日</span></button>
         <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="tags" id="settings-tab-tags" aria-controls="settings-panel-tags"><span data-i18n="ui.a93778fc94">タグ管理</span></button>
+        <div class="settingsNavHeading" role="presentation" data-i18n="settings.group.integrations">連携</div>
         <button type="button" class="settingsTabBtn" data-settings-tab="ai" role="tab" id="settings-tab-ai" aria-controls="settings-panel-ai"><span data-i18n="settings.page.ai">AI</span></button>
         <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="outlook" id="settings-tab-outlook" aria-controls="settings-panel-outlook">Outlook</button>
         <button type="button" class="settingsTabBtn" data-settings-tab="links" role="tab" id="settings-tab-links" aria-controls="settings-panel-links"><span data-i18n="settings.page.links">リンク</span></button>
+        <div class="settingsNavHeading" role="presentation" data-i18n="settings.group.app">アプリ</div>
         <button type="button" class="settingsTabBtn" data-settings-tab="startup" role="tab" id="settings-tab-startup" aria-controls="settings-panel-startup"><span data-i18n="settings.page.startup">起動・常駐</span></button>
         <button class="settingsTabBtn" type="button" role="tab" aria-selected="false" data-settings-tab="data" id="settings-tab-data" aria-controls="settings-panel-data"><span data-i18n="settings.page.data">データ</span></button>
         <button type="button" class="settingsTabBtn" data-settings-tab="updates" role="tab" id="settings-tab-updates" aria-controls="settings-panel-updates"><span data-i18n="settings.page.updates">アップデート</span></button>
@@ -347,15 +350,15 @@
           <section class="settingsSection"><h3 class="settingsSectionLabel" data-i18n="settings.appearance">テーマとカラー</h3><div class="settingsAppearanceControls"><button type="button" class="uiToggle themeToggle" data-theme-toggle="" aria-pressed="false" aria-label="ダークモード切替" data-i18n-attrs="aria-label=ui.c62660d712">
           <span class="themeToggleTrack"><span class="themeToggleThumb"></span></span>
           <span class="themeToggleLabel"><span data-i18n="ui.5f8b0cbdca">ダークモード</span></span>
-        </button><div class="uiColorPicker" data-ui-color-picker="" role="group" aria-label="UIカラー" data-i18n-attrs="aria-label=ui.0ff6ed306c">
+        </button><div class="settingsInlineRow settingsInlineRowWide"><span class="settingsInlineLabel" data-i18n="settings.accent">アクセントカラー</span><div class="uiColorPicker" data-ui-color-picker="" role="group" aria-label="UIカラー" data-i18n-attrs="aria-label=ui.0ff6ed306c">
         <div class="uiColorPresets" data-ui-color-presets=""></div>
         <label class="uiColorCustom" title="好きな色を選択（保存で確定）" data-i18n-attrs="title=ui.d44c745f02">
           <span aria-hidden="true">＋</span>
           <input type="color" data-ui-color-custom="" aria-label="好きなUIカラーを選択" value="#0072bc" data-i18n-attrs="aria-label=ui.b47582535b">
         </label>
-      </div></div><p class="settingsTagHint" data-i18n="settings.appearanceHint">テーマはすぐに反映されます。カラーは「保存」で確定します。</p></section>
+      </div></div></div><p class="settingsTagHint" data-i18n="settings.appearanceHint">テーマはすぐに反映されます。カラーは「保存」で確定します。</p></section>
             <section class="settingsSection">
-              <div class="settingsSectionLabel" data-i18n="language.label">表示言語</div>
+              <h3 class="settingsSectionLabel" data-i18n="settings.language">言語</h3>
               <div class="settingsInlineRow settingsInlineRowWide">
                 <label class="settingsInlineLabel" for="cfg-language" data-i18n="language.label">表示言語</label>
                 <select id="cfg-language" name="uiLanguage" data-language-select=""></select>
@@ -363,7 +366,7 @@
               <p class="settingsTagHint"><span data-i18n="ui.95b00e6341">祝日・地域設定は日本のままです。AIの回答も選択した言語になります。</span></p>
             </section>
           <section class="settingsSection">
-              <div class="settingsSectionLabel"><span data-i18n="ui.52cbc155c4">表示設定</span></div>
+              <h3 class="settingsSectionLabel" data-i18n="ui.e6f6d06c44">カレンダー</h3>
               <div class="settingsInlineRow">
                 <label class="settingsInlineLabel" for="cfg-granularity"><span data-i18n="ui.673ac0e3ec">時間粒度</span></label>
                 <select id="cfg-granularity" name="granularity">
