@@ -33,11 +33,29 @@
 
 dialog.settingsDialog.settingsPages[open] { display: grid; }
 .settingsDialog.settingsPages {
+  --settings-canvas: #dce4ee;
+  --settings-surface: #edf2f8;
+  --settings-navigation: #d0dce9;
+  --settings-heading: color-mix(in srgb, var(--accent) 8%, #d5e0ed);
+  --settings-chrome: #e4ebf3;
+  --border: #a5b3c5;
+  --border-strong: #8293a9;
+  --muted: #49576a;
   width: min(1000px, calc(100vw - 32px)); height: min(820px, calc(100dvh - 40px)); max-height: calc(100dvh - 40px);
   grid-template-columns: 198px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto;
   border-radius: 18px; overflow: hidden;
 }
-.settingsPages > header { grid-column: 1 / -1; padding: 20px 24px 17px; background: var(--panel); }
+:root[data-theme="dark"] .settingsDialog.settingsPages {
+  --settings-canvas: #111a28;
+  --settings-surface: #202c3e;
+  --settings-navigation: #162338;
+  --settings-heading: color-mix(in srgb, var(--accent) 16%, #273850);
+  --settings-chrome: #1a2638;
+  --border: #62728a;
+  --border-strong: #7a8ba3;
+  --muted: #b9c6d9;
+}
+.settingsPages > header { grid-column: 1 / -1; padding: 20px 24px 17px; background: var(--settings-chrome); }
 .settingsPages .settingsDialogTitle { font-size: 21px; }
 .settingsPages .settingsDialogSub { margin-top: 4px; }
 .settingsPages .settingsTabBar { grid-column: 1; grid-row: 2; display: block; padding: 14px 10px; border: 0; border-right: 1px solid var(--border); background: var(--panel2); overflow-y: auto; }
@@ -45,20 +63,19 @@ dialog.settingsDialog.settingsPages[open] { display: grid; }
 .settingsPages .settingsNavHeading { padding: 16px 10px 5px; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--text); }
 .settingsPages .settingsNavHeading:first-child { padding-top: 2px; }
 .settingsPages .settingsTabBtn { border-radius: 7px; min-height: 36px; padding: 7px 12px 7px 22px; font-weight: 400; text-align: left; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
-.settingsPages .settingsTabBtn.isActive { color: var(--accent-strong); background: var(--accent-soft); box-shadow: none; }
-.settingsPages .settingsTabBtn.isActive:hover { color: var(--accent-strong); background: var(--accent-soft); }
+.settingsPages .settingsTabBtn.isActive,
+.settingsPages .settingsTabBtn.isActive:hover { color: var(--text); background: var(--settings-heading); box-shadow: inset 3px 0 var(--accent-strong); font-weight: 700; }
 .settingsPages .settingsTabBtn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.settingsPages .settingsDialogBody { grid-column: 2; grid-row: 2; min-width: 0; background: var(--panel); scroll-behavior: auto; }
-.settingsPages .settingsTabPanel.isActive { display: flex; flex-direction: column; gap: 16px; padding: 24px 28px; background: var(--panel); height: auto; min-height: 100%; }
+.settingsPages .settingsDialogBody { grid-column: 2; grid-row: 2; min-width: 0; background: var(--settings-canvas); scroll-behavior: auto; }
+.settingsPages .settingsTabPanel.isActive { display: flex; flex-direction: column; gap: 16px; padding: 24px 28px; background: var(--settings-canvas); height: auto; min-height: 100%; }
 .settingsPages .settingsPageHeading { display: grid; gap: 6px; padding: 0 0 4px; }
 .settingsPages .settingsPageHeading h2 { margin: 0; color: var(--text); font-size: 20px; line-height: 1.45; }
 .settingsPages .settingsPageHeading p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
-.settingsPages .settingsSection { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel2); box-shadow: none; gap: 8px; min-width: 0; }
+.settingsPages .settingsSection { padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--settings-surface); box-shadow: none; gap: 8px; min-width: 0; }
 .settingsPages .settingsSectionLabel { font-size: 15px; font-weight: 700; }
 .settingsPages .settingsSection > .settingsSectionLabel,
-.settingsPages .aiPersonalization legend { display: block; width: 100%; padding: 8px 12px; border-radius: 6px; background: var(--accent-soft); color: var(--text); }
-.settingsPages .settingsTabBar { background: color-mix(in srgb, var(--accent) 5%, var(--panel2)); }
-.settingsPages .settingsTabBtn.isActive { background: var(--panel); box-shadow: 0 1px 3px var(--border); font-weight: 700; }
+.settingsPages .aiPersonalization legend { display: block; width: 100%; padding: 8px 12px; border-radius: 6px; background: var(--settings-heading); color: var(--text); }
+.settingsPages .settingsTabBar { background: var(--settings-navigation); }
 .settingsPages .settingsSection > h3, .settingsPages .settingsSection > p { margin-top: 0; margin-bottom: 0; }
 .settingsPages .settingsSectionSub, .settingsPages .settingsTagHint { line-height: 1.65; }
 .settingsPages .settingsAppearanceControls { display: grid; gap: 12px; }
@@ -71,10 +88,10 @@ dialog.settingsDialog.settingsPages[open] { display: grid; }
 .settingsPages .settingsSection > .uiToggle .themeToggleLabel,
 .settingsPages .settingsAppearanceControls > .uiToggle .themeToggleLabel { order: 1; text-align: left; }
 .settingsPages .settingsTagHint { margin: 0; line-height: 1.6; }
-.settingsPages .settingsFooter { grid-column: 1 / -1; padding: 14px 24px; background: var(--panel); }
+.settingsPages .settingsFooter { grid-column: 1 / -1; padding: 14px 24px; background: var(--settings-chrome); }
 .settingsPages .settingsFooter .btn { min-width: 90px; justify-content: center; }
 .settingsPages .settingsTabPanel[data-settings-tab-panel="tags"] { min-height: 100%; }
-.settingsPages .settingsTagSection { min-height: 0; padding: 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel2); }
+.settingsPages .settingsTagSection { min-height: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--settings-surface); }
 .settingsPages .settingsTagList { min-height: 160px; }
 .settingsPages .aiPersonalization { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; }
 .settingsPages .aiPersonalization legend { margin-bottom: 12px; font-size: 15px; font-weight: 700; }
@@ -85,6 +102,7 @@ dialog.settingsDialog.settingsPages[open] { display: grid; }
 .settingsPages .settingsSection .settingsSection { margin-top: 4px; background: var(--panel); }
 .settingsPages .settingsFeatureCard { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 8px 0; }
 .settingsPages input, .settingsPages select, .settingsPages textarea { max-width: 100%; }
+.settingsPages :is(select, textarea, input[type="text"], input[type="url"], input[type="number"], input[type="date"], input[type="time"]) { border-color: var(--border-strong); }
 @media (max-width: 760px) {
   .settingsDialog.settingsPages { grid-template-columns: 162px minmax(0, 1fr); }
   .settingsPages .settingsTabPanel.isActive { padding: 18px; }
