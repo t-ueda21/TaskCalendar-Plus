@@ -51,7 +51,9 @@ export function wireTransferUi(dialog,Store,{downloadJsonFile,describeSensitiveI
         let data;
         if(settings)data=buildSettingsExport(Store.getSettings(),Store.getAllTags());
         else {const response=await fetch('/api/backup');if(!response.ok)throw Error(translate('transfer.failed'));data=await response.json();}
-        downloadJsonFile(data,`taskcalendar-plus-${type}-${formatDateKey(new Date())}.json`);exportStatus.textContent=translate('transfer.downloadStarted');
+        const fileName=`taskcalendar-plus-${type}-${formatDateKey(new Date())}.json`;
+        downloadJsonFile(data,fileName);
+        exportStatus.textContent=translate('transfer.downloadStarted',{fileName});
       } catch(error){exportStatus.textContent=String(error.message??error);}finally{exportButton.disabled=false;}
     });
   }

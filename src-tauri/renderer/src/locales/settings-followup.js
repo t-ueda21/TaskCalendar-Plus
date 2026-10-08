@@ -1,6 +1,7 @@
 // Labels added by the settings pages and shared application dialogs.
 const codes = ['ja','en','ko','zh-CN','zh-TW','es','fr','de','pt'];
 const rows = [
+  ['transfer.downloadStarted','書き出しを開始しました。通常の保存先は「ダウンロード」フォルダーです。\nファイル名：{fileName}','Download started. The usual save location is your Downloads folder.\nFile name: {fileName}','파일 다운로드를 시작했습니다. 기본 저장 위치는 다운로드 폴더입니다.\n파일 이름: {fileName}','已开始下载。通常保存到“下载”文件夹。\n文件名：{fileName}','已開始下載。通常儲存至「下載」資料夾。\n檔案名稱：{fileName}','Descarga iniciada. Normalmente se guarda en la carpeta Descargas.\nNombre del archivo: {fileName}','Téléchargement lancé. Le fichier est normalement enregistré dans le dossier Téléchargements.\nNom du fichier : {fileName}','Download gestartet. Der übliche Speicherort ist der Ordner Downloads.\nDateiname: {fileName}','Download iniciado. O local habitual é a pasta Downloads.\nNome do arquivo: {fileName}'],
   ['settings.group.basic','基本','General','기본','基本','基本','General','Général','Allgemein','Geral'],
   ['settings.group.integrations','連携','Connections','연동','连接','連線','Conexiones','Connexions','Verbindungen','Conexões'],
   ['settings.group.app','アプリ','Application','앱','应用','應用程式','Aplicación','Application','Anwendung','Aplicativo'],

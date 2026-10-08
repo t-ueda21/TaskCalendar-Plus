@@ -3166,6 +3166,7 @@ label.uiToggle { position: relative; width: fit-content; }
 .mini button.d:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
 .transferWrite, .transferRead { padding: 12px 0; }
 .transferWrite { border-bottom: 1px solid var(--border); }
+.transferWrite [data-export-status] { white-space: pre-line; overflow-wrap: anywhere; }
 .transferWrite h3, .transferRead h3 { font-size: var(--font-body); margin: 0 0 8px; }
 .transferSteps { display: grid; gap: 10px; margin: 0; padding-left: 24px; }
 .transferSteps li > span { display: block; font-weight: 600; margin-bottom: 6px; }
