@@ -49,12 +49,11 @@ dialog.settingsDialog.settingsPages[open] { display: grid; }
 .settingsPages .settingsTabBtn.isActive:hover { color: var(--accent-strong); background: var(--accent-soft); }
 .settingsPages .settingsTabBtn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .settingsPages .settingsDialogBody { grid-column: 2; grid-row: 2; min-width: 0; background: var(--panel); scroll-behavior: auto; }
-.settingsPages .settingsTabPanel.isActive { display: flex; flex-direction: column; gap: 24px; padding: 24px 28px; background: var(--panel); height: auto; min-height: 100%; }
+.settingsPages .settingsTabPanel.isActive { display: flex; flex-direction: column; gap: 16px; padding: 24px 28px; background: var(--panel); height: auto; min-height: 100%; }
 .settingsPages .settingsPageHeading { display: grid; gap: 6px; padding: 0 0 4px; }
 .settingsPages .settingsPageHeading h2 { margin: 0; color: var(--text); font-size: 20px; line-height: 1.45; }
 .settingsPages .settingsPageHeading p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
-.settingsPages .settingsSection { padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; gap: 12px; min-width: 0; }
-.settingsPages .settingsSection + .settingsSection { padding-top: 0; border-top: 0; }
+.settingsPages .settingsSection { padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel2); box-shadow: none; gap: 8px; min-width: 0; }
 .settingsPages .settingsSectionLabel { font-size: 15px; font-weight: 700; }
 .settingsPages .settingsSection > .settingsSectionLabel,
 .settingsPages .aiPersonalization legend { display: block; width: 100%; padding: 8px 12px; border-radius: 6px; background: var(--accent-soft); color: var(--text); }
@@ -75,7 +74,7 @@ dialog.settingsDialog.settingsPages[open] { display: grid; }
 .settingsPages .settingsFooter { grid-column: 1 / -1; padding: 14px 24px; background: var(--panel); }
 .settingsPages .settingsFooter .btn { min-width: 90px; justify-content: center; }
 .settingsPages .settingsTabPanel[data-settings-tab-panel="tags"] { min-height: 100%; }
-.settingsPages .settingsTagSection { min-height: 0; }
+.settingsPages .settingsTagSection { min-height: 0; padding: 12px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--panel2); }
 .settingsPages .settingsTagList { min-height: 160px; }
 .settingsPages .aiPersonalization { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; }
 .settingsPages .aiPersonalization legend { margin-bottom: 12px; font-size: 15px; font-weight: 700; }
@@ -83,7 +82,7 @@ dialog.settingsDialog.settingsPages[open] { display: grid; }
 .settingsPages .settingsInlineRow.settingsModelRow { grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr) auto; }
 .settingsPages .settingsInlineRow > label, .settingsPages .settingsInlineLabel { color: var(--text); }
 .settingsPages .settingsInlineRow select, .settingsPages .settingsInlineRow input { min-height: 34px; }
-.settingsPages .settingsSection .settingsSection { margin-top: 12px; padding-top: 0; border-top: 0; }
+.settingsPages .settingsSection .settingsSection { margin-top: 4px; background: var(--panel); }
 .settingsPages .settingsFeatureCard { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 8px 0; }
 .settingsPages input, .settingsPages select, .settingsPages textarea { max-width: 100%; }
 @media (max-width: 760px) {
