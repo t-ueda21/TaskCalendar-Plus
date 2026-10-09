@@ -157,3 +157,15 @@ mod live_tests {
         for calendar in calendars.calendars {assert!(super::reference(&calendar.id).unwrap().is_some());}
     }
 }
+
+pub(super) fn identify(folder:&w::IDispatch)->Result<String,String>{
+    let reference=CalendarReference {entry_id:automation::text(folder,"EntryID")?,store_id:automation::text(folder,"StoreID")?,label:automation::text(folder,"FolderPath")?};
+    Ok(format!("{PREFIX}{}",serde_json::to_string(&reference).map_err(|e|e.to_string())?))
+}
+pub fn same_calendar(a:&str,b:&str)->bool {
+    match (reference(a),reference(b)) {
+        (Ok(Some(a)),Ok(Some(b)))=>a.entry_id==b.entry_id&&a.store_id==b.store_id,
+        (Ok(None),Ok(None))=>a.eq_ignore_ascii_case(b)||(is_default_calendar_name(a)&&is_default_calendar_name(b)),
+        _=>false,
+    }
+}

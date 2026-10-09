@@ -47,7 +47,9 @@ export function wireOutlookSync(dialog, Store, { getTagMgrMonth, getSelectedDate
       await Store.refreshTasks();
       if (active !== controller) return;
       status.textContent = translate('outlook.result', { added: data.added ?? 0, updated: data.updated ?? 0, deleted: data.deleted ?? 0, skipped: data.skipped ?? 0 });
-      status.className = 'settingsOutlookStatus success';
+      if (Number(data.conflicts) > 0) status.textContent += ' ' + translate('outlook.conflicts', { count: data.conflicts });
+      if (Array.isArray(data.warnings) && data.warnings.length) status.textContent += '\n' + data.warnings.join(' / ');
+      status.className = 'settingsOutlookStatus ' + (data.conflicts || data.warnings?.length ? 'error' : 'success');
     } catch (error) {
       if (active !== controller) return;
       status.textContent = error.name === 'AbortError' ? translate('outlook.timeout') : String(error.message ?? error);
