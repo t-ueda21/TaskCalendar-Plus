@@ -21,7 +21,7 @@ pub(super) fn invoke(item: &w::IDispatch, name: &str, flags: DISPATCH_FLAGS, par
     let mut exception=w::EXCEPINFO::default();
     unsafe {dispatch.Invoke(id,&GUID::zeroed(),w::LCID::USER_DEFAULT.raw(),flags,&args,Some(&mut value),Some((&mut exception as *mut w::EXCEPINFO).cast()),None)}
         .map_err(|error| {
-            let detail=if error.code().0==co::HRESULT::DISP_E_EXCEPTION.raw() as i32 {exception.to_string()}else{error.to_string()};
+            let detail=if error.code().0==co::HRESULT::DISP_E_EXCEPTION.raw() as i32 {format!("[0x{:08x}] {}",exception.scode as u32,exception)}else{error.to_string()};
             format!("Outlook {name}: {detail}")
         })?;
     Ok(value)

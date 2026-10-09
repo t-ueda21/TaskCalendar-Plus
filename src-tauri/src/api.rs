@@ -638,22 +638,22 @@ async fn outlook_sync(state: AppState, request: Value) -> Response {
         },
         _ => return json_err(StatusCode::BAD_REQUEST, "Invalid Outlook fetch mode"),
     };
-    let snapshot = match crate::outlook::fetch_events_in_range(calendar_name, range).await {
+    let (tracked,legacy,revision)={
+        let conn=lock_conn(&state);
+        match (crate::outlook::reconcile::capture(&conn),crate::outlook::reconcile::legacy_targets(&conn),repo::tasks_revision(&conn)) {
+            (Ok(tracked),Ok(legacy),Ok(revision))=>(tracked,legacy,revision),
+            _=>return json_err(StatusCode::INTERNAL_SERVER_ERROR,"同期前の状態を保存できません"),
+        }
+    };
+    let snapshot = match crate::outlook::fetch_reconcile(calendar_name, range,tracked,legacy).await {
         Ok(snapshot) => snapshot,
         Err(message) => return json_err(StatusCode::SERVICE_UNAVAILABLE, message),
     };
 
     let conn = lock_conn(&state);
-    match repo::outlook_sync_in_range(&conn, &snapshot.events, &tag_id, snapshot.range) {
-        Ok(result) => json_ok(json!({
-            "success": true,
-            "count": result.count,
-            "added": result.added,
-            "skipped": result.skipped,
-            "deleted": result.deleted,
-            "updated": result.updated,
-        })),
-        Err(err) => json_err(StatusCode::SERVICE_UNAVAILABLE, err.to_string()),
+    match crate::outlook::reconcile::synchronize(&conn,&snapshot,&tag_id,revision) {
+        Ok(result)=>json_ok(result),
+        Err(error)=>json_err(StatusCode::SERVICE_UNAVAILABLE,error.to_string()),
     }
 }
 

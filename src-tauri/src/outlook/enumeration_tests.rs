@@ -100,6 +100,9 @@ unsafe extern "system" fn names(
             "End" => 15,
             "AllDayEvent" => 16,
             "Add" => 17,
+            "PropertyAccessor" => 18,
+            "GetProperty" => 19,
+            "MeetingStatus" => 20,
             _ => return HRESULT(0x80020006u32 as i32),
         };
     }
@@ -146,6 +149,8 @@ unsafe extern "system" fn invoke(
                     && i32::try_from(&args[1])==Ok(1)
                     && windows::core::BSTR::try_from(&args[2]).is_ok_and(|s|s==TASK_KEY_PROPERTY)
             },
+            18 | 20 => flags.0==2 && (*params).cArgs==0,
+            19 => flags.0==1 && (*params).cArgs==1 && windows::core::BSTR::try_from(&*(*params).rgvarg).is_ok_and(|s|s=="http://schemas.microsoft.com/mapi/id/{00062002-0000-0000-C000-000000000046}/82170003"),
             14..=16 => flags.0==4 && (*params).cArgs==1 && (*params).cNamedArgs==1 && *(*params).rgdispidNamedArgs == -3,
 
 
@@ -160,6 +165,8 @@ unsafe extern "system" fn invoke(
             .pop_front()
             .unwrap();
         (*(*out).Anonymous.Anonymous).vt = reply.kind;
+        if id==19 && reply.kind==VT_I4 { (*(*out).Anonymous.Anonymous).Anonymous.lVal=7; }
+        if id==20 && reply.kind==VT_I4 { (*(*out).Anonymous.Anonymous).Anonymous.lVal=3; }
         if id==10 && reply.kind==VT_I4 { (*(*out).Anonymous.Anonymous).Anonymous.lVal=3; }
         if id==8 && reply.kind==VT_I4 { (*(*out).Anonymous.Anonymous).Anonymous.lVal=1; }
         if reply.kind == VT_BSTR {
@@ -444,5 +451,19 @@ fn empty_managed_property_remains_an_unmanaged_appointment() {
     for kind in [VT_EMPTY,VT_NULL,VT_I4] {
         let source=items(vec![Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},Reply{status:HRESULT(0),kind,item:false}]);
         assert_eq!(task_property(&source).unwrap(),None);
+    }
+}
+
+#[test]
+fn recurrence_cancellation_uses_explicit_mapi_flag_even_if_meeting_status_is_inherited() {
+    let source=items(vec![Reply{status:HRESULT(0),kind:VT_I4,item:false},Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},Reply{status:HRESULT(0),kind:VT_I4,item:false}]);
+    assert!(!reconcile::meeting_active(&source).unwrap());
+}
+
+#[test]
+fn optional_cancellation_flag_missing_is_distinct_from_access_failure() {
+    for (code,expected_active) in [(0x8004010fu32,Some(true)),(0x80070005,None)] {
+        let source=items(vec![Reply{status:HRESULT(0),kind:VT_I4,item:false},Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},Reply{status:HRESULT(code as i32),kind:VT_EMPTY,item:false}]);
+        assert_eq!(reconcile::meeting_active(&source).ok(),expected_active);
     }
 }

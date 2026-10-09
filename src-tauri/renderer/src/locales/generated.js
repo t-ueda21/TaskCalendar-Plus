@@ -1,6 +1,7 @@
 // Generated complete catalogs; checked by scripts/test-i18n.mjs.
 export default {
   "ja": {
+    "outlook.conflicts": "未反映の変更や競合があるため{count}件を保留しました。",
     "outlook.sourceCalendar": "取得元の予定表",
     "outlook.defaultCalendar": "既定の予定表",
     "outlook.savedCalendar": "保存済みの予定表",
@@ -9,7 +10,7 @@ export default {
     "outlook.noCalendars": "予定表が見つかりません。既定の予定表または手入力を選べます。",
     "outlook.partialCalendars": "一部の候補を取得できませんでした。",
     "outlook.calendarTimeout": "予定表候補の取得がタイムアウトしました。再取得してください。",
-    "outlook.selectionHint": "OFFで保存すると、アプリから登録したOutlookの予定を削除します。タスクは残ります。",
+    "outlook.selectionHint": "OFFで保存すると、連携中のOutlook予定を削除します。タスクは残ります。",
     "common.save": "保存",
     "common.cancel": "キャンセル",
     "common.close": "閉じる",
@@ -668,6 +669,7 @@ export default {
     "ui.5caed7fcdd": "天気情報なし"
   },
   "en": {
+    "outlook.conflicts": "Held {count} items because of pending changes or conflicts.",
     "outlook.sourceCalendar": "Import calendar",
     "outlook.defaultCalendar": "Default calendar",
     "outlook.savedCalendar": "Saved calendar",
@@ -676,7 +678,7 @@ export default {
     "outlook.noCalendars": "No calendars found. Choose the default calendar or enter a name manually.",
     "outlook.partialCalendars": "Some calendars could not be loaded.",
     "outlook.calendarTimeout": "Loading calendars timed out. Please refresh.",
-    "outlook.selectionHint": "Saving with this off deletes the Outlook appointment created by this app. The task is kept.",
+    "outlook.selectionHint": "Saving with this off deletes the linked Outlook appointment. The task is kept.",
     "common.save": "Save",
     "common.cancel": "Cancel",
     "common.close": "Close",
@@ -1335,6 +1337,7 @@ export default {
     "ui.5caed7fcdd": "No weather data"
   },
   "ko": {
+    "outlook.conflicts": "미반영 변경 또는 충돌로 {count}개 항목을 보류했습니다.",
     "outlook.sourceCalendar": "가져올 일정",
     "outlook.defaultCalendar": "기본 일정",
     "outlook.savedCalendar": "저장된 일정",
@@ -1343,7 +1346,7 @@ export default {
     "outlook.noCalendars": "일정을 찾지 못했습니다. 기본 일정을 선택하거나 이름을 직접 입력하세요.",
     "outlook.partialCalendars": "일부 일정을 가져오지 못했습니다.",
     "outlook.calendarTimeout": "일정 목록 요청 시간이 초과되었습니다. 다시 가져오세요.",
-    "outlook.selectionHint": "OFF로 저장하면 이 앱에서 등록한 Outlook 일정을 삭제합니다. 작업은 유지됩니다.",
+    "outlook.selectionHint": "OFF로 저장하면 연결된 Outlook 일정을 삭제합니다. 작업은 유지됩니다.",
     "common.save": "저장",
     "common.cancel": "취소",
     "common.close": "닫기",
@@ -2002,6 +2005,7 @@ export default {
     "ui.5caed7fcdd": "날씨 정보 없음"
   },
   "zh-CN": {
+    "outlook.conflicts": "因待同步更改或冲突，已暂缓 {count} 项。",
     "outlook.sourceCalendar": "导入日历",
     "outlook.defaultCalendar": "默认日历",
     "outlook.savedCalendar": "已保存的日历",
@@ -2010,7 +2014,7 @@ export default {
     "outlook.noCalendars": "未找到日历。可选择默认日历或手动输入名称。",
     "outlook.partialCalendars": "部分日历无法获取。",
     "outlook.calendarTimeout": "获取日历超时，请刷新。",
-    "outlook.selectionHint": "关闭后保存会删除此应用创建的 Outlook 日程，任务会保留。",
+    "outlook.selectionHint": "关闭后保存会删除关联的 Outlook 日程，任务会保留。",
     "common.save": "保存",
     "common.cancel": "取消",
     "common.close": "关闭",
@@ -2669,6 +2673,7 @@ export default {
     "ui.5caed7fcdd": "无天气信息"
   },
   "zh-TW": {
+    "outlook.conflicts": "因待同步變更或衝突，已暫緩 {count} 項。",
     "outlook.sourceCalendar": "匯入行事曆",
     "outlook.defaultCalendar": "預設行事曆",
     "outlook.savedCalendar": "已儲存的行事曆",
@@ -2677,7 +2682,7 @@ export default {
     "outlook.noCalendars": "找不到行事曆。可選擇預設行事曆或手動輸入名稱。",
     "outlook.partialCalendars": "部分行事曆無法取得。",
     "outlook.calendarTimeout": "取得行事曆逾時，請重新整理。",
-    "outlook.selectionHint": "關閉後儲存會刪除此應用程式建立的 Outlook 行程，工作會保留。",
+    "outlook.selectionHint": "關閉後儲存會刪除連結的 Outlook 行程，工作會保留。",
     "common.save": "儲存",
     "common.cancel": "取消",
     "common.close": "關閉",
@@ -3336,6 +3341,7 @@ export default {
     "ui.5caed7fcdd": "無天氣資訊"
   },
   "es": {
+    "outlook.conflicts": "Se aplazaron {count} elementos por cambios pendientes o conflictos.",
     "outlook.sourceCalendar": "Calendario de importación",
     "outlook.defaultCalendar": "Calendario predeterminado",
     "outlook.savedCalendar": "Calendario guardado",
@@ -3344,7 +3350,7 @@ export default {
     "outlook.noCalendars": "No se encontraron calendarios. Elija el predeterminado o escriba un nombre.",
     "outlook.partialCalendars": "No se pudieron cargar algunos calendarios.",
     "outlook.calendarTimeout": "Se agotó el tiempo de carga. Actualice la lista.",
-    "outlook.selectionHint": "Guardar con esta opción desactivada elimina la cita de Outlook creada por esta aplicación. La tarea se conserva.",
+    "outlook.selectionHint": "Guardar con esta opción desactivada elimina la cita de Outlook vinculada. La tarea se conserva.",
     "common.save": "Guardar",
     "common.cancel": "Cancelar",
     "common.close": "Cerrar",
@@ -4003,6 +4009,7 @@ export default {
     "ui.5caed7fcdd": "Sin datos del tiempo"
   },
   "fr": {
+    "outlook.conflicts": "{count} éléments différés en raison de modifications en attente ou de conflits.",
     "outlook.sourceCalendar": "Calendrier à importer",
     "outlook.defaultCalendar": "Calendrier par défaut",
     "outlook.savedCalendar": "Calendrier enregistré",
@@ -4011,7 +4018,7 @@ export default {
     "outlook.noCalendars": "Aucun calendrier trouvé. Choisissez le calendrier par défaut ou saisissez un nom.",
     "outlook.partialCalendars": "Certains calendriers ne sont pas accessibles.",
     "outlook.calendarTimeout": "Le chargement des calendriers a expiré. Actualisez la liste.",
-    "outlook.selectionHint": "Enregistrer avec cette option désactivée supprime le rendez-vous Outlook créé par cette application. La tâche est conservée.",
+    "outlook.selectionHint": "Enregistrer avec cette option désactivée supprime le rendez-vous Outlook lié. La tâche est conservée.",
     "common.save": "Enregistrer",
     "common.cancel": "Annuler",
     "common.close": "Fermer",
@@ -4670,6 +4677,7 @@ export default {
     "ui.5caed7fcdd": "Aucune donnée météo"
   },
   "de": {
+    "outlook.conflicts": "{count} Einträge wegen ausstehender Änderungen oder Konflikte zurückgehalten.",
     "outlook.sourceCalendar": "Importkalender",
     "outlook.defaultCalendar": "Standardkalender",
     "outlook.savedCalendar": "Gespeicherter Kalender",
@@ -4678,7 +4686,7 @@ export default {
     "outlook.noCalendars": "Keine Kalender gefunden. Standardkalender wählen oder Namen eingeben.",
     "outlook.partialCalendars": "Einige Kalender konnten nicht geladen werden.",
     "outlook.calendarTimeout": "Zeitüberschreitung beim Laden. Bitte aktualisieren.",
-    "outlook.selectionHint": "Beim Speichern mit deaktivierter Option wird der von dieser App erstellte Outlook-Termin gelöscht. Die Aufgabe bleibt erhalten.",
+    "outlook.selectionHint": "Beim Speichern mit deaktivierter Option wird der verknüpfte Outlook-Termin gelöscht. Die Aufgabe bleibt erhalten.",
     "common.save": "Speichern",
     "common.cancel": "Abbrechen",
     "common.close": "Schließen",
@@ -5337,6 +5345,7 @@ export default {
     "ui.5caed7fcdd": "Keine Wetterdaten"
   },
   "pt": {
+    "outlook.conflicts": "{count} itens adiados por alterações pendentes ou conflitos.",
     "outlook.sourceCalendar": "Calendário de importação",
     "outlook.defaultCalendar": "Calendário padrão",
     "outlook.savedCalendar": "Calendário salvo",
@@ -5345,7 +5354,7 @@ export default {
     "outlook.noCalendars": "Nenhum calendário encontrado. Escolha o padrão ou digite um nome.",
     "outlook.partialCalendars": "Alguns calendários não puderam ser carregados.",
     "outlook.calendarTimeout": "O carregamento dos calendários expirou. Atualize a lista.",
-    "outlook.selectionHint": "Salvar com esta opção desativada exclui o compromisso do Outlook criado por este aplicativo. A tarefa é mantida.",
+    "outlook.selectionHint": "Salvar com esta opção desativada exclui o compromisso vinculado do Outlook. A tarefa é mantida.",
     "common.save": "Salvar",
     "common.cancel": "Cancelar",
     "common.close": "Fechar",

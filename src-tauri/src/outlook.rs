@@ -15,6 +15,10 @@ use winsafe::{self as w, co};
 use windows::Win32::System::Variant::VARIANT as AutomationValue;
 
 mod automation;
+pub mod reconcile;
+#[cfg(test)]
+#[path = "outlook/roundtrip_live_tests.rs"]
+mod roundtrip_live_tests;
 #[cfg(test)]
 #[path = "outlook/outbound_live_tests.rs"]
 mod outbound_live_tests;
@@ -52,12 +56,17 @@ pub struct OutlookEvent {
     pub is_recurring: bool,
     pub recurrence: Value,
     pub meeting_url: Option<String>,
+    pub remote: Option<reconcile::RemoteIdentity>,
 }
 
 /// COMで取得した範囲をそのまま削除判定にも使う。取得中に日付が変わっても再計算しない。
 pub struct OutlookSnapshot {
     pub events: Vec<OutlookEvent>,
     pub range: OutlookSyncRange,
+    pub calendar_ref: String,
+    pub observations: Vec<reconcile::Observation>,
+    pub cancelled: Vec<OutlookEvent>,
+    pub warnings:Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -119,6 +128,8 @@ impl OutlookSyncRange {
 }
 
 struct OutlookRequest {
+    tracked: Vec<reconcile::Tracked>,
+    legacy:Vec<(String,String)>,
     calendar_name: String,
     range: OutlookSyncRange,
     reply: oneshot::Sender<Result<OutlookSnapshot, String>>,
@@ -126,6 +137,9 @@ struct OutlookRequest {
 
 #[derive(Clone)]
 pub struct WriteRequest {
+    pub remote: Option<reconcile::RemoteIdentity>,
+    pub force: bool,
+    pub restore_deleted: bool,
     pub operation: String,
     pub payload: crate::outlook_jobs::WritePayload,
     pub calendar_name: String,
@@ -135,7 +149,7 @@ pub struct WriteRequest {
 }
 
 #[derive(Default)]
-pub struct WriteIdentity { pub entry_id: String, pub store_id: String, pub occurrence_key: String, pub series_id: String }
+pub struct WriteIdentity { pub deleted_existing: bool, pub remote: Option<reconcile::RemoteIdentity>, pub entry_id: String, pub store_id: String, pub occurrence_key: String, pub series_id: String }
 
 enum WorkerRequest { Fetch(OutlookRequest), Write(Box<WriteRequest>, oneshot::Sender<Result<WriteIdentity, String>>), Calendars(oneshot::Sender<Result<CalendarList,String>>) }
 
@@ -178,7 +192,7 @@ fn outlook_worker_loop(rx: std_mpsc::Receiver<WorkerRequest>) {
     for req in rx {
         match req {
             WorkerRequest::Calendars(reply) => {let _=reply.send(calendars::discover());},
-            WorkerRequest::Fetch(req) => { let result = get_outlook_events(&req.calendar_name, req.range); let _ = req.reply.send(result); },
+            WorkerRequest::Fetch(req) => { let result = get_outlook_events(&req.calendar_name, req.range).map(|mut snapshot| { reconcile::adopt_legacy(&mut snapshot,&req.calendar_name,req.legacy); snapshot.observations=reconcile::observe(req.tracked,&snapshot.events,&snapshot.cancelled);snapshot }); let _ = req.reply.send(result); },
             WorkerRequest::Write(request, reply) => { let _ = reply.send(write_outlook_event(&request)); },
         }
     }
@@ -196,10 +210,19 @@ pub async fn fetch_events(
     fetch_events_in_range(calendar_name, OutlookSyncRange::new(chrono::Local::now().naive_local(), days_ahead)).await
 }
 
+#[cfg(test)]
 pub async fn fetch_events_in_range(calendar_name: String, range: OutlookSyncRange) -> Result<OutlookSnapshot, String> {
+    fetch_for_sync(calendar_name,range,Vec::new()).await
+}
+#[cfg(test)]
+pub async fn fetch_for_sync(calendar_name: String, range: OutlookSyncRange, tracked: Vec<reconcile::Tracked>) -> Result<OutlookSnapshot, String> {
+    fetch_reconcile(calendar_name,range,tracked,Vec::new()).await
+}
+pub async fn fetch_reconcile(calendar_name:String,range:OutlookSyncRange,tracked:Vec<reconcile::Tracked>,legacy:Vec<(String,String)>)->Result<OutlookSnapshot,String>{
     let tx = worker_sender();
     let (reply_tx, reply_rx) = oneshot::channel();
     tx.send(WorkerRequest::Fetch(OutlookRequest {
+        tracked,legacy,
         calendar_name,
         range,
         reply: reply_tx,
@@ -224,6 +247,7 @@ pub async fn write_event(request: WriteRequest) -> Result<WriteIdentity,String> 
 
 const TASK_KEY_PROPERTY: &str = "TCPlusTaskKey";
 
+#[cfg(test)]
 fn imported_memo(body: &str, location: &str, managed: bool) -> String {
     if managed { body.to_string() } else { location.to_string() }
 }
@@ -269,58 +293,68 @@ fn put_outlook_text(item: &w::IDispatch, property: &str, text: &str) -> Result<(
 }
 
 fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
-    let outlook = connect_outlook()?;
-    let namespace = automation::object_method(&outlook,"GetNamespace",&[AutomationValue::from("MAPI")])?;
-    let folder = if let Some(folder) = calendars::resolve(&namespace, &request.calendar_name)? { folder } else if is_default_calendar_name(&request.calendar_name) { default_calendar_folder(&namespace)? } else {
-        resolve_named_calendar(&request.calendar_name,lookup_named_calendar(&namespace,&request.calendar_name,true))?
-    };
-    let items = automation::object_get(&folder,"Items")?;
-    let store_id = automation::text(&folder,"StoreID")?;
-    // Register before Restrict so a missing match is proven absence, including
-    // retries after Save succeeded but its response was lost.
-    let definitions = automation::object_get(&folder,"UserDefinedProperties")?;
-    if invoke_optional_dispatch(&definitions,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY)])?.is_none() {
-        automation::object_method(&definitions,"Add",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(1_i32)])?;
+    if !matches!(request.operation.as_str(),"upsert"|"delete"){return Err("Invalid Outlook write operation".into());}
+    if request.operation=="upsert" && let Some(reason)=request.remote.as_ref().and_then(|meta|meta.read_only.as_ref()){return Err(reason.clone());}
+    let outlook=connect_outlook()?;
+    let namespace=automation::object_method(&outlook,"GetNamespace",&[AutomationValue::from("MAPI")])?;
+    let target_folder=if let Some(folder)=calendars::resolve(&namespace,&request.calendar_name)?{folder}else{find_calendar_folder(&namespace,&request.calendar_name)?};
+    let track=reconcile::Tracked{id:request.payload.task_id.clone(),task_revision:None,job_revision:0,job_status:String::new(),operation:request.operation.clone(),external_key:request.external_key.clone(),calendar:request.calendar_name.clone(),entry_id:request.entry_id.clone(),store_id:request.store_id.clone(),remote:request.remote.clone(),enabled:true,subscribed:true,source_key:None};
+    let mut found=reconcile::find_item(&namespace,&track)?;
+    let restoring=found.is_none()&&request.operation=="upsert"&&request.restore_deleted;
+    if restoring {found=Some(reconcile::restore_original(&namespace,&track,request.force)?);}
+    if let Some(item)=&found {
+        let (event,active)=reconcile::read_item(item,request.remote.as_ref().and_then(|meta|meta.occurrence_start.as_deref()),Some(&target_folder))?;
+        if request.operation=="upsert" && let Some(reason)=event.remote.as_ref().and_then(|meta|meta.read_only.as_ref()){return Err(reason.clone());}
+        if request.operation=="upsert"&&!active {return Err("競合: Outlookでキャンセルされています。Outlook側の状態を確認してください".into());}
+        // A moved item must be saved before recording its persistent identity.
+        if request.operation=="upsert"&&!restoring&&reconcile::payload_matches_event(&request.payload,&event) {
+            return saved_identity(event,request.remote.as_ref());
+        }
+        if !request.force&&!restoring&&request.remote.is_none()&&!reconcile::payload_matches_event(&request.payload,&event) {
+            return Err("競合: 前回同期の比較情報がないため上書きを保留しました。内容を確認し「再試行」でアプリ側を優先してください".into());
+        }
+        if !request.force && !restoring && (request.operation!="upsert"||!reconcile::payload_matches_event(&request.payload,&event)) && request.remote.as_ref().is_some_and(|old|event.remote.as_ref().is_some_and(|new|!reconcile::same_content_version(&old.version,&new.version))) {
+            return Err("競合: Outlook側でも変更されています。「再試行」でアプリ側の内容を優先します".into());
+        }
+    }else if request.operation=="upsert" && (request.remote.as_ref().is_some_and(|meta|meta.imported)||(!request.force&&request.entry_id.is_some())) {
+        return Err("競合: Outlook側で削除されています。元の予定を確認してください。アプリ作成の予定は「再試行」で再登録します".into());
     }
-    let known = match (&request.entry_id,&request.store_id) {
-        (Some(id),Some(store)) => invoke_optional_dispatch(&namespace,"GetItemFromID",&[AutomationValue::from(id.as_str()),AutomationValue::from(store.as_str())]).ok().flatten(),
-        _ => None,
-    };
-    let found = if let Some(item) = known {
-        if task_property(&item)?.as_deref() != Some(&request.external_key) { return Err("Outlook appointment identity does not match this task; refusing to modify it".into()); }
-        Some(item)
-    } else {
-        let filter = format!("[{TASK_KEY_PROPERTY}] = '{}'",request.external_key.replace('\'',"''"));
-        let matching = automation::object_method(&items,"Restrict",&[AutomationValue::from(filter.as_str())])?;
-        let count = automation::integer(&matching,"Count")?;
-        if !(0..=1).contains(&count) { return Err("Outlook appointment reconciliation count is not zero or one".into()); }
-        if count == 1 { Some(automation::object_method(&matching,"Item",&[AutomationValue::from(1_i32)])?) } else { None }
-    };
-    if request.operation == "delete" {
-        if let Some(item) = found { automation::method(&item,"Delete",&[])?; }
-        return Ok(WriteIdentity::default());
+    if request.operation=="delete" {
+        let deleted_existing=found.is_some();
+        if let Some(item)=found {automation::method(&item,"Delete",&[])?;}
+        return Ok(WriteIdentity{deleted_existing,..Default::default()});
     }
-    if request.operation != "upsert" { return Err("Invalid Outlook write operation".into()); }
-    let item = match found { Some(item) => item, None => automation::object_method(&items,"Add",&[AutomationValue::from(1_i32)])? };
-    let payload = &request.payload;
-    let start = outlook_date(&payload.date, if payload.is_all_day { "00:00" } else { payload.start_time.as_deref().ok_or("Start time missing")? })?;
-    let end = outlook_date(&payload.date, if payload.is_all_day { "24:00" } else { payload.end_time.as_deref().ok_or("End time missing")? })?;
+    let item=if let Some(item)=found {item}else{
+        let folder=if let Some(folder)=calendars::resolve(&namespace,&request.calendar_name)?{folder}else{find_calendar_folder(&namespace,&request.calendar_name)?};
+        let items=automation::object_get(&folder,"Items")?;
+        automation::object_method(&items,"Add",&[AutomationValue::from(1_i32)])?
+    };
+    let payload=&request.payload;
+    let start=outlook_date(&payload.date,if payload.is_all_day{"00:00"}else{payload.start_time.as_deref().ok_or("Start time missing")?})?;
+    let end=outlook_date(&payload.date,if payload.is_all_day{"24:00"}else{payload.end_time.as_deref().ok_or("End time missing")?})?;
     put_outlook_text(&item,"Subject",&payload.title)?;
     put_outlook_text(&item,"Body",&payload.memo)?;
-    automation::put(&item,"Start",start)?;
-    automation::put(&item,"End",end)?;
+    // Outlook adjusts duration when AllDayEvent changes. Apply it before exact
+    // Start/End, otherwise all-day -> timed can collapse End back to Start.
     automation::put(&item,"AllDayEvent",AutomationValue::from(payload.is_all_day))?;
-    let properties = automation::object_get(&item,"UserProperties")?;
-    let property = match invoke_optional_dispatch(&properties,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(true)])? {
-        Some(property) => property,
-        None => automation::object_method(&properties,"Add",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(1_i32),AutomationValue::from(true)])?,
-    };
-    put_outlook_text(&property,"Value",&request.external_key)?;
+    automation::put(&item,"Start",start)?;automation::put(&item,"End",end)?;
+    if !request.remote.as_ref().is_some_and(|meta|meta.imported) {
+        let properties=automation::object_get(&item,"UserProperties")?;
+        let property=match invoke_optional_dispatch(&properties,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(true)])? {
+            Some(property)=>property,
+            None=>automation::object_method(&properties,"Add",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(1_i32),AutomationValue::from(true)])?,
+        };
+        put_outlook_text(&property,"Value",&request.external_key)?;
+    }
     automation::method(&item,"Save",&[])?;
-    // Even a successful HRESULT is not enough without a saved identity.
-    let entry_id = automation::text(&item,"EntryID")?;
-    let series_id = automation::text(&item,"GlobalAppointmentID").unwrap_or_else(|_|entry_id.clone());
-    Ok(WriteIdentity {entry_id,store_id,occurrence_key:format!("tcplus:{}",request.external_key),series_id})
+    let (saved,active)=reconcile::read_item(&item,request.remote.as_ref().and_then(|meta|meta.occurrence_start.as_deref()),Some(&target_folder))?;
+    if !active{return Err("競合: 保存中にOutlook側でキャンセルされました。Outlookの状態を確認してください".into());}
+    saved_identity(saved,request.remote.as_ref())
+}
+fn saved_identity(saved:OutlookEvent,previous:Option<&reconcile::RemoteIdentity>)->Result<WriteIdentity,String>{
+    let mut remote=saved.remote.ok_or("Saved Outlook appointment did not return identity")?;
+    if let Some(old)=previous {remote.imported=old.imported;}
+    Ok(WriteIdentity{deleted_existing:false,entry_id:remote.entry_id.clone(),store_id:remote.store_id.clone(),occurrence_key:saved.outlook_occurrence_key,series_id:saved.outlook_series_id,remote:Some(remote)})
 }
 
 fn connect_outlook() -> Result<w::IDispatch, String> {
@@ -381,12 +415,6 @@ fn variant_to_bool(v: &w::Variant) -> bool {
     matches!(v, w::Variant::Bool(true))
 }
 
-fn variant_to_required_bool(v: &w::Variant) -> Option<bool> {
-    match v {
-        w::Variant::Bool(value) => Some(*value),
-        _ => None,
-    }
-}
 
 fn variant_to_opt_string(v: &w::Variant) -> Option<String> {
     match v {
@@ -643,8 +671,6 @@ fn invoke_optional_dispatch(items: &w::IDispatch, method: &str, params: &[Automa
 }
 
 fn get_outlook_events(calendar_name: &str, range: OutlookSyncRange) -> Result<OutlookSnapshot, String> {
-    let now = range.start;
-    let days_ahead = (range.end_exclusive.date() - now.date()).num_days();
     let outlook = connect_outlook()?;
     let namespace = outlook
         .invoke_method("GetNamespace", &[&w::Variant::from_str("MAPI")])
@@ -681,116 +707,16 @@ fn get_outlook_events(calendar_name: &str, range: OutlookSyncRange) -> Result<Ou
         next_outlook_item(&filtered_items, method)
     })?;
 
-    let mut events = Vec::new();
-    for (index, item) in fetched_items.into_iter().enumerate() {
-        let i = index + 1;
-
-        let class_value = item
-            .invoke_get("Class", &[])
-            .map_err(|e| format!("Outlookの予定{i}の種類を取得できません: {e}"))?;
-        let class = variant_to_i32(&class_value);
-        let class = class.ok_or_else(|| format!("Outlookの予定{i}の種類が不正です"))?;
-        if class != OL_APPOINTMENT_CLASS {
-            continue;
-        }
-
-        let meeting_status_value = item
-            .invoke_get("MeetingStatus", &[])
-            .map_err(|e| format!("Outlookの予定{i}の会議状態を取得できません: {e}"))?;
-        let meeting_status = variant_to_i32(&meeting_status_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の会議状態が不正です"))?;
-        if !meeting_status_is_active(meeting_status)? {
-            // 取得範囲内のキャンセル済み予定は有効な取得一覧から外す。
-            // 全件取得が成功した後、削除済み予定と同じ照合処理でDBから削除される。
-            continue;
-        }
-
-        let start_value = item
-            .invoke_get("Start", &[])
-            .map_err(|e| format!("Outlookの予定{i}の開始時刻を取得できません: {e}"))?;
-        let start_dt = variant_to_naive_datetime(&start_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の開始時刻が不正です"))?;
-        let end_value = item
-            .invoke_get("End", &[])
-            .map_err(|e| format!("Outlookの予定{i}の終了時刻を取得できません: {e}"))?;
-        let end_dt = variant_to_naive_datetime(&end_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の終了時刻が不正です"))?;
-
-        let all_day_value = item
-            .invoke_get("AllDayEvent", &[])
-            .map_err(|e| format!("Outlookの予定{i}の終日設定を取得できません: {e}"))?;
-        let is_all_day = variant_to_required_bool(&all_day_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の終日設定が不正です"))?;
-        // Use the same exact boundary for fetching and stale-row reconciliation.
-        if !range.contains(start_dt) {
-            continue;
-        }
-
-        let start_time = if is_all_day {
-            None
-        } else {
-            Some(time_key(start_dt))
-        };
-        let end_time = if is_all_day {
-            None
-        } else {
-            Some(time_key(end_dt))
-        };
-        let location_value = item
-            .invoke_get("Location", &[])
-            .map_err(|e| format!("Outlookの予定{i}の場所を取得できません: {e}"))?;
-        let location = variant_to_opt_string(&location_value).unwrap_or_default();
-        let entry_id = item
-            .invoke_get("EntryID", &[])
-            .ok()
-            .and_then(|v| variant_to_opt_string(&v));
-        let global_id = item
-            .invoke_get("GlobalAppointmentID", &[])
-            .ok()
-            .and_then(|v| variant_to_opt_string(&v));
-        let recurring_value = item
-            .invoke_get("IsRecurring", &[])
-            .map_err(|e| format!("Outlookの予定{i}の繰り返し設定を取得できません: {e}"))?;
-        let is_recurring = variant_to_required_bool(&recurring_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の繰り返し設定が不正です"))?;
-        let stable_series_id = global_id
-            .clone()
-            .or_else(|| entry_id.clone())
-            .ok_or_else(|| format!("Outlookの予定{i}の識別子を取得できません"))?;
-        let occurrence_stamp = if is_all_day {
-            date_key(start_dt.date())
-        } else {
-            format!("{}T{}", date_key(start_dt.date()), time_key(start_dt))
-        };
-        let managed_key = task_property(&item)?;
-        let occurrence_key = match &managed_key { Some(key) => format!("tcplus:{key}"), None => format!("{stable_series_id}|{occurrence_stamp}") };
-        let body_value = item
-            .invoke_get("Body", &[])
-            .map_err(|e| format!("Outlookの予定{i}の本文を取得できません: {e}"))?;
-        let body = variant_to_opt_string(&body_value).unwrap_or_default();
-        let location = imported_memo(&body,&location,managed_key.is_some());
-        let meeting_url = extract_teams_meeting_url(&body);
-        let title_value = item
-            .invoke_get("Subject", &[])
-            .map_err(|e| format!("Outlookの予定{i}の件名を取得できません: {e}"))?;
-        let title =
-            variant_to_opt_string(&title_value).unwrap_or_else(|| "(タイトルなし)".to_string());
-
-        events.push(OutlookEvent {
-            title,
-            date: date_key(start_dt.date()),
-            start_time,
-            end_time,
-            location,
-            is_all_day,
-            outlook_series_id: stable_series_id,
-            outlook_occurrence_key: occurrence_key,
-            is_recurring,
-            recurrence: extract_recurrence(&item, now, days_ahead, start_dt),
-            meeting_url,
-        });
+    let calendar_ref=calendars::identify(&calendar_folder)?;
+    let mut events=Vec::new();let mut cancelled=Vec::new();
+    for item in fetched_items {
+        if automation::integer(&item,"Class")?!=OL_APPOINTMENT_CLASS {continue;}
+        let (event,active)=reconcile::read_item(&item,None,Some(&calendar_folder))?;
+        if !event.remote.as_ref().is_some_and(|meta|calendars::same_calendar(&meta.calendar,&calendar_ref)) {continue;}
+        if !range.contains_task(&event.date,event.start_time.as_deref()) {continue;}
+        if active {events.push(event);}else{cancelled.push(event);}
     }
-    Ok(OutlookSnapshot { events, range })
+    Ok(OutlookSnapshot { events, range,calendar_ref,observations:Vec::new(),cancelled,warnings:Vec::new() })
 }
 
 #[cfg(test)]
@@ -839,7 +765,7 @@ mod sync_range_tests {
             outlook_occurrence_key: key.into(),
             is_recurring: true,
             recurrence: json!({"type":"daily","until":"2026-10-01"}),
-            meeting_url: None,
+            remote: None, meeting_url: None,
         })
         .collect();
         crate::repositories::outlook_auto_sync(&conn, &events, "", "2026-09-01", "2026-10-01")
@@ -946,7 +872,7 @@ mod sync_range_tests {
             outlook_occurrence_key: key.into(),
             is_recurring: false,
             recurrence: json!({"type":"none"}),
-            meeting_url: None,
+            remote: None, meeting_url: None,
         })
         .collect();
         crate::repositories::outlook_auto_sync(&conn, &events, "", "2026-09-25", "2026-10-25")
@@ -1004,6 +930,7 @@ mod sync_range_tests {
     fn snapshot_keeps_its_fetch_dates_across_midnight_and_year_end() {
         let snapshot = OutlookSnapshot {
             events: vec![],
+            calendar_ref:String::new(), observations:Vec::new(),cancelled:Vec::new(),warnings:Vec::new(),
             range: OutlookSyncRange::new(at("2026-12-31 23:59:59"), 1),
         };
         // 取得完了が翌日でも、呼び出し側はsnapshotの範囲を使う。
