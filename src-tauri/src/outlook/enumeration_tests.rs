@@ -94,6 +94,12 @@ unsafe extern "system" fn names(
             "Folders" => 9,
             "Count" => 10,
             "Item" => 11,
+            "Save" => 12,
+            "Delete" => 13,
+            "Start" => 14,
+            "End" => 15,
+            "AllDayEvent" => 16,
+            "Add" => 17,
             _ => return HRESULT(0x80020006u32 as i32),
         };
     }
@@ -133,6 +139,15 @@ unsafe extern "system" fn invoke(
             },
             8..=10 => flags.0==2 && (*params).cArgs==0,
             11 => flags.0==1 && (*params).cArgs==1,
+            12 | 13 => flags.0==1 && (*params).cArgs==0,
+            17 => {
+                let args=std::slice::from_raw_parts((*params).rgvarg,(*params).cArgs as usize);
+                flags.0==1 && args.len()==3 && bool::try_from(&args[0])==Ok(true)
+                    && i32::try_from(&args[1])==Ok(1)
+                    && windows::core::BSTR::try_from(&args[2]).is_ok_and(|s|s==TASK_KEY_PROPERTY)
+            },
+            14..=16 => flags.0==4 && (*params).cArgs==1 && (*params).cNamedArgs==1 && *(*params).rgdispidNamedArgs == -3,
+
 
             _ => false,
         };
@@ -363,4 +378,71 @@ fn calendar_discovery_keeps_siblings_when_one_folder_is_inaccessible() {
     assert_eq!(folders.len(),2);
     drop(folders);
     assert_eq!(unsafe { &*source.ptr().cast::<Items>() }.refs.load(Ordering::Relaxed),1);
+}
+
+#[test]
+fn outbound_date_and_boolean_puts_accept_s_false() {
+    for status in [0,1] {
+        for (name,value) in [("Start",outlook_date("2026-10-09","12:00").unwrap()),("End",outlook_date("2026-10-09","12:30").unwrap()),("AllDayEvent",AutomationValue::from(false))] {
+            let source=items(vec![Reply{status:HRESULT(status),kind:VT_EMPTY,item:false}]);
+            automation::put(&source,name,value).unwrap_or_else(|error|panic!("{name} status {status}: {error}"));
+        }
+    }
+}
+#[test]
+fn outbound_save_and_delete_accept_s_false() {
+    for status in [0,1] {
+        for name in ["Save","Delete"] {
+            let source=items(vec![Reply{status:HRESULT(status),kind:VT_EMPTY,item:false}]);
+            automation::method(&source,name,&[]).unwrap_or_else(|error|panic!("{name} status {status}: {error}"));
+        }
+    }
+}
+#[test]
+fn outbound_get_accepts_s_false_with_a_valid_result() {
+    for status in [0,1] {
+        let source=items(vec![Reply{status:HRESULT(status),kind:VT_I4,item:false}]);
+        let value=automation::integer(&source,"Count").unwrap();
+        assert_eq!(value,3);
+    }
+}
+
+#[test]
+fn user_properties_add_accepts_s_false_and_retains_returned_property() {
+    for status in [0,1] {
+        let source=items(vec![Reply{status:HRESULT(status),kind:VT_DISPATCH,item:true}]);
+        let property=automation::object_method(&source,"Add",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(1_i32),AutomationValue::from(true)]).unwrap();
+        assert_eq!(unsafe { &*source.ptr().cast::<Items>() }.refs.load(Ordering::Relaxed),2);
+        drop(property);
+        assert_eq!(unsafe { &*source.ptr().cast::<Items>() }.refs.load(Ordering::Relaxed),1);
+    }
+}
+#[test]
+fn outbound_real_failures_keep_operation_context_and_do_not_succeed() {
+    for status in [0x80070005u32,0x80020009] {
+        let source=items(vec![Reply{status:HRESULT(status as i32),kind:VT_EMPTY,item:false}]);
+        let error=automation::method(&source,"Save",&[]).expect_err("real failure");
+        assert!(error.contains("Save"));
+        if status==0x80020009 {assert!(error.contains("calendar unavailable"));}
+    }
+    let source=items(vec![Reply{status:HRESULT(1),kind:VT_DISPATCH,item:false}]);
+    assert!(automation::object_method(&source,"Add",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(1_i32),AutomationValue::from(true)]).is_err(),"success without required property is not completion");
+}
+#[test]
+fn outbound_dates_preserve_noon_and_end_of_day_as_automation_dates() {
+    let noon=outlook_date("2026-10-09","12:00").unwrap();
+    let end=outlook_date("2026-10-09","24:00").unwrap();
+    unsafe {
+        assert_eq!(noon.Anonymous.Anonymous.vt,windows::Win32::System::Variant::VT_DATE);
+        assert_eq!(end.Anonymous.Anonymous.Anonymous.date-noon.Anonymous.Anonymous.Anonymous.date,0.5);
+    }
+    assert!(outlook_date("2026-02-30","12:00").is_err());
+}
+
+#[test]
+fn empty_managed_property_remains_an_unmanaged_appointment() {
+    for kind in [VT_EMPTY,VT_NULL,VT_I4] {
+        let source=items(vec![Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},Reply{status:HRESULT(0),kind,item:false}]);
+        assert_eq!(task_property(&source).unwrap(),None);
+    }
 }

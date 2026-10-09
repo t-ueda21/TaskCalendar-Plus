@@ -14,6 +14,10 @@ use winsafe::prelude::*;
 use winsafe::{self as w, co};
 use windows::Win32::System::Variant::VARIANT as AutomationValue;
 
+mod automation;
+#[cfg(test)]
+#[path = "outlook/outbound_live_tests.rs"]
+mod outbound_live_tests;
 mod calendars;
 pub use calendars::{CalendarList, calendar_label};
 
@@ -231,64 +235,55 @@ fn managed_appointments_preserve_body_as_task_memo() {
 }
 
 fn task_property(item: &w::IDispatch) -> Result<Option<String>,String> {
-    let properties = item.invoke_get("UserProperties", &[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook user properties unavailable")?;
-    let property = invoke_optional_dispatch(&properties, "Find", &[AutomationValue::from(TASK_KEY_PROPERTY), AutomationValue::from(true)])?;
-    match property { Some(property) => Ok(variant_to_opt_string(&property.invoke_get("Value",&[]).map_err(|e|e.to_string())?)), None => Ok(None) }
+    let properties=automation::object_get(item,"UserProperties")?;
+    match invoke_optional_dispatch(&properties,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(true)])? {
+        Some(property)=>{
+            let value=automation::get(&property,"Value")?;
+            if unsafe {value.Anonymous.Anonymous.vt} != windows::Win32::System::Variant::VT_BSTR {return Ok(None);}
+            let text=windows::core::BSTR::try_from(&value).map_err(|error|format!("Outlook Value: {error}"))?.to_string();
+            Ok((!text.is_empty()).then_some(text))
+        },
+        None=>Ok(None),
+    }
 }
 
-fn outlook_date(date: &str, time: &str) -> Result<w::Variant,String> {
+fn outlook_date(date: &str, time: &str) -> Result<AutomationValue,String> {
     use chrono::{Datelike,Timelike};
     let day = chrono::NaiveDate::parse_from_str(date,"%Y-%m-%d").map_err(|_| "Invalid appointment date")?;
     let value = if time == "24:00" { day.succ_opt().ok_or("Invalid appointment end")?.and_hms_opt(0,0,0).unwrap() } else {
         day.and_time(chrono::NaiveTime::parse_from_str(time,"%H:%M").map_err(|_| "Invalid appointment time")?)
     };
-    Ok(w::Variant::Date(w::SYSTEMTIME { wYear:value.year() as u16,wMonth:value.month() as u16,wDay:value.day() as u16,wHour:value.hour() as u16,wMinute:value.minute() as u16,..Default::default() }))
+    let time=w::SYSTEMTIME { wYear:value.year() as u16,wMonth:value.month() as u16,wDay:value.day() as u16,wHour:value.hour() as u16,wMinute:value.minute() as u16,..Default::default() };
+    let date=w::SystemTimeToVariantTime(&time).map_err(|error|format!("Outlook date conversion: {error}"))?;
+    let mut result=AutomationValue::from(date);
+    // VT_DATE and VT_R8 share their f64 payload; no pointer ownership changes.
+    unsafe {(*result.Anonymous.Anonymous).vt=windows::Win32::System::Variant::VT_DATE;}
+    Ok(result)
 }
 
 /// winsafe 0.0.28 passes a null pointer to SysAllocString for an empty
 /// string and reports E_OUTOFMEMORY before Invoke. Windows VARIANT preserves
 /// the empty BSTR, so clearing a memo works as well as writing Unicode text.
 fn put_outlook_text(item: &w::IDispatch, property: &str, text: &str) -> Result<(), String> {
-    use windows::Win32::System::Com::{DISPATCH_PROPERTYPUT, DISPPARAMS, IDispatch};
-    use windows::core::{GUID, Interface};
-    let id = item.GetIDsOfNames(&[property], w::LCID::USER_DEFAULT)
-        .map_err(|error| format!("Outlook {property}: {error}"))?[0];
-    let mut value = AutomationValue::from(text);
-    let mut named = -3; // DISPID_PROPERTYPUT
-    let params = DISPPARAMS { rgvarg: &mut value, rgdispidNamedArgs: &mut named,
-        cArgs: 1, cNamedArgs: 1 };
-    let mut result = w::VARIANT::default();
-    let mut exception = w::EXCEPINFO::default();
-    let ptr = item.ptr();
-    // Borrow the interface; the owning values/EXCEPINFO free BSTRs on every path.
-    unsafe { IDispatch::from_raw_borrowed(&ptr).expect("non-null Outlook item").Invoke(
-        id, &GUID::zeroed(), w::LCID::USER_DEFAULT.raw(), DISPATCH_PROPERTYPUT,
-        &params, Some((&mut result as *mut w::VARIANT).cast()),
-        Some((&mut exception as *mut w::EXCEPINFO).cast()), None,
-    ) }.map_err(|error| {
-        let detail = if error.code().0 == co::HRESULT::DISP_E_EXCEPTION.raw() as i32 {
-            exception.to_string()
-        } else { error.to_string() };
-        format!("Outlook {property}: {detail}")
-    })
+    automation::put(item,property,AutomationValue::from(text))
 }
 
 fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
     let outlook = connect_outlook()?;
-    let namespace = outlook.invoke_method("GetNamespace", &[&w::Variant::from_str("MAPI")]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook namespace unavailable")?;
+    let namespace = automation::object_method(&outlook,"GetNamespace",&[AutomationValue::from("MAPI")])?;
     let folder = if let Some(folder) = calendars::resolve(&namespace, &request.calendar_name)? { folder } else if is_default_calendar_name(&request.calendar_name) { default_calendar_folder(&namespace)? } else {
         resolve_named_calendar(&request.calendar_name,lookup_named_calendar(&namespace,&request.calendar_name,true))?
     };
-    let items = folder.invoke_get("Items", &[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook items unavailable")?;
-    let store_id = variant_to_opt_string(&folder.invoke_get("StoreID",&[]).map_err(|e|e.to_string())?).ok_or("Outlook store ID unavailable")?;
-    // Register the folder field before Restrict. Then no matches is a proven absence,
-    // including a retry after Save succeeded but its response was lost.
-    let definitions = folder.invoke_get("UserDefinedProperties",&[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook field definitions unavailable")?;
-    if invoke_optional_dispatch(&definitions, "Find", &[AutomationValue::from(TASK_KEY_PROPERTY)])?.is_none() {
-        definitions.invoke_method("Add", &[&w::Variant::from_str(TASK_KEY_PROPERTY),&w::Variant::I4(1)]).map_err(|e|e.to_string())?;
+    let items = automation::object_get(&folder,"Items")?;
+    let store_id = automation::text(&folder,"StoreID")?;
+    // Register before Restrict so a missing match is proven absence, including
+    // retries after Save succeeded but its response was lost.
+    let definitions = automation::object_get(&folder,"UserDefinedProperties")?;
+    if invoke_optional_dispatch(&definitions,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY)])?.is_none() {
+        automation::object_method(&definitions,"Add",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(1_i32)])?;
     }
     let known = match (&request.entry_id,&request.store_id) {
-        (Some(id),Some(store)) => namespace.invoke_method("GetItemFromID", &[&w::Variant::from_str(id),&w::Variant::from_str(store)]).ok().and_then(|value| value.unwrap_dispatch_opt()),
+        (Some(id),Some(store)) => invoke_optional_dispatch(&namespace,"GetItemFromID",&[AutomationValue::from(id.as_str()),AutomationValue::from(store.as_str())]).ok().flatten(),
         _ => None,
     };
     let found = if let Some(item) = known {
@@ -296,34 +291,35 @@ fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
         Some(item)
     } else {
         let filter = format!("[{TASK_KEY_PROPERTY}] = '{}'",request.external_key.replace('\'',"''"));
-        let matching = items.invoke_method("Restrict", &[&w::Variant::from_str(&filter)]).map_err(|e|format!("Cannot safely reconcile Outlook appointment: {e}"))?.unwrap_dispatch_opt().ok_or("Outlook reconciliation unavailable")?;
-        let count = variant_to_i32(&matching.invoke_get("Count", &[]).map_err(|e|e.to_string())?).ok_or("Outlook reconciliation returned invalid count")?;
-        if count > 1 { return Err("Multiple Outlook appointments have the same task identity".into()); }
-        if count == 1 { matching.invoke_method("Item", &[&w::Variant::I4(1)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt() } else { None }
+        let matching = automation::object_method(&items,"Restrict",&[AutomationValue::from(filter.as_str())])?;
+        let count = automation::integer(&matching,"Count")?;
+        if !(0..=1).contains(&count) { return Err("Outlook appointment reconciliation count is not zero or one".into()); }
+        if count == 1 { Some(automation::object_method(&matching,"Item",&[AutomationValue::from(1_i32)])?) } else { None }
     };
     if request.operation == "delete" {
-        if let Some(item) = found { item.invoke_method("Delete",&[]).map_err(|e|e.to_string())?; }
+        if let Some(item) = found { automation::method(&item,"Delete",&[])?; }
         return Ok(WriteIdentity::default());
     }
     if request.operation != "upsert" { return Err("Invalid Outlook write operation".into()); }
-    let item = match found { Some(item) => item, None => items.invoke_method("Add", &[&w::Variant::I4(1)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Could not create Outlook appointment")? };
+    let item = match found { Some(item) => item, None => automation::object_method(&items,"Add",&[AutomationValue::from(1_i32)])? };
     let payload = &request.payload;
     let start = outlook_date(&payload.date, if payload.is_all_day { "00:00" } else { payload.start_time.as_deref().ok_or("Start time missing")? })?;
     let end = outlook_date(&payload.date, if payload.is_all_day { "24:00" } else { payload.end_time.as_deref().ok_or("End time missing")? })?;
-    put_outlook_text(&item, "Subject", &payload.title)?;
-    put_outlook_text(&item, "Body", &payload.memo)?;
-    item.invoke_put("Start",&start).map_err(|e|e.to_string())?;
-    item.invoke_put("End",&end).map_err(|e|e.to_string())?;
-    item.invoke_put("AllDayEvent",&w::Variant::Bool(payload.is_all_day)).map_err(|e|e.to_string())?;
-    let properties = item.invoke_get("UserProperties",&[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook properties unavailable")?;
-    let property = match invoke_optional_dispatch(&properties, "Find", &[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(true)])? {
+    put_outlook_text(&item,"Subject",&payload.title)?;
+    put_outlook_text(&item,"Body",&payload.memo)?;
+    automation::put(&item,"Start",start)?;
+    automation::put(&item,"End",end)?;
+    automation::put(&item,"AllDayEvent",AutomationValue::from(payload.is_all_day))?;
+    let properties = automation::object_get(&item,"UserProperties")?;
+    let property = match invoke_optional_dispatch(&properties,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(true)])? {
         Some(property) => property,
-        None => properties.invoke_method("Add", &[&w::Variant::from_str(TASK_KEY_PROPERTY),&w::Variant::I4(1),&w::Variant::Bool(true)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Could not tag Outlook appointment")?,
+        None => automation::object_method(&properties,"Add",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(1_i32),AutomationValue::from(true)])?,
     };
-    put_outlook_text(&property, "Value", &request.external_key)?;
-    item.invoke_method("Save",&[]).map_err(|e|e.to_string())?;
-    let entry_id = variant_to_opt_string(&item.invoke_get("EntryID",&[]).map_err(|e|e.to_string())?).ok_or("Saved Outlook appointment did not return its ID")?;
-    let series_id = variant_to_opt_string(&item.invoke_get("GlobalAppointmentID",&[]).map_err(|e|e.to_string())?).unwrap_or_else(||entry_id.clone());
+    put_outlook_text(&property,"Value",&request.external_key)?;
+    automation::method(&item,"Save",&[])?;
+    // Even a successful HRESULT is not enough without a saved identity.
+    let entry_id = automation::text(&item,"EntryID")?;
+    let series_id = automation::text(&item,"GlobalAppointmentID").unwrap_or_else(|_|entry_id.clone());
     Ok(WriteIdentity {entry_id,store_id,occurrence_key:format!("tcplus:{}",request.external_key),series_id})
 }
 
@@ -439,11 +435,7 @@ fn resolve_named_calendar<T>(name: &str, lookup: Result<Option<T>, String>) -> R
 }
 
 fn default_calendar_folder(namespace: &w::IDispatch) -> Result<w::IDispatch, String> {
-    namespace
-        .invoke_method("GetDefaultFolder", &[&w::Variant::I4(OL_FOLDER_CALENDAR)])
-        .map_err(|e| format!("既定の予定表フォルダの取得に失敗しました: {e}"))?
-        .unwrap_dispatch_opt()
-        .ok_or_else(|| "既定の予定表フォルダの取得に失敗しました".to_string())
+    automation::object_method(namespace,"GetDefaultFolder",&[AutomationValue::from(OL_FOLDER_CALENDAR)])
 }
 
 fn lookup_named_calendar(
@@ -639,13 +631,6 @@ fn collect_bounded<T>(
     }
 }
 
-#[repr(C)]
-struct VariantDispatchLayout {
-    _vt: u16,
-    _reserved: [u16; 3],
-    dispatch: *mut std::ffi::c_void,
-}
-
 fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDispatch>, String> {
     invoke_optional_dispatch(items, method, &[])
         .map_err(|error| format!("Outlookの予定列挙({method})に失敗しました: {error}"))
@@ -654,77 +639,7 @@ fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDi
 /// Find/GetFirst/GetNext can successfully return VT_DISPATCH with a null pointer.
 /// Check that pointer before winsafe's Variant conversion, which otherwise AddRefs null.
 fn invoke_optional_dispatch(items: &w::IDispatch, method: &str, params: &[AutomationValue]) -> Result<Option<w::IDispatch>, String> {
-    // winsafeのVariant::from_rawはVT_DISPATCHのnullポインタでもAddRefを呼ぶ。
-    // 列挙の終端やFindの未検出を安全に扱うため、生VARIANTを確認する。
-    let id = items
-        .GetIDsOfNames(&[method], w::LCID::USER_DEFAULT)
-        .map_err(|e| format!("Outlook {method}: {e}"))?[0];
-    // winsafe 0.0.28のInvokeはS_OK以外をすべてErrにするため、成功応答の
-    // S_FALSE(0x00000001)まで「ファンクションが間違っています」と表示する。
-    // windows-rsの呼び出しでHRESULTの成功/失敗を判定し、成功時は返却値を
-    // 必ず確認する。S_FALSEだけで終端と決めると返却された予定を失う恐れがある。
-    use windows::Win32::System::Com::{DISPATCH_METHOD, DISPPARAMS, IDispatch};
-    use windows::core::{GUID, Interface};
-
-    let mut raw = w::VARIANT::default();
-    let mut exception = w::EXCEPINFO::default();
-    // Automation arguments are passed in reverse order. The values own
-    // any BSTR/interface allocations until Invoke has finished.
-    let mut arguments: Vec<_> = params.iter().rev().cloned().collect();
-    let dispatch_params = DISPPARAMS {
-        rgvarg: arguments.as_mut_ptr().cast(),
-        cArgs: u32::try_from(arguments.len()).map_err(|_| "Too many Outlook arguments")?,
-        ..Default::default()
-    };
-    let ptr = items.ptr();
-    // 両クレートの構造体は同じWindows COM ABI。winsafe側がDropで
-    // VARIANT/BSTRを解放し、借用したIDispatchの所有権はitemsが保持する。
-    let result = unsafe {
-        IDispatch::from_raw_borrowed(&ptr)
-            .expect("items is a non-null IDispatch")
-            .Invoke(
-                id,
-                &GUID::zeroed(),
-                w::LCID::USER_DEFAULT.raw(),
-                DISPATCH_METHOD,
-                &dispatch_params,
-                Some((&mut raw as *mut w::VARIANT).cast()),
-                Some((&mut exception as *mut w::EXCEPINFO).cast()),
-                None,
-            )
-    };
-    if let Err(error) = result {
-        let hr = unsafe { co::HRESULT::from_raw(error.code().0 as u32) };
-        let detail = if hr == co::HRESULT::DISP_E_EXCEPTION {
-            exception.to_string()
-        } else {
-            hr.to_string()
-        };
-        return Err(format!(
-            "Outlook {method}: {detail}"
-        ));
-    }
-    match raw.vt() {
-        co::VT::EMPTY | co::VT::NULL => Ok(None),
-        co::VT::DISPATCH => {
-            // winsafe 0.0.28のVARIANTはrepr(C)で、vt+予約3語の後にポインタを持つ。
-            // 生VARIANTがDrop時にReleaseするため、返却用にAddRefした所有ポインタを作る。
-            let ptr = unsafe {
-                (&raw as *const w::VARIANT)
-                    .cast::<VariantDispatchLayout>()
-                    .read()
-                    .dispatch
-            };
-            if ptr.is_null() {
-                return Ok(None);
-            }
-            let borrowed = unsafe { w::IDispatch::from_ptr(ptr) };
-            let item = borrowed.clone();
-            std::mem::forget(borrowed);
-            Ok(Some(item))
-        }
-        _ => Err(format!("Outlook {method} returned an invalid object value")),
-    }
+    automation::optional_method(items,method,params)
 }
 
 fn get_outlook_events(calendar_name: &str, range: OutlookSyncRange) -> Result<OutlookSnapshot, String> {
