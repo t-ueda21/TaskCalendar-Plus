@@ -719,7 +719,8 @@
     "dialog.scope.series": "繰り返し予定すべて",
     "dialog.scope.singleHint": "選択した1件だけに適用します。",
     "dialog.scope.futureHint": "選択した日から後の予定に適用します。",
-    "dialog.scope.seriesHint": "同じ繰り返しの予定に適用します。"
+    "dialog.scope.seriesHint": "同じ繰り返しの予定に適用します。",
+    "outlook.selectionHint": "OFFで保存すると、アプリから登録したOutlookの予定を削除します。タスクは残ります。"
   },
   "en": {
     "common.save": "Save",
@@ -1441,7 +1442,8 @@
     "dialog.scope.series": "All events in this series",
     "dialog.scope.singleHint": "Apply only to the selected event.",
     "dialog.scope.futureHint": "Apply from the selected date onward.",
-    "dialog.scope.seriesHint": "Apply to every event in this series."
+    "dialog.scope.seriesHint": "Apply to every event in this series.",
+    "outlook.selectionHint": "Saving with this off deletes the Outlook appointment created by this app. The task is kept."
   },
   "ko": {
     "common.save": "저장",
@@ -2163,7 +2165,8 @@
     "dialog.scope.series": "모든 반복 일정",
     "dialog.scope.singleHint": "선택한 일정 하나에만 적용합니다.",
     "dialog.scope.futureHint": "선택한 날짜부터 이후 일정에 적용합니다.",
-    "dialog.scope.seriesHint": "같은 반복의 모든 일정에 적용합니다."
+    "dialog.scope.seriesHint": "같은 반복의 모든 일정에 적용합니다.",
+    "outlook.selectionHint": "OFF로 저장하면 이 앱에서 등록한 Outlook 일정을 삭제합니다. 작업은 유지됩니다."
   },
   "zh-CN": {
     "common.save": "保存",
@@ -2885,7 +2888,8 @@
     "dialog.scope.series": "系列中的所有日程",
     "dialog.scope.singleHint": "仅应用于选中的日程。",
     "dialog.scope.futureHint": "应用于选定日期及以后的日程。",
-    "dialog.scope.seriesHint": "应用于此系列的所有日程。"
+    "dialog.scope.seriesHint": "应用于此系列的所有日程。",
+    "outlook.selectionHint": "关闭后保存会删除此应用创建的 Outlook 日程，任务会保留。"
   },
   "zh-TW": {
     "common.save": "儲存",
@@ -3607,7 +3611,8 @@
     "dialog.scope.series": "系列中的所有行程",
     "dialog.scope.singleHint": "僅套用至選取的行程。",
     "dialog.scope.futureHint": "套用至選取日期及以後的行程。",
-    "dialog.scope.seriesHint": "套用至此系列的所有行程。"
+    "dialog.scope.seriesHint": "套用至此系列的所有行程。",
+    "outlook.selectionHint": "關閉後儲存會刪除此應用程式建立的 Outlook 行程，工作會保留。"
   },
   "es": {
     "common.save": "Guardar",
@@ -4329,7 +4334,8 @@
     "dialog.scope.series": "Todos los eventos de la serie",
     "dialog.scope.singleHint": "Se aplica solo al evento seleccionado.",
     "dialog.scope.futureHint": "Se aplica desde la fecha seleccionada.",
-    "dialog.scope.seriesHint": "Se aplica a toda la serie."
+    "dialog.scope.seriesHint": "Se aplica a toda la serie.",
+    "outlook.selectionHint": "Guardar con esta opción desactivada elimina la cita de Outlook creada por esta aplicación. La tarea se conserva."
   },
   "fr": {
     "common.save": "Enregistrer",
@@ -5051,7 +5057,8 @@
     "dialog.scope.series": "Tous les événements de la série",
     "dialog.scope.singleHint": "S’applique uniquement à l’événement choisi.",
     "dialog.scope.futureHint": "S’applique à partir de la date choisie.",
-    "dialog.scope.seriesHint": "S’applique à toute la série."
+    "dialog.scope.seriesHint": "S’applique à toute la série.",
+    "outlook.selectionHint": "Enregistrer avec cette option désactivée supprime le rendez-vous Outlook créé par cette application. La tâche est conservée."
   },
   "de": {
     "common.save": "Speichern",
@@ -5773,7 +5780,8 @@
     "dialog.scope.series": "Alle Termine der Serie",
     "dialog.scope.singleHint": "Gilt nur für den ausgewählten Termin.",
     "dialog.scope.futureHint": "Gilt ab dem ausgewählten Datum.",
-    "dialog.scope.seriesHint": "Gilt für alle Termine dieser Serie."
+    "dialog.scope.seriesHint": "Gilt für alle Termine dieser Serie.",
+    "outlook.selectionHint": "Beim Speichern mit deaktivierter Option wird der von dieser App erstellte Outlook-Termin gelöscht. Die Aufgabe bleibt erhalten."
   },
   "pt": {
     "common.save": "Salvar",
@@ -6495,6 +6503,7 @@
     "dialog.scope.series": "Todos os eventos da série",
     "dialog.scope.singleHint": "Aplica-se apenas ao evento selecionado.",
     "dialog.scope.futureHint": "Aplica-se a partir da data selecionada.",
-    "dialog.scope.seriesHint": "Aplica-se a todos os eventos da série."
+    "dialog.scope.seriesHint": "Aplica-se a todos os eventos da série.",
+    "outlook.selectionHint": "Salvar com esta opção desativada exclui o compromisso do Outlook criado por este aplicativo. A tarefa é mantida."
   }
 }

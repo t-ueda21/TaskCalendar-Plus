@@ -72,6 +72,8 @@ pub struct TaskInsertInput {
 #[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskUpdateInput {
+    #[serde(default)]
+    pub outlook_enabled: Option<bool>,
     // updateは「送られてきた値で丸ごと置き換える」挙動
     // (title/date/memoは未指定または空ならそのまま空文字になる。既存値へは
     // フォールバックしない)。
@@ -222,6 +224,7 @@ pub fn tasks_update(
     id: &str,
     input: TaskUpdateInput,
 ) -> rusqlite::Result<Option<TaskRow>> {
+    let transaction = if conn.is_autocommit() { Some(conn.unchecked_transaction()?) } else { None };
     let Some(current) = tasks_get(conn, id)? else {
         return Ok(None);
     };
@@ -245,7 +248,14 @@ pub fn tasks_update(
             id,
         ],
     )?;
-    tasks_get(conn, id)
+    if let Some(enabled) = input.outlook_enabled
+        && enabled != current.outlook_enabled {
+        if enabled { crate::outlook_jobs::enable(conn, id)?; }
+        else { crate::outlook_jobs::disable(conn, id)?; }
+    }
+    let saved = tasks_get(conn, id)?;
+    if let Some(transaction) = transaction { transaction.commit()?; }
+    Ok(saved)
 }
 
 pub fn tasks_remove(conn: &Connection, id: &str) -> rusqlite::Result<()> {
@@ -308,7 +318,7 @@ pub struct TaskRevision {
 pub struct BatchTaskInput {
     pub id: String,
     #[serde(default)]
-    pub outlook_enabled: bool,
+    pub outlook_enabled: Option<bool>,
     pub title: String,
     pub date: String,
     pub is_all_day: bool,
@@ -459,7 +469,12 @@ pub fn tasks_batch(
         )?;
     }
     for task in &input.upserts {
-        if task.outlook_enabled && current[task.id.as_str()].is_none() { crate::outlook_jobs::enable(&tx, &task.id)?; }
+        let was_enabled = current[task.id.as_str()].as_ref().is_some_and(|row| row.outlook_enabled);
+        if let Some(enabled) = task.outlook_enabled
+            && enabled != was_enabled {
+            if enabled { crate::outlook_jobs::enable(&tx, &task.id)?; }
+            else { crate::outlook_jobs::disable(&tx, &task.id)?; }
+        }
     }
     let rows = tasks_list(&tx)?;
     tx.commit()?;
@@ -902,6 +917,7 @@ struct ExistingRow {
     id: String,
     title: String,
     in_range: bool,
+    app_managed: bool,
     signature: String,
     key: String,
     series_id: String,
@@ -981,7 +997,8 @@ pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id:
     {
         let mut stmt = conn.prepare(
             "SELECT id, title, date, is_all_day, start_time, end_time, memo, outlook_occurrence_key, outlook_series_id, meeting_url,
-                EXISTS(SELECT 1 FROM outlook_jobs WHERE task_id=tasks.id AND status <> 'done'), outlook_enabled
+                EXISTS(SELECT 1 FROM outlook_jobs WHERE task_id=tasks.id AND status <> 'done'),
+                (outlook_enabled OR EXISTS(SELECT 1 FROM outlook_links WHERE task_id=tasks.id))
              FROM tasks WHERE (date >= ?1 AND date <= ?2)
                 OR (outlook_occurrence_key IS NOT NULL AND outlook_series_id IS NOT NULL AND outlook_series_id <> '')",
         )?;
@@ -1010,6 +1027,7 @@ pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id:
             rows.push(ExistingRow {
                 id,
                 title,
+                app_managed,
                 in_range: !app_managed && !pending_outbound && range.contains_task(&date, if is_all_day_int != 0 { None } else { start_time.as_deref() }),
                 signature: sig,
                 key: occurrence_key.unwrap_or_default(),
@@ -1025,7 +1043,10 @@ pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id:
     let mut existing_by_series: HashMap<String, Vec<usize>> = HashMap::new();
     for (idx, row) in rows.iter().enumerate() {
         existing_signatures.insert(row.signature.clone());
-        if row.key.is_empty() {
+        // A matching imported appointment must not rekey or overwrite a task
+        // whose registration is controlled here, including disabled tombstones.
+        // Its signature still participates in deduplication.
+        if row.app_managed || row.key.is_empty() {
             continue;
         }
         if !row.series_id.is_empty() {
@@ -1223,6 +1244,7 @@ pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id:
                 id: task_id,
                 title: event.title.clone(),
                 in_range: true,
+                app_managed: false,
                 signature: sig.clone(),
                 key: occurrence_key.clone(),
                 series_id: series_id.clone(),

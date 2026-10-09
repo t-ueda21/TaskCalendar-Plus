@@ -235,6 +235,34 @@ fn outlook_date(date: &str, time: &str) -> Result<w::Variant,String> {
     Ok(w::Variant::Date(w::SYSTEMTIME { wYear:value.year() as u16,wMonth:value.month() as u16,wDay:value.day() as u16,wHour:value.hour() as u16,wMinute:value.minute() as u16,..Default::default() }))
 }
 
+/// winsafe 0.0.28 passes a null pointer to SysAllocString for an empty
+/// string and reports E_OUTOFMEMORY before Invoke. Windows VARIANT preserves
+/// the empty BSTR, so clearing a memo works as well as writing Unicode text.
+fn put_outlook_text(item: &w::IDispatch, property: &str, text: &str) -> Result<(), String> {
+    use windows::Win32::System::Com::{DISPATCH_PROPERTYPUT, DISPPARAMS, IDispatch};
+    use windows::core::{GUID, Interface};
+    let id = item.GetIDsOfNames(&[property], w::LCID::USER_DEFAULT)
+        .map_err(|error| format!("Outlook {property}: {error}"))?[0];
+    let mut value = AutomationValue::from(text);
+    let mut named = -3; // DISPID_PROPERTYPUT
+    let params = DISPPARAMS { rgvarg: &mut value, rgdispidNamedArgs: &mut named,
+        cArgs: 1, cNamedArgs: 1 };
+    let mut result = w::VARIANT::default();
+    let mut exception = w::EXCEPINFO::default();
+    let ptr = item.ptr();
+    // Borrow the interface; the owning values/EXCEPINFO free BSTRs on every path.
+    unsafe { IDispatch::from_raw_borrowed(&ptr).expect("non-null Outlook item").Invoke(
+        id, &GUID::zeroed(), w::LCID::USER_DEFAULT.raw(), DISPATCH_PROPERTYPUT,
+        &params, Some((&mut result as *mut w::VARIANT).cast()),
+        Some((&mut exception as *mut w::EXCEPINFO).cast()), None,
+    ) }.map_err(|error| {
+        let detail = if error.code().0 == co::HRESULT::DISP_E_EXCEPTION.raw() as i32 {
+            exception.to_string()
+        } else { error.to_string() };
+        format!("Outlook {property}: {detail}")
+    })
+}
+
 fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
     let outlook = connect_outlook()?;
     let namespace = outlook.invoke_method("GetNamespace", &[&w::Variant::from_str("MAPI")]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook namespace unavailable")?;
@@ -272,8 +300,8 @@ fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
     let payload = &request.payload;
     let start = outlook_date(&payload.date, if payload.is_all_day { "00:00" } else { payload.start_time.as_deref().ok_or("Start time missing")? })?;
     let end = outlook_date(&payload.date, if payload.is_all_day { "24:00" } else { payload.end_time.as_deref().ok_or("End time missing")? })?;
-    item.invoke_put("Subject",&w::Variant::from_str(&payload.title)).map_err(|e|e.to_string())?;
-    item.invoke_put("Body",&w::Variant::from_str(&payload.memo)).map_err(|e|e.to_string())?;
+    put_outlook_text(&item, "Subject", &payload.title)?;
+    put_outlook_text(&item, "Body", &payload.memo)?;
     item.invoke_put("Start",&start).map_err(|e|e.to_string())?;
     item.invoke_put("End",&end).map_err(|e|e.to_string())?;
     item.invoke_put("AllDayEvent",&w::Variant::Bool(payload.is_all_day)).map_err(|e|e.to_string())?;
@@ -282,7 +310,7 @@ fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
         Some(property) => property,
         None => properties.invoke_method("Add", &[&w::Variant::from_str(TASK_KEY_PROPERTY),&w::Variant::I4(1),&w::Variant::Bool(true)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Could not tag Outlook appointment")?,
     };
-    property.invoke_put("Value",&w::Variant::from_str(&request.external_key)).map_err(|e|e.to_string())?;
+    put_outlook_text(&property, "Value", &request.external_key)?;
     item.invoke_method("Save",&[]).map_err(|e|e.to_string())?;
     let entry_id = variant_to_opt_string(&item.invoke_get("EntryID",&[]).map_err(|e|e.to_string())?).ok_or("Saved Outlook appointment did not return its ID")?;
     let series_id = variant_to_opt_string(&item.invoke_get("GlobalAppointmentID",&[]).map_err(|e|e.to_string())?).unwrap_or_else(||entry_id.clone());

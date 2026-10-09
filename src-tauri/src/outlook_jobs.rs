@@ -39,9 +39,19 @@ pub fn enable(conn: &Connection, task_id: &str) -> rusqlite::Result<()> {
     let inherited = conn.query_row("SELECT l.calendar_name FROM outlook_links l JOIN tasks t ON t.id=l.task_id WHERE json_extract(CASE WHEN json_valid(t.recurrence) THEN t.recurrence ELSE '{}' END,'$.groupId')=(SELECT json_extract(recurrence,'$.groupId') FROM tasks WHERE id=?1) LIMIT 1",params![task_id],|row|row.get::<_,String>(0)).optional()?;
     let calendar = inherited.as_deref().unwrap_or(default_calendar);
     conn.execute("INSERT OR IGNORE INTO outlook_links(task_id,calendar_name,external_key) SELECT id,?2,(SELECT namespace FROM outlook_identity WHERE id=1)||':'||id FROM tasks WHERE id=?1", params![task_id,calendar])?;
-    conn.execute("UPDATE tasks SET outlook_enabled=1 WHERE id=?1", params![task_id])?;
+    conn.execute("UPDATE tasks SET outlook_enabled=1,outlook_occurrence_key=NULL,outlook_series_id=NULL WHERE id=?1", params![task_id])?;
     conn.execute("INSERT INTO outlook_jobs(task_id,operation,payload) SELECT id,'upsert',json_object('task_id',id,'title',title,'date',date,'is_all_day',json(CASE WHEN is_all_day THEN 'true' ELSE 'false' END),'start_time',start_time,'end_time',end_time,'memo',memo) FROM tasks WHERE id=?1
       ON CONFLICT(task_id) DO UPDATE SET operation='upsert',payload=excluded.payload,status='pending',last_error='',revision=revision+1", params![task_id])?;
+    Ok(())
+}
+
+/// Stop registration while retaining the identity for an idempotent delete/re-enable.
+pub fn disable(conn: &Connection, task_id: &str) -> rusqlite::Result<()> {
+    conn.execute("UPDATE tasks SET outlook_enabled=0,outlook_occurrence_key=NULL,outlook_series_id=NULL WHERE id=?1",params![task_id])?;
+    conn.execute("INSERT INTO outlook_jobs(task_id,operation,payload)
+      SELECT id,'delete',json_object('task_id',id,'title',title,'date',date,'is_all_day',json(CASE WHEN is_all_day THEN 'true' ELSE 'false' END),'start_time',start_time,'end_time',end_time,'memo',memo)
+      FROM tasks WHERE id=?1 AND EXISTS(SELECT 1 FROM outlook_links WHERE task_id=?1)
+      ON CONFLICT(task_id) DO UPDATE SET operation='delete',payload=excluded.payload,status='pending',last_error='',revision=revision+1",params![task_id])?;
     Ok(())
 }
 
@@ -86,7 +96,7 @@ pub async fn process_one(state: &crate::api::AppState) -> Result<bool, String> {
         Ok(identity) => {
             if operation == "upsert" {
                 conn.execute("UPDATE outlook_links SET entry_id=?2,store_id=?3 WHERE task_id=?1",params![id,identity.entry_id,identity.store_id]).map_err(|e|e.to_string())?;
-                conn.execute("UPDATE tasks SET outlook_occurrence_key=?2,outlook_series_id=?3 WHERE id=?1 AND EXISTS(SELECT 1 FROM outlook_links WHERE task_id=?1)",params![id,identity.occurrence_key,identity.series_id]).map_err(|e|e.to_string())?;
+                conn.execute("UPDATE tasks SET outlook_occurrence_key=?2,outlook_series_id=?3 WHERE id=?1 AND outlook_enabled=1 AND EXISTS(SELECT 1 FROM outlook_links WHERE task_id=?1)",params![id,identity.occurrence_key,identity.series_id]).map_err(|e|e.to_string())?;
             }
             conn.execute("UPDATE outlook_jobs SET status='done',last_error='' WHERE task_id=?1 AND revision=?2",params![id,revision]).map_err(|e|e.to_string())?;
             // Keep tombstones for Undo so a changed default calendar cannot redirect
@@ -150,5 +160,126 @@ mod tests {
         crate::repositories::outlook_sync_in_range(&conn,&[],"",range).unwrap();
         assert_eq!(crate::repositories::tasks_list(&conn).unwrap().len(),1,"fetching another calendar or moving remote event out of range cannot delete an app-owned record");
         assert_eq!(list(&conn).unwrap()[0]["status"],"done","read-side reconciliation must not enqueue outbound mutation");
+    }
+}
+
+#[cfg(test)]
+mod selection_tests {
+    use super::*;
+    use crate::repositories as repo;
+    fn fixture(enabled: bool) -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        crate::db::migrate(&conn,"2026-10").unwrap();
+        repo::tasks_insert(&conn,serde_json::from_value(json!({"id":"a","title":"Task","date":"2026-10-09","startTime":"09:00","endTime":"10:00","outlookEnabled":enabled})).unwrap()).unwrap();
+        conn
+    }
+    fn update(conn: &Connection, enabled: Option<bool>) -> repo::TaskRow {
+        let mut value=serde_json::to_value(&repo::tasks_list(conn).unwrap()[0]).unwrap();
+        if let Some(enabled)=enabled { value["outlookEnabled"]=json!(enabled); }
+        else { value.as_object_mut().unwrap().remove("outlookEnabled"); }
+        repo::tasks_update(conn,"a",serde_json::from_value(value).unwrap()).unwrap().unwrap()
+    }
+    #[test]
+    fn existing_task_can_enable_then_disable_and_reenable_outlook() {
+        let conn=fixture(false);
+        assert!(update(&conn,Some(true)).outlook_enabled);
+        let key: String=conn.query_row("SELECT external_key FROM outlook_links WHERE task_id='a'",[],|r|r.get(0)).unwrap();
+        assert_eq!(list(&conn).unwrap()[0]["operation"],"upsert");
+        conn.execute("UPDATE outlook_jobs SET status='failed',last_error='failure'",[]).unwrap();
+        assert!(!update(&conn,Some(false)).outlook_enabled);
+        assert_eq!(repo::tasks_list(&conn).unwrap().len(),1);
+        assert_eq!(list(&conn).unwrap()[0]["operation"],"delete");
+        assert_eq!(list(&conn).unwrap()[0]["status"],"pending");
+        let revision: i64=conn.query_row("SELECT revision FROM outlook_jobs",[],|r|r.get(0)).unwrap();
+        update(&conn,Some(false));
+        assert_eq!(conn.query_row("SELECT revision FROM outlook_jobs",[],|r|r.get::<_,i64>(0)).unwrap(),revision);
+        assert!(update(&conn,Some(true)).outlook_enabled);
+        assert_eq!(list(&conn).unwrap()[0]["operation"],"upsert");
+        assert_eq!(conn.query_row("SELECT external_key FROM outlook_links",[],|r|r.get::<_,String>(0)).unwrap(),key);
+    }
+    #[test]
+    fn omitted_selection_preserves_enabled_task_and_local_task_has_no_job() {
+        let conn=fixture(true);
+        assert!(update(&conn,None).outlook_enabled);
+        let conn=fixture(false);
+        assert!(!update(&conn,Some(false)).outlook_enabled);
+        assert!(list(&conn).unwrap().is_empty());
+    }
+    #[test]
+    fn enabling_imported_task_protects_local_changes_from_old_snapshot() {
+        let conn=fixture(false);
+        conn.execute("UPDATE tasks SET outlook_occurrence_key='external-key',outlook_series_id='external-series'",[]).unwrap();
+        let input=serde_json::from_value(json!({"title":"Local change","date":"2026-10-09","startTime":"09:00","endTime":"10:00","outlookEnabled":true})).unwrap();
+        repo::tasks_update(&conn,"a",input).unwrap();
+        let event=crate::outlook::OutlookEvent {title:"Task".into(),date:"2026-10-09".into(),start_time:Some("09:00".into()),end_time:Some("10:00".into()),location:String::new(),is_all_day:false,outlook_series_id:"external-series".into(),outlook_occurrence_key:"external-key".into(),is_recurring:false,recurrence:json!({"type":"none"}),meeting_url:None};
+        let range=crate::outlook::OutlookSyncRange::dates("2026-10-09","2026-10-09").unwrap();
+        repo::outlook_sync_in_range(&conn,&[event],"",range).unwrap();
+        let rows=repo::tasks_list(&conn).unwrap();
+        assert_eq!(rows.iter().find(|t|t.id=="a").unwrap().title,"Local change");
+        assert_eq!(list(&conn).unwrap()[0]["title"],"Local change");
+    }
+    #[test]
+    fn imported_snapshot_cannot_rekey_completed_managed_task() {
+        let conn=fixture(true);
+        let key: String=conn.query_row("SELECT external_key FROM outlook_links WHERE task_id='a'",[],|r|r.get(0)).unwrap();
+        let managed_key=format!("tcplus:{key}");
+        conn.execute("UPDATE tasks SET outlook_occurrence_key=?1,outlook_series_id='managed-series'",params![managed_key]).unwrap();
+        conn.execute("UPDATE outlook_jobs SET status='done'",[]).unwrap();
+        let mut event=crate::outlook::OutlookEvent {title:"Task".into(),date:"2026-10-09".into(),start_time:Some("09:00".into()),end_time:Some("10:00".into()),location:String::new(),is_all_day:false,outlook_series_id:"external-series".into(),outlook_occurrence_key:"external-key".into(),is_recurring:false,recurrence:json!({"type":"none"}),meeting_url:None};
+        let range=crate::outlook::OutlookSyncRange::dates("2026-10-09","2026-10-09").unwrap();
+        repo::outlook_sync_in_range(&conn,&[event.clone()],"",range).unwrap();
+        assert_eq!(repo::tasks_list(&conn).unwrap()[0].outlook_occurrence_key.as_deref(),Some(managed_key.as_str()));
+        event.title="External edit".into();
+        repo::outlook_sync_in_range(&conn,&[event],"",range).unwrap();
+        assert_eq!(repo::tasks_list(&conn).unwrap().iter().find(|t|t.id=="a").unwrap().title,"Task");
+        assert_eq!(list(&conn).unwrap()[0]["status"],"done");
+    }
+    #[test]
+    fn omitted_batch_selection_preserves_registration() {
+        let conn=fixture(true);
+        let current=repo::tasks_list(&conn).unwrap().remove(0);
+        let mut task=serde_json::to_value(&current).unwrap();
+        task.as_object_mut().unwrap().remove("outlookEnabled");
+        task["title"]=json!("Edited without selection");
+        let input=serde_json::from_value(json!({"upserts":[task],"deleteIds":[],"expected":[{"id":"a","updatedAt":current.updated_at}]})).unwrap();
+        assert!(repo::tasks_batch(&conn,input).is_ok());
+        assert!(repo::tasks_list(&conn).unwrap()[0].outlook_enabled);
+        assert_eq!(list(&conn).unwrap()[0]["operation"],"upsert");
+    }
+    #[test]
+    fn disabled_task_survives_inbound_sync_after_remote_delete() {
+        let conn=fixture(true);
+        conn.execute("UPDATE tasks SET outlook_occurrence_key='tcplus:test',outlook_series_id='series'",[]).unwrap();
+        update(&conn,Some(false));
+        conn.execute("UPDATE outlook_jobs SET status='done'",[]).unwrap();
+        let range=crate::outlook::OutlookSyncRange::dates("2026-10-09","2026-10-09").unwrap();
+        repo::outlook_sync_in_range(&conn,&[],"",range).unwrap();
+        let task=repo::tasks_list(&conn).unwrap().remove(0);
+        assert!(!task.outlook_enabled);
+        assert!(task.outlook_occurrence_key.is_none());
+        assert!(task.outlook_series_id.is_none());
+    }
+    #[test]
+    fn selection_and_task_changes_roll_back_when_job_cannot_be_saved() {
+        let conn=fixture(false);
+        conn.execute_batch("CREATE TRIGGER reject_outlook_job BEFORE INSERT ON outlook_jobs BEGIN SELECT RAISE(ABORT,'test failure'); END;").unwrap();
+        let input=serde_json::from_value(json!({"title":"Must roll back","date":"2026-10-09","outlookEnabled":true})).unwrap();
+        assert!(repo::tasks_update(&conn,"a",input).is_err());
+        let task=repo::tasks_list(&conn).unwrap().remove(0);
+        assert_eq!(task.title,"Task");
+        assert!(!task.outlook_enabled);
+        assert_eq!(conn.query_row("SELECT count(*) FROM outlook_links",[],|r|r.get::<_,i64>(0)).unwrap(),0);
+    }
+    #[test]
+    fn batch_edit_and_undo_restore_outlook_selection() {
+        let conn=fixture(false);
+        for enabled in [true,false,true] {
+            let current=repo::tasks_list(&conn).unwrap().remove(0);
+            let mut task=serde_json::to_value(&current).unwrap();task["outlookEnabled"]=json!(enabled);
+            let input=serde_json::from_value(json!({"upserts":[task],"deleteIds":[],"expected":[{"id":"a","updatedAt":current.updated_at}]})).unwrap();
+            assert!(repo::tasks_batch(&conn,input).is_ok());
+            assert_eq!(repo::tasks_list(&conn).unwrap()[0].outlook_enabled,enabled);
+            assert_eq!(list(&conn).unwrap()[0]["operation"],if enabled {"upsert"} else {"delete"});
+        }
     }
 }

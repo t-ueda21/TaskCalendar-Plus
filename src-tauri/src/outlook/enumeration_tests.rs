@@ -88,6 +88,7 @@ unsafe extern "system" fn names(
             "UserProperties" => 3,
             "Find" => 4,
             "Value" => 5,
+            "Body" => 6,
             _ => return HRESULT(0x80020006u32 as i32),
         };
     }
@@ -116,6 +117,9 @@ unsafe extern "system" fn invoke(
                     && (args.len() == 1 || bool::try_from(&args[0]) == Ok(true))
             },
             5 => flags.0 == 2 && (*params).cArgs == 0,
+            6 => flags.0 == 4 && (*params).cArgs == 1
+                && (*params).cNamedArgs == 1 && *(*params).rgdispidNamedArgs == -3
+                && windows::core::BSTR::try_from(&*(*params).rgvarg).is_ok_and(|s| s.is_empty()),
             _ => false,
         };
         if !valid {
@@ -305,4 +309,10 @@ fn automation_result_structures_share_the_same_abi() {
     assert_eq!(std::mem::align_of::<w::VARIANT>(),std::mem::align_of::<VARIANT>());
     assert_eq!(std::mem::size_of::<w::EXCEPINFO>(),std::mem::size_of::<EXCEPINFO>());
     assert_eq!(std::mem::align_of::<w::EXCEPINFO>(),std::mem::align_of::<EXCEPINFO>());
+}
+
+#[test]
+fn empty_memo_can_clear_outlook_body_without_out_of_memory() {
+    let source = items(vec![Reply { status: HRESULT(0), kind: VT_EMPTY, item: false }]);
+    put_outlook_text(&source, "Body", "").expect("empty memo is valid");
 }

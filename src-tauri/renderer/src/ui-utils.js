@@ -763,7 +763,7 @@ export function openEditDialog(dialog, task, tags) {
   dialog.querySelector("[name='allDay']").checked  = Boolean(task.isAllDay);
   dialog.querySelector("[name='memo']").value      = task.memo      ?? "";
   const outlook = dialog.querySelector('[name="outlookEnabled"]');
-  if (outlook) { outlook.checked = Boolean(task.outlookEnabled); outlook.disabled = true; }
+  if (outlook) { outlook.checked = Boolean(task.outlookEnabled); outlook.disabled = false; }
   if (dialog.querySelector("[name='date']")) {
     dialog.querySelector("[name='date']").value = task.date ?? formatDateKey(new Date());
   }

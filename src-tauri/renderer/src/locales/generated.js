@@ -1,6 +1,7 @@
 // Generated complete catalogs; checked by scripts/test-i18n.mjs.
 export default {
   "ja": {
+    "outlook.selectionHint": "OFFで保存すると、アプリから登録したOutlookの予定を削除します。タスクは残ります。",
     "common.save": "保存",
     "common.cancel": "キャンセル",
     "common.close": "閉じる",
@@ -659,6 +660,7 @@ export default {
     "ui.5caed7fcdd": "天気情報なし"
   },
   "en": {
+    "outlook.selectionHint": "Saving with this off deletes the Outlook appointment created by this app. The task is kept.",
     "common.save": "Save",
     "common.cancel": "Cancel",
     "common.close": "Close",
@@ -1317,6 +1319,7 @@ export default {
     "ui.5caed7fcdd": "No weather data"
   },
   "ko": {
+    "outlook.selectionHint": "OFF로 저장하면 이 앱에서 등록한 Outlook 일정을 삭제합니다. 작업은 유지됩니다.",
     "common.save": "저장",
     "common.cancel": "취소",
     "common.close": "닫기",
@@ -1975,6 +1978,7 @@ export default {
     "ui.5caed7fcdd": "날씨 정보 없음"
   },
   "zh-CN": {
+    "outlook.selectionHint": "关闭后保存会删除此应用创建的 Outlook 日程，任务会保留。",
     "common.save": "保存",
     "common.cancel": "取消",
     "common.close": "关闭",
@@ -2633,6 +2637,7 @@ export default {
     "ui.5caed7fcdd": "无天气信息"
   },
   "zh-TW": {
+    "outlook.selectionHint": "關閉後儲存會刪除此應用程式建立的 Outlook 行程，工作會保留。",
     "common.save": "儲存",
     "common.cancel": "取消",
     "common.close": "關閉",
@@ -3291,6 +3296,7 @@ export default {
     "ui.5caed7fcdd": "無天氣資訊"
   },
   "es": {
+    "outlook.selectionHint": "Guardar con esta opción desactivada elimina la cita de Outlook creada por esta aplicación. La tarea se conserva.",
     "common.save": "Guardar",
     "common.cancel": "Cancelar",
     "common.close": "Cerrar",
@@ -3949,6 +3955,7 @@ export default {
     "ui.5caed7fcdd": "Sin datos del tiempo"
   },
   "fr": {
+    "outlook.selectionHint": "Enregistrer avec cette option désactivée supprime le rendez-vous Outlook créé par cette application. La tâche est conservée.",
     "common.save": "Enregistrer",
     "common.cancel": "Annuler",
     "common.close": "Fermer",
@@ -4607,6 +4614,7 @@ export default {
     "ui.5caed7fcdd": "Aucune donnée météo"
   },
   "de": {
+    "outlook.selectionHint": "Beim Speichern mit deaktivierter Option wird der von dieser App erstellte Outlook-Termin gelöscht. Die Aufgabe bleibt erhalten.",
     "common.save": "Speichern",
     "common.cancel": "Abbrechen",
     "common.close": "Schließen",
@@ -5265,6 +5273,7 @@ export default {
     "ui.5caed7fcdd": "Keine Wetterdaten"
   },
   "pt": {
+    "outlook.selectionHint": "Salvar com esta opção desativada exclui o compromisso do Outlook criado por este aplicativo. A tarefa é mantida.",
     "common.save": "Salvar",
     "common.cancel": "Cancelar",
     "common.close": "Fechar",
