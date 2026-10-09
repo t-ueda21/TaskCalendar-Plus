@@ -145,6 +145,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/ai/chat", axum::routing::post(ai_chat))
         .route("/api/outlook/fetch", axum::routing::post(outlook_fetch))
         .route("/api/outlook/jobs", get(outlook_job_list))
+        .route("/api/outlook/calendars", get(outlook_calendars))
         .route("/api/outlook/jobs/{id}/retry", axum::routing::post(outlook_job_retry))
         .route("/api/ai/preview", axum::routing::post(ai_preview))
         .route("/api/ai/local/models", axum::routing::post(ai_local_models))
@@ -587,6 +588,14 @@ async fn outlook_job_retry(State(state): State<AppState>, Path(id): Path<String>
         Ok(0) => json_err(StatusCode::CONFLICT,"Outlook operation is not in a failed state"),
         Ok(_) => json_ok(json!({"queued":true})),
         Err(error) => json_err(StatusCode::INTERNAL_SERVER_ERROR,error.to_string()),
+    }
+}
+
+async fn outlook_calendars() -> Response {
+    match tokio::time::timeout(std::time::Duration::from_secs(30),crate::outlook::fetch_calendars()).await {
+        Ok(Ok(calendars)) => json_ok(calendars),
+        Ok(Err(error)) => json_err(StatusCode::SERVICE_UNAVAILABLE,error),
+        Err(_) => json_err(StatusCode::GATEWAY_TIMEOUT,"Outlook予定表の取得がタイムアウトしました"),
     }
 }
 

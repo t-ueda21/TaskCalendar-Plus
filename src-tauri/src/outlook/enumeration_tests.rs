@@ -88,6 +88,12 @@ unsafe extern "system" fn names(
             "UserProperties" => 3,
             "Find" => 4,
             "Value" => 5,
+            "Body" => 6,
+            "GetFolderFromID" => 7,
+            "DefaultItemType" => 8,
+            "Folders" => 9,
+            "Count" => 10,
+            "Item" => 11,
             _ => return HRESULT(0x80020006u32 as i32),
         };
     }
@@ -116,6 +122,18 @@ unsafe extern "system" fn invoke(
                     && (args.len() == 1 || bool::try_from(&args[0]) == Ok(true))
             },
             5 => flags.0 == 2 && (*params).cArgs == 0,
+            6 => flags.0 == 4 && (*params).cArgs == 1
+                && (*params).cNamedArgs == 1 && *(*params).rgdispidNamedArgs == -3
+                && windows::core::BSTR::try_from(&*(*params).rgvarg).is_ok_and(|s| s.is_empty()),
+            7 => {
+                let args=std::slice::from_raw_parts((*params).rgvarg,(*params).cArgs as usize);
+                flags.0==1 && args.len()==2
+                    && windows::core::BSTR::try_from(&args[0]).is_ok_and(|s|s=="store-b")
+                    && windows::core::BSTR::try_from(&args[1]).is_ok_and(|s|s=="folder-a")
+            },
+            8..=10 => flags.0==2 && (*params).cArgs==0,
+            11 => flags.0==1 && (*params).cArgs==1,
+
             _ => false,
         };
         if !valid {
@@ -127,6 +145,8 @@ unsafe extern "system" fn invoke(
             .pop_front()
             .unwrap();
         (*(*out).Anonymous.Anonymous).vt = reply.kind;
+        if id==10 && reply.kind==VT_I4 { (*(*out).Anonymous.Anonymous).Anonymous.lVal=3; }
+        if id==8 && reply.kind==VT_I4 { (*(*out).Anonymous.Anonymous).Anonymous.lVal=1; }
         if reply.kind == VT_BSTR {
             (*(*out).Anonymous.Anonymous).Anonymous.bstrVal =
                 std::mem::ManuallyDrop::new(windows::core::BSTR::from("namespace:task-1"));
@@ -305,4 +325,42 @@ fn automation_result_structures_share_the_same_abi() {
     assert_eq!(std::mem::align_of::<w::VARIANT>(),std::mem::align_of::<VARIANT>());
     assert_eq!(std::mem::size_of::<w::EXCEPINFO>(),std::mem::size_of::<EXCEPINFO>());
     assert_eq!(std::mem::align_of::<w::EXCEPINFO>(),std::mem::align_of::<EXCEPINFO>());
+}
+
+#[test]
+fn empty_memo_can_clear_outlook_body_without_out_of_memory() {
+    let source = items(vec![Reply { status: HRESULT(0), kind: VT_EMPTY, item: false }]);
+    put_outlook_text(&source, "Body", "").expect("empty memo is valid");
+}
+
+#[test]
+fn selected_calendar_uses_folder_and_store_ids_and_never_falls_back() {
+    let selected=r#"outlook-folder:{"entryId":"folder-a","storeId":"store-b","label":"B / Calendar"}"#;
+    let source=items(vec![Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},Reply{status:HRESULT(0),kind:VT_I4,item:false}]);
+    let folder=calendars::resolve(&source,selected).unwrap().expect("calendar folder");
+    drop(folder);
+    assert_eq!(unsafe { &*source.ptr().cast::<Items>() }.refs.load(Ordering::Relaxed),1);
+    for status in [0,0x80004005u32 as i32] {
+        let source=items(vec![Reply{status:HRESULT(status),kind:VT_DISPATCH,item:false}]);
+        assert!(calendars::resolve(&source,selected).is_err());
+    }
+    let source=items(vec![Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},Reply{status:HRESULT(0),kind:VT_EMPTY,item:false}]);
+    assert!(calendars::resolve(&source,selected).is_err(),"non-calendar folder must be rejected");
+}
+
+#[test]
+fn calendar_discovery_keeps_siblings_when_one_folder_is_inaccessible() {
+    let source=items(vec![
+        Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},
+        Reply{status:HRESULT(0),kind:VT_I4,item:false},
+        Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},
+        Reply{status:HRESULT(0x80070005u32 as i32),kind:VT_EMPTY,item:false},
+        Reply{status:HRESULT(0),kind:VT_DISPATCH,item:true},
+    ]);
+    let mut warnings=Vec::new();
+    let folders=calendars::children(&source,&mut warnings).expect("keep readable siblings");
+    assert_eq!(warnings.len(),1);
+    assert_eq!(folders.len(),2);
+    drop(folders);
+    assert_eq!(unsafe { &*source.ptr().cast::<Items>() }.refs.load(Ordering::Relaxed),1);
 }

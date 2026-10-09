@@ -52,6 +52,7 @@ export async function openHarness({root=process.cwd(),output=null}={}) {
         const json=(data,status=200,headers={})=>{res.writeHead(status,{'Content-Type':'application/json',...headers});res.end(status===204||status===304?'':JSON.stringify(data));};
         if(failure&&failure.method===method&&failure.route===route){const status=failure.status;failure=null;return json({error:'Injected synthetic API failure'},status);}
         if(route==='/api/runtime')return json({appVersion:'3.0.0',osLocale:'ja-JP',testHarness:true});
+        if(route==='/api/outlook/calendars'&&method==='GET')return json({calendars:[],warnings:[]});
         if(route==='/api/outlook/jobs'&&method==='GET')return json({jobs:[],counts:{pending:0,working:0,failed:0}});
         if(route==='/api/settings'){if(method==='PUT')state.settings=clone(body);return json(state.settings);}
         if(route==='/api/tasks'&&method==='GET'){const etag='"synthetic-'+revision+'"';return json(state.tasks,req.headers['if-none-match']===etag?304:200,{ETag:etag});}

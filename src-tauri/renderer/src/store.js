@@ -167,7 +167,10 @@ function _normalizeSettings(settingsLike) {
   merged.uiLanguage = merged.uiLanguage === "auto" ? "auto" : normalizeLocale(merged.uiLanguage);
   merged.aiPersonalization = personalization(merged);
   merged.outlookWriteDefault = merged.outlookWriteDefault === true;
-  merged.outlookWriteCalendarName = String(merged.outlookWriteCalendarName ?? 'Calendar').trim().slice(0, 200) || 'Calendar';
+  for (const key of ['outlookWriteCalendarName','outlookSyncCalendarName']) {
+    const value = String(merged[key] ?? 'Calendar').trim();
+    merged[key] = (value.startsWith('outlook-folder:') ? value : value.slice(0, 200)) || 'Calendar';
+  }
   merged.companyHolidayEntries = normalizeCompanyHolidayEntries(merged.companyHolidayEntries ?? merged.companyHolidays);
   merged.companyHolidays = merged.companyHolidayEntries.map((row) => row.dateKey);
   merged.aiCliEnabled = merged.aiCliEnabled === true;

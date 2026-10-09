@@ -3617,3 +3617,14 @@ button:focus-visible,
 .localAiProvider:not([hidden]) { display: grid; gap: 8px; }
 .localAiActions { display: flex; align-items: center; gap: 8px; }
 .localAiProvider .btn { white-space: nowrap; }
+
+/* Match model pickers while allowing long mailbox paths to shrink. */
+.outlookCalendarPicker { min-width:0; }
+.outlookCalendarPicker .settingsModelRow { grid-template-columns: 110px minmax(0,1fr) auto; }
+.outlookCalendarPicker select { min-width:0; width:100%; }
+.outlookCalendarPicker > input { width:100%; margin-top:8px; }
+.outlookCalendarPicker [data-calendar-status] { overflow-wrap:anywhere; }
+@media (max-width:620px) {
+  .outlookCalendarPicker .settingsModelRow { grid-template-columns:minmax(0,1fr) auto; }
+  .outlookCalendarPicker .settingsModelRow > label { grid-column:1 / -1; }
+}
