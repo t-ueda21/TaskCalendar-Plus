@@ -60,7 +60,7 @@ pub fn list(conn: &Connection) -> rusqlite::Result<Vec<Value>> {
     statement.query_map([], |row| {
         let payload: String = row.get(4)?;
         let data: Value = serde_json::from_str(&payload).unwrap_or(Value::Null);
-        Ok(json!({"taskId":row.get::<_,String>(0)?,"operation":row.get::<_,String>(1)?,"status":row.get::<_,String>(2)?,"error":row.get::<_,String>(3)?,"title":data["title"],"calendarName":row.get::<_,Option<String>>(5)?}))
+        Ok(json!({"taskId":row.get::<_,String>(0)?,"operation":row.get::<_,String>(1)?,"status":row.get::<_,String>(2)?,"error":row.get::<_,String>(3)?,"title":data["title"],"calendarName":row.get::<_,Option<String>>(5)?.map(|value|crate::outlook::calendar_label(&value))}))
     })?.collect()
 }
 

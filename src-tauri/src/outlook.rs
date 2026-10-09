@@ -14,6 +14,9 @@ use winsafe::prelude::*;
 use winsafe::{self as w, co};
 use windows::Win32::System::Variant::VARIANT as AutomationValue;
 
+mod calendars;
+pub use calendars::{CalendarList, calendar_label};
+
 const OL_FOLDER_CALENDAR: i32 = 9;
 const OL_APPOINTMENT_CLASS: i32 = 26;
 const SAFETY_MAX_ITEMS: i32 = 5000;
@@ -130,11 +133,11 @@ pub struct WriteRequest {
 #[derive(Default)]
 pub struct WriteIdentity { pub entry_id: String, pub store_id: String, pub occurrence_key: String, pub series_id: String }
 
-enum WorkerRequest { Fetch(OutlookRequest), Write(Box<WriteRequest>, oneshot::Sender<Result<WriteIdentity, String>>) }
+enum WorkerRequest { Fetch(OutlookRequest), Write(Box<WriteRequest>, oneshot::Sender<Result<WriteIdentity, String>>), Calendars(oneshot::Sender<Result<CalendarList,String>>) }
 
 impl WorkerRequest {
     fn fail(self, message: String) {
-        match self { Self::Fetch(request) => { let _ = request.reply.send(Err(message)); }, Self::Write(_, reply) => { let _ = reply.send(Err(message)); } }
+        match self { Self::Calendars(reply) => {let _=reply.send(Err(message));}, Self::Fetch(request) => { let _ = request.reply.send(Err(message)); }, Self::Write(_, reply) => { let _ = reply.send(Err(message)); } }
     }
 }
 
@@ -170,6 +173,7 @@ fn outlook_worker_loop(rx: std_mpsc::Receiver<WorkerRequest>) {
     };
     for req in rx {
         match req {
+            WorkerRequest::Calendars(reply) => {let _=reply.send(calendars::discover());},
             WorkerRequest::Fetch(req) => { let result = get_outlook_events(&req.calendar_name, req.range); let _ = req.reply.send(result); },
             WorkerRequest::Write(request, reply) => { let _ = reply.send(write_outlook_event(&request)); },
         }
@@ -200,6 +204,12 @@ pub async fn fetch_events_in_range(calendar_name: String, range: OutlookSyncRang
     reply_rx
         .await
         .map_err(|_| "Outlookワーカーからの応答がありませんでした".to_string())?
+}
+
+pub async fn fetch_calendars() -> Result<CalendarList,String> {
+    let (reply,response)=oneshot::channel();
+    worker_sender().send(WorkerRequest::Calendars(reply)).map_err(|_|"Outlook worker stopped")?;
+    response.await.map_err(|_|"Outlook worker did not return a response")?
 }
 
 pub async fn write_event(request: WriteRequest) -> Result<WriteIdentity,String> {
@@ -266,7 +276,7 @@ fn put_outlook_text(item: &w::IDispatch, property: &str, text: &str) -> Result<(
 fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
     let outlook = connect_outlook()?;
     let namespace = outlook.invoke_method("GetNamespace", &[&w::Variant::from_str("MAPI")]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook namespace unavailable")?;
-    let folder = if is_default_calendar_name(&request.calendar_name) { default_calendar_folder(&namespace)? } else {
+    let folder = if let Some(folder) = calendars::resolve(&namespace, &request.calendar_name)? { folder } else if is_default_calendar_name(&request.calendar_name) { default_calendar_folder(&namespace)? } else {
         resolve_named_calendar(&request.calendar_name,lookup_named_calendar(&namespace,&request.calendar_name,true))?
     };
     let items = folder.invoke_get("Items", &[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Outlook items unavailable")?;
@@ -410,6 +420,7 @@ fn find_calendar_folder(
     namespace: &w::IDispatch,
     calendar_name: &str,
 ) -> Result<w::IDispatch, String> {
+    if let Some(folder) = calendars::resolve(namespace, calendar_name)? { return Ok(folder); }
     if is_default_calendar_name(calendar_name) {
         return default_calendar_folder(namespace);
     }

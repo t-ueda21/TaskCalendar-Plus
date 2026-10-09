@@ -30,6 +30,7 @@ import { LOCAL_AI_PROVIDERS, populateLocalAiSettings, readLocalAiSettings, valid
 import { applyUiColor, populateUiColor, readUiColor, wireUiColorPicker } from "./ui-color-picker.js";
 import { LANGUAGES, t as translate, applyTranslations, th as translateHtml } from './i18n.js';
 import { readPersonalization, populatePersonalization } from "./ai-personalization.js";
+import { populateOutlookCalendars, loadOutlookCalendars } from "./outlook-calendar-picker.js";
 import { wireOutlookSync as wireOutlookSyncV3 } from "./outlook-settings.js";
 import { wireTransferUi } from "./transfer-ui.js";
 import { showAppAlert, showAppConfirm } from './app-dialogs.js';
@@ -197,6 +198,7 @@ function wireSettingsPages(settingsDialog) {
       panel.hidden = !active;
     });
     settingsDialog.querySelector('.settingsDialogBody').scrollTop = 0;
+    if (target === 'outlook') void loadOutlookCalendars(settingsDialog);
   };
 
   tabButtons.forEach((btn) => {
@@ -582,6 +584,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
       weatherLocationKey: settingsDialog.querySelector("[name='weatherLocationKey']")?.value || current.weatherLocationKey || "tokyo",
       outlookAutoSync: Boolean(settingsDialog.querySelector("[name='outlookAutoSync']")?.checked),
       outlookWriteDefault: Boolean(settingsDialog.querySelector('[name="outlookWriteDefault"]')?.checked),
+      outlookSyncCalendarName: settingsDialog.querySelector('[name="outlookCalendarName"]')?.value.trim() || 'Calendar',
       outlookWriteCalendarName: settingsDialog.querySelector('[name="outlookWriteCalendarName"]')?.value || 'Calendar',
       outlookAutoSyncIntervalMin: Number(settingsDialog.querySelector("[name='outlookAutoSyncIntervalMin']")?.value) || 10,
       trayEnabled: Boolean(settingsDialog.querySelector("[name='trayEnabled']")?.checked),
@@ -639,7 +642,8 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     if (intervalEl) intervalEl.value = String(s.outlookAutoSyncIntervalMin || 10);
     syncSettingToggles();
     const calEl = settingsDialog.querySelector("[name='outlookCalendarName']");
-    if (calEl) calEl.value = s.outlookSyncCalendarName || calEl.value;
+    if (calEl) calEl.value = s.outlookSyncCalendarName || 'Calendar';
+    populateOutlookCalendars(settingsDialog);
     const daysEl2 = settingsDialog.querySelector("[name='outlookDays']");
     if (daysEl2) daysEl2.value = String(s.outlookSyncDaysAhead || daysEl2.value);
     const trayEnabledEl = settingsDialog.querySelector("[name='trayEnabled']");

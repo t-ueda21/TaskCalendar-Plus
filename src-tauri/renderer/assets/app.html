@@ -465,9 +465,10 @@
           <section class="settingsSection">
             <div class="settingsSectionLabel"><span data-i18n="ui.f4e1929b88">Outlook同期</span></div>
             <div class="settingsSectionSub"><span data-i18n="ui.b52e6dbf56">取得する予定表・期間・タグを選択します。</span></div>
-            <div class="settingsInlineRow settingsInlineRowWide">
-              <label class="settingsInlineLabel" for="cfg-outlook-calendar"><span data-i18n="ui.e6f6d06c44">カレンダー</span></label>
-              <input id="cfg-outlook-calendar" type="text" name="outlookCalendarName" value="Calendar" placeholder="例: 予定表" class="settingsOutlookText" data-i18n-attrs="placeholder=ui.4d6478616e">
+            <div class="outlookCalendarPicker" data-outlook-calendar-picker="source">
+              <div class="settingsInlineRow settingsModelRow"><label for="cfg-outlook-source-select" data-i18n="outlook.sourceCalendar">取得元の予定表</label><select id="cfg-outlook-source-select" aria-describedby="cfg-outlook-source-status"></select><button class="btn" type="button" data-calendar-refresh><span data-i18n="ui.90e07be37c">再取得</span></button></div>
+              <input type="text" name="outlookCalendarName" value="Calendar" hidden aria-label="取得元の予定表" data-i18n-attrs="aria-label=outlook.sourceCalendar" placeholder="例: 予定表">
+              <p class="settingsTagHint" id="cfg-outlook-source-status" data-calendar-status role="status" aria-live="polite"></p>
             </div>
             <div class="settingsInlineRow settingsInlineRowWide">
               <label class="settingsInlineLabel" for="cfg-outlook-days"><span data-i18n="ui.20c8fe3008">取得期間</span></label>
@@ -494,7 +495,11 @@
             <section class="settingsSection outlookWriteSettings">
               <div class="settingsSectionLabel"><span data-i18n="ui.c12faa89d1">Outlookへの登録</span></div>
               <label class="uiToggle"><input type="checkbox" name="outlookWriteDefault" class="uiToggleInput" role="switch"><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel"><span data-i18n="ui.1b26386d86">新しいタスクをOutlookへ登録する（既定）</span></span></label>
-              <div class="settingsInlineRow settingsInlineRowWide"><label for="cfg-outlook-write-calendar"><span data-i18n="ui.d245315c64">登録先の予定表</span></label><input id="cfg-outlook-write-calendar" name="outlookWriteCalendarName" type="text" value="Calendar"></div>
+              <div class="outlookCalendarPicker" data-outlook-calendar-picker="target">
+              <div class="settingsInlineRow settingsModelRow"><label for="cfg-outlook-target-select" data-i18n="ui.d245315c64">登録先の予定表</label><select id="cfg-outlook-target-select" aria-describedby="cfg-outlook-target-status"></select><button class="btn" type="button" data-calendar-refresh><span data-i18n="ui.90e07be37c">再取得</span></button></div>
+              <input type="text" name="outlookWriteCalendarName" value="Calendar" hidden aria-label="登録先の予定表" data-i18n-attrs="aria-label=ui.d245315c64" placeholder="例: 予定表">
+              <p class="settingsTagHint" id="cfg-outlook-target-status" data-calendar-status role="status" aria-live="polite"></p>
+            </div>
               <p class="settingsTagHint"><span data-i18n="ui.c9a457f008">タスクごとに登録するか選べます。連携した予定の編集・削除も反映します。</span></p>
               <div data-outlook-jobs="" role="status" aria-live="polite"></div>
             </section>

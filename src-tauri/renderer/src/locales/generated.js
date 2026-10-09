@@ -1,6 +1,14 @@
 // Generated complete catalogs; checked by scripts/test-i18n.mjs.
 export default {
   "ja": {
+    "outlook.sourceCalendar": "取得元の予定表",
+    "outlook.defaultCalendar": "既定の予定表",
+    "outlook.savedCalendar": "保存済みの予定表",
+    "outlook.invalidCalendars": "予定表候補の応答形式が不正です",
+    "outlook.calendarCount": "{count}件の予定表を取得しました",
+    "outlook.noCalendars": "予定表が見つかりません。既定の予定表または手入力を選べます。",
+    "outlook.partialCalendars": "一部の候補を取得できませんでした。",
+    "outlook.calendarTimeout": "予定表候補の取得がタイムアウトしました。再取得してください。",
     "outlook.selectionHint": "OFFで保存すると、アプリから登録したOutlookの予定を削除します。タスクは残ります。",
     "common.save": "保存",
     "common.cancel": "キャンセル",
@@ -660,6 +668,14 @@ export default {
     "ui.5caed7fcdd": "天気情報なし"
   },
   "en": {
+    "outlook.sourceCalendar": "Import calendar",
+    "outlook.defaultCalendar": "Default calendar",
+    "outlook.savedCalendar": "Saved calendar",
+    "outlook.invalidCalendars": "Invalid calendar list response",
+    "outlook.calendarCount": "Loaded {count} calendars",
+    "outlook.noCalendars": "No calendars found. Choose the default calendar or enter a name manually.",
+    "outlook.partialCalendars": "Some calendars could not be loaded.",
+    "outlook.calendarTimeout": "Loading calendars timed out. Please refresh.",
     "outlook.selectionHint": "Saving with this off deletes the Outlook appointment created by this app. The task is kept.",
     "common.save": "Save",
     "common.cancel": "Cancel",
@@ -1319,6 +1335,14 @@ export default {
     "ui.5caed7fcdd": "No weather data"
   },
   "ko": {
+    "outlook.sourceCalendar": "가져올 일정",
+    "outlook.defaultCalendar": "기본 일정",
+    "outlook.savedCalendar": "저장된 일정",
+    "outlook.invalidCalendars": "일정 목록 응답 형식이 잘못되었습니다",
+    "outlook.calendarCount": "일정 {count}개를 가져왔습니다",
+    "outlook.noCalendars": "일정을 찾지 못했습니다. 기본 일정을 선택하거나 이름을 직접 입력하세요.",
+    "outlook.partialCalendars": "일부 일정을 가져오지 못했습니다.",
+    "outlook.calendarTimeout": "일정 목록 요청 시간이 초과되었습니다. 다시 가져오세요.",
     "outlook.selectionHint": "OFF로 저장하면 이 앱에서 등록한 Outlook 일정을 삭제합니다. 작업은 유지됩니다.",
     "common.save": "저장",
     "common.cancel": "취소",
@@ -1978,6 +2002,14 @@ export default {
     "ui.5caed7fcdd": "날씨 정보 없음"
   },
   "zh-CN": {
+    "outlook.sourceCalendar": "导入日历",
+    "outlook.defaultCalendar": "默认日历",
+    "outlook.savedCalendar": "已保存的日历",
+    "outlook.invalidCalendars": "日历列表响应格式无效",
+    "outlook.calendarCount": "已获取 {count} 个日历",
+    "outlook.noCalendars": "未找到日历。可选择默认日历或手动输入名称。",
+    "outlook.partialCalendars": "部分日历无法获取。",
+    "outlook.calendarTimeout": "获取日历超时，请刷新。",
     "outlook.selectionHint": "关闭后保存会删除此应用创建的 Outlook 日程，任务会保留。",
     "common.save": "保存",
     "common.cancel": "取消",
@@ -2637,6 +2669,14 @@ export default {
     "ui.5caed7fcdd": "无天气信息"
   },
   "zh-TW": {
+    "outlook.sourceCalendar": "匯入行事曆",
+    "outlook.defaultCalendar": "預設行事曆",
+    "outlook.savedCalendar": "已儲存的行事曆",
+    "outlook.invalidCalendars": "行事曆清單回應格式無效",
+    "outlook.calendarCount": "已取得 {count} 個行事曆",
+    "outlook.noCalendars": "找不到行事曆。可選擇預設行事曆或手動輸入名稱。",
+    "outlook.partialCalendars": "部分行事曆無法取得。",
+    "outlook.calendarTimeout": "取得行事曆逾時，請重新整理。",
     "outlook.selectionHint": "關閉後儲存會刪除此應用程式建立的 Outlook 行程，工作會保留。",
     "common.save": "儲存",
     "common.cancel": "取消",
@@ -3296,6 +3336,14 @@ export default {
     "ui.5caed7fcdd": "無天氣資訊"
   },
   "es": {
+    "outlook.sourceCalendar": "Calendario de importación",
+    "outlook.defaultCalendar": "Calendario predeterminado",
+    "outlook.savedCalendar": "Calendario guardado",
+    "outlook.invalidCalendars": "Respuesta de lista de calendarios no válida",
+    "outlook.calendarCount": "Se cargaron {count} calendarios",
+    "outlook.noCalendars": "No se encontraron calendarios. Elija el predeterminado o escriba un nombre.",
+    "outlook.partialCalendars": "No se pudieron cargar algunos calendarios.",
+    "outlook.calendarTimeout": "Se agotó el tiempo de carga. Actualice la lista.",
     "outlook.selectionHint": "Guardar con esta opción desactivada elimina la cita de Outlook creada por esta aplicación. La tarea se conserva.",
     "common.save": "Guardar",
     "common.cancel": "Cancelar",
@@ -3955,6 +4003,14 @@ export default {
     "ui.5caed7fcdd": "Sin datos del tiempo"
   },
   "fr": {
+    "outlook.sourceCalendar": "Calendrier à importer",
+    "outlook.defaultCalendar": "Calendrier par défaut",
+    "outlook.savedCalendar": "Calendrier enregistré",
+    "outlook.invalidCalendars": "Réponse de liste de calendriers invalide",
+    "outlook.calendarCount": "{count} calendriers chargés",
+    "outlook.noCalendars": "Aucun calendrier trouvé. Choisissez le calendrier par défaut ou saisissez un nom.",
+    "outlook.partialCalendars": "Certains calendriers ne sont pas accessibles.",
+    "outlook.calendarTimeout": "Le chargement des calendriers a expiré. Actualisez la liste.",
     "outlook.selectionHint": "Enregistrer avec cette option désactivée supprime le rendez-vous Outlook créé par cette application. La tâche est conservée.",
     "common.save": "Enregistrer",
     "common.cancel": "Annuler",
@@ -4614,6 +4670,14 @@ export default {
     "ui.5caed7fcdd": "Aucune donnée météo"
   },
   "de": {
+    "outlook.sourceCalendar": "Importkalender",
+    "outlook.defaultCalendar": "Standardkalender",
+    "outlook.savedCalendar": "Gespeicherter Kalender",
+    "outlook.invalidCalendars": "Ungültige Antwort der Kalenderliste",
+    "outlook.calendarCount": "{count} Kalender geladen",
+    "outlook.noCalendars": "Keine Kalender gefunden. Standardkalender wählen oder Namen eingeben.",
+    "outlook.partialCalendars": "Einige Kalender konnten nicht geladen werden.",
+    "outlook.calendarTimeout": "Zeitüberschreitung beim Laden. Bitte aktualisieren.",
     "outlook.selectionHint": "Beim Speichern mit deaktivierter Option wird der von dieser App erstellte Outlook-Termin gelöscht. Die Aufgabe bleibt erhalten.",
     "common.save": "Speichern",
     "common.cancel": "Abbrechen",
@@ -5273,6 +5337,14 @@ export default {
     "ui.5caed7fcdd": "Keine Wetterdaten"
   },
   "pt": {
+    "outlook.sourceCalendar": "Calendário de importação",
+    "outlook.defaultCalendar": "Calendário padrão",
+    "outlook.savedCalendar": "Calendário salvo",
+    "outlook.invalidCalendars": "Resposta da lista de calendários inválida",
+    "outlook.calendarCount": "{count} calendários carregados",
+    "outlook.noCalendars": "Nenhum calendário encontrado. Escolha o padrão ou digite um nome.",
+    "outlook.partialCalendars": "Alguns calendários não puderam ser carregados.",
+    "outlook.calendarTimeout": "O carregamento dos calendários expirou. Atualize a lista.",
     "outlook.selectionHint": "Salvar com esta opção desativada exclui o compromisso do Outlook criado por este aplicativo. A tarefa é mantida.",
     "common.save": "Salvar",
     "common.cancel": "Cancelar",
