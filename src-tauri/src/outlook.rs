@@ -79,6 +79,7 @@ pub struct OutlookSnapshot {
 pub struct OutlookSyncRange {
     pub start: chrono::NaiveDateTime,
     pub end_exclusive: chrono::NaiveDateTime,
+    starts_only: bool,
 }
 
 impl OutlookSyncRange {
@@ -93,6 +94,7 @@ impl OutlookSyncRange {
         Self {
             start: now,
             end_exclusive: (now.date() + chrono::Duration::days(days_ahead.clamp(1, 365) + 1)).and_hms_opt(0, 0, 0).unwrap(),
+            starts_only: true,
         }
     }
 
@@ -103,7 +105,7 @@ impl OutlookSyncRange {
         if last < first { return Err("End date must not precede start date".into()); }
         if (last - first).num_days() > 365 { return Err("Select no more than 366 days".into()); }
         let next = last.succ_opt().ok_or("End date is out of range")?;
-        Ok(Self { start: first.and_hms_opt(0,0,0).unwrap(), end_exclusive: next.and_hms_opt(0,0,0).unwrap() })
+        Ok(Self { start: first.and_hms_opt(0,0,0).unwrap(), end_exclusive: next.and_hms_opt(0,0,0).unwrap(), starts_only: false })
     }
 
     pub fn start_key(self) -> String {
@@ -121,15 +123,17 @@ impl OutlookSyncRange {
         crate::event_data::date_time(date,time.unwrap_or("00:00")).is_ok_and(|start|self.contains(start))
     }
 
-    pub fn overlaps_event(self,event:&OutlookEvent)->bool{
-        crate::event_data::range(&event.date,event.end_date.as_deref(),event.is_all_day,event.start_time.as_deref(),event.end_time.as_deref()).is_ok_and(|(start,end)|start<self.end_exclusive&&end>self.start)
+    pub fn accepts_new_event(self,event:&OutlookEvent)->bool{
+        crate::event_data::range(&event.date,event.end_date.as_deref(),event.is_all_day,event.start_time.as_deref(),event.end_time.as_deref())
+            .is_ok_and(|(start,end)| if self.starts_only {self.contains(start)}else{start<self.end_exclusive&&end>self.start})
     }
 
     fn restrict_filter(self) -> String {
-        // COM's locale-dependent Restrict compares minute precision; contains()
-        // applies the exact second boundary after enumeration.
+        // Restrict is minute-precision; accepts_new_event applies the exact captured
+        // boundary. Only an explicit date range includes already-started overlaps.
+        let lower=if self.starts_only {"[Start] >="}else{"[End] >"};
         format!(
-            "[End] > '{}' AND [Start] < '{}'",
+            "{lower} '{}' AND [Start] < '{}'",
             self.start.format("%m/%d/%Y %I:%M %p"),
             self.end_exclusive.format("%m/%d/%Y %I:%M %p")
         )
@@ -703,7 +707,7 @@ fn get_outlook_events(calendar_name: &str, range: OutlookSyncRange) -> Result<Ou
         if automation::integer(&item,"Class")?!=OL_APPOINTMENT_CLASS {continue;}
         let (event,active)=reconcile::read_item(&item,None,Some(&calendar_folder))?;
         if !event.remote.as_ref().is_some_and(|meta|calendars::same_calendar(&meta.calendar,&calendar_ref)) {continue;}
-        if !range.overlaps_event(&event) {continue;}
+        if !range.accepts_new_event(&event) {continue;}
         if active {events.push(event);}else{cancelled.push(event);}
     }
     Ok(OutlookSnapshot { events, range,calendar_ref,observations:Vec::new(),cancelled,warnings:Vec::new() })
@@ -712,6 +716,27 @@ fn get_outlook_events(calendar_name: &str, range: OutlookSyncRange) -> Result<Ou
 #[cfg(test)]
 mod sync_range_tests {
     use super::*;
+
+    #[test]
+    fn current_mode_excludes_ongoing_starts_but_explicit_range_includes_overlap() {
+        let now=at("2026-10-13 13:00:30");
+        let current=OutlookSyncRange::new(now,1);
+        let explicit=OutlookSyncRange::dates("2026-10-13","2026-10-13").unwrap();
+        let mut event=OutlookEvent{title:"Ongoing".into(),date:"2026-10-13".into(),end_date:Some("2026-10-13".into()),start_time:Some("12:00".into()),end_time:Some("14:00".into()),location:String::new(),outlook_details:json!({}),is_all_day:false,outlook_series_id:String::new(),outlook_occurrence_key:String::new(),is_recurring:false,recurrence:json!({"type":"none"}),meeting_url:None,remote:None};
+        assert!(!current.accepts_new_event(&event),"now mode must not newly import a meeting already in progress");
+        assert!(explicit.accepts_new_event(&event));
+        for (start,want) in [("13:00:29",false),("13:00:30",true),("13:00:31",true)] {
+            event.start_time=Some(start.into());assert_eq!(current.accepts_new_event(&event),want,"{start}");
+        }
+        event.date="2026-10-12".into();event.start_time=Some("22:00".into());
+        assert!(!current.accepts_new_event(&event));assert!(explicit.accepts_new_event(&event),"a date range still imports a multi-day overlap");
+        event.is_all_day=true;event.start_time=None;event.end_time=None;
+        assert!(!current.accepts_new_event(&event));assert!(explicit.accepts_new_event(&event));
+        event.date="2026-10-14".into();event.end_date=Some(event.date.clone());
+        assert!(current.accepts_new_event(&event));assert!(!explicit.accepts_new_event(&event));
+        let after_midnight=OutlookSyncRange::new(at("2026-10-14 00:00:01"),1);
+        assert!(!after_midnight.accepts_new_event(&event),"capture the exact new-day start boundary");
+    }
 
     #[test]
     fn cancelled_meeting_statuses_are_excluded_and_unknown_status_aborts() {
@@ -908,7 +933,7 @@ mod sync_range_tests {
         assert!(!range.contains(at("2026-09-27 00:00:00")));
         assert_eq!(
             range.restrict_filter(),
-            "[End] > '09/25/2026 01:00 PM' AND [Start] < '09/27/2026 12:00 AM'"
+            "[Start] >= '09/25/2026 01:00 PM' AND [Start] < '09/27/2026 12:00 AM'"
         );
         assert_eq!(
             (range.start_key(), range.end_key()),
@@ -928,7 +953,7 @@ mod sync_range_tests {
         assert_eq!(snapshot.range.end_key(), "2027-01-01");
         assert_eq!(
             snapshot.range.restrict_filter(),
-            "[End] > '12/31/2026 11:59 PM' AND [Start] < '01/02/2027 12:00 AM'"
+            "[Start] >= '12/31/2026 11:59 PM' AND [Start] < '01/02/2027 12:00 AM'"
         );
     }
 }
