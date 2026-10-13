@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 /**
  * ai-client.js
  *
@@ -45,7 +46,7 @@ export function cancelAi() {
 
 async function _request(body) {
   if (!isAiConfigured()) {
-    throw new AiError("AIの接続先が設定されていません。⚙設定 →「基本」→「AI」で接続先とモデルを設定してください。", { unavailable: true });
+    throw new AiError(translate('ui.f992530a0a'), { unavailable: true });
   }
   const controller = new AbortController();
   _abortController = controller;
@@ -58,16 +59,16 @@ async function _request(body) {
       signal: controller.signal,
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new AiError(String(data?.error || `AIの呼び出しに失敗しました(status ${res.status})`));
+    if (!res.ok) throw new AiError(String(data?.error || translate('ui.d83c97e7c3', { p0: (res.status) })));
     _lastUsed = { provider: String(data.provider ?? ""), model: String(data.model ?? "") };
     return data;
   } catch (e) {
     if (e instanceof AiError) throw e;
     if (controller.signal.aborted) {
       const timedOut = controller.signal.reason?.name === "TimeoutError";
-      throw new AiError(timedOut ? "AIの応答が時間内に返りませんでした。" : "AIの応答を停止しました。", { cancelled: !timedOut });
+      throw new AiError(timedOut ? translate('ui.fefe21c00c') : translate('ui.bfcab38aef'), { cancelled: !timedOut });
     }
-    throw new AiError(`AIの呼び出しに失敗しました: ${String(e?.message ?? e)}`);
+    throw new AiError(translate('ui.9bb8a67ade', { p0: (String(e?.message ?? e)) }));
   } finally {
     window.clearTimeout(timer);
     if (_abortController === controller) _abortController = null;

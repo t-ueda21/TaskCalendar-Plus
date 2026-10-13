@@ -441,7 +441,15 @@ pub async fn chat(
 
     match kind {
         CliKind::ClaudeCode => {
-            let args = claude_args(&system, model, effort, schema, mcp_url);
+            let mut args = claude_args(&system, model, effort, schema, mcp_url);
+            // Windows .cmd launchers cannot accept multiline argv. Keep arbitrary user
+            // instructions out of the shell command line and pass them through a file.
+            let system_file = dir.0.join("system-prompt.txt");
+            tokio::fs::write(&system_file, &system).await.map_err(|e| CliError(format!("Cannot write system instructions: {e}")))?;
+            if let Some(index) = args.iter().position(|arg| arg == "--system-prompt") {
+                args[index] = "--system-prompt-file".into();
+                args[index + 1] = system_file.to_string_lossy().into_owned();
+            }
             let output = run_cli(&program, &args, &prompt, &dir.0, CLI_TIMEOUT).await?;
             parse_claude_output(&output.stdout)
         }

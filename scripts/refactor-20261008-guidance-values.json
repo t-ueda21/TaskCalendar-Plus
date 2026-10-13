@@ -1,0 +1,225 @@
+{
+  "reason": "Issue #18 moved AI from General/Basic to its own settings page; update existing help messages in every supported language.",
+  "files": [
+    "src-tauri/renderer/src/locales/generated.js",
+    "src-tauri/renderer/src/locales/catalogs.json"
+  ],
+  "changes": [
+    {
+      "locale": "ja",
+      "key": "ui.f992530a0a",
+      "before": "AIの接続先が設定されていません。⚙設定 →「基本」→「AI」で接続先とモデルを設定してください。",
+      "after": "AIの接続先が設定されていません。⚙設定 →「AI」で接続先とモデルを設定してください。"
+    },
+    {
+      "locale": "ja",
+      "key": "ui.e86898bcbd",
+      "before": "⚙設定 →「基本」→「AI」で接続先とモデルを設定してください。",
+      "after": "⚙設定 →「AI」で接続先とモデルを設定してください。"
+    },
+    {
+      "locale": "ja",
+      "key": "ui.3bb1d8d6af",
+      "before": "AI: 未設定（⚙設定 → 基本 → AI）",
+      "after": "AI: 未設定（⚙設定 → AI）"
+    },
+    {
+      "locale": "ja",
+      "key": "ui.fb12c74329",
+      "before": "AIの接続先を設定すると、日次サマリーを自動で作ります（⚙設定 →「基本」→「AI」）。",
+      "after": "AIの接続先を設定すると、日次サマリーを自動で作ります（⚙設定 →「AI」）。"
+    },
+    {
+      "locale": "en",
+      "key": "ui.f992530a0a",
+      "before": "AI is not configured. Set a provider and model in Settings → General → AI.",
+      "after": "AI is not configured. Set a provider and model in Settings → AI."
+    },
+    {
+      "locale": "en",
+      "key": "ui.e86898bcbd",
+      "before": "Set a provider and model in Settings → General → AI.",
+      "after": "Set a provider and model in Settings → AI."
+    },
+    {
+      "locale": "en",
+      "key": "ui.3bb1d8d6af",
+      "before": "AI: not configured (Settings → General → AI)",
+      "after": "AI: not configured (Settings → AI)"
+    },
+    {
+      "locale": "en",
+      "key": "ui.fb12c74329",
+      "before": "Configure AI to generate daily summaries automatically (Settings → General → AI).",
+      "after": "Configure AI to generate daily summaries automatically (Settings → AI)."
+    },
+    {
+      "locale": "ko",
+      "key": "ui.f992530a0a",
+      "before": "AI가 설정되지 않았습니다. 설정 → 기본 → AI에서 연결 대상과 모델을 선택하세요.",
+      "after": "AI가 설정되지 않았습니다. 설정 → AI에서 연결 대상과 모델을 선택하세요."
+    },
+    {
+      "locale": "ko",
+      "key": "ui.e86898bcbd",
+      "before": "설정 → 기본 → AI에서 연결 대상과 모델을 설정하세요.",
+      "after": "설정 → AI에서 연결 대상과 모델을 설정하세요."
+    },
+    {
+      "locale": "ko",
+      "key": "ui.3bb1d8d6af",
+      "before": "AI: 미설정 (설정 → 기본 → AI)",
+      "after": "AI: 미설정 (설정 → AI)"
+    },
+    {
+      "locale": "ko",
+      "key": "ui.fb12c74329",
+      "before": "AI를 설정하면 일별 요약을 자동 생성합니다 (설정 → 기본 → AI).",
+      "after": "AI를 설정하면 일별 요약을 자동 생성합니다 (설정 → AI)."
+    },
+    {
+      "locale": "zh-CN",
+      "key": "ui.f992530a0a",
+      "before": "尚未配置AI。请在设置→基本→AI中选择服务和模型。",
+      "after": "尚未配置AI。请在设置→AI中选择服务和模型。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "ui.e86898bcbd",
+      "before": "请在设置→基本→AI中选择服务和模型。",
+      "after": "请在设置→AI中选择服务和模型。"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "ui.3bb1d8d6af",
+      "before": "AI：未配置（设置→基本→AI）",
+      "after": "AI：未配置（设置→AI）"
+    },
+    {
+      "locale": "zh-CN",
+      "key": "ui.fb12c74329",
+      "before": "配置AI后可自动生成每日摘要（设置→基本→AI）。",
+      "after": "配置AI后可自动生成每日摘要（设置→AI）。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "ui.f992530a0a",
+      "before": "尚未設定AI。請在設定→基本→AI中選擇服務和模型。",
+      "after": "尚未設定AI。請在設定→AI中選擇服務和模型。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "ui.e86898bcbd",
+      "before": "請在設定→基本→AI中選擇服務和模型。",
+      "after": "請在設定→AI中選擇服務和模型。"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "ui.3bb1d8d6af",
+      "before": "AI：未設定（設定→基本→AI）",
+      "after": "AI：未設定（設定→AI）"
+    },
+    {
+      "locale": "zh-TW",
+      "key": "ui.fb12c74329",
+      "before": "設定AI後可自動產生每日摘要（設定→基本→AI）。",
+      "after": "設定AI後可自動產生每日摘要（設定→AI）。"
+    },
+    {
+      "locale": "es",
+      "key": "ui.f992530a0a",
+      "before": "IA sin configurar. Elige proveedor y modelo en Ajustes → General → IA.",
+      "after": "IA sin configurar. Elige proveedor y modelo en Ajustes → IA."
+    },
+    {
+      "locale": "es",
+      "key": "ui.e86898bcbd",
+      "before": "Elige proveedor y modelo en Ajustes → General → IA.",
+      "after": "Elige proveedor y modelo en Ajustes → IA."
+    },
+    {
+      "locale": "es",
+      "key": "ui.3bb1d8d6af",
+      "before": "IA: sin configurar (Ajustes → General → IA)",
+      "after": "IA: sin configurar (Ajustes → IA)"
+    },
+    {
+      "locale": "es",
+      "key": "ui.fb12c74329",
+      "before": "Configura la IA para resúmenes automáticos (Ajustes → General → IA).",
+      "after": "Configura la IA para resúmenes automáticos (Ajustes → IA)."
+    },
+    {
+      "locale": "fr",
+      "key": "ui.f992530a0a",
+      "before": "IA non configurée. Choisissez fournisseur et modèle dans Paramètres → Général → IA.",
+      "after": "IA non configurée. Choisissez fournisseur et modèle dans Paramètres → IA."
+    },
+    {
+      "locale": "fr",
+      "key": "ui.e86898bcbd",
+      "before": "Choisissez fournisseur et modèle dans Paramètres → Général → IA.",
+      "after": "Choisissez fournisseur et modèle dans Paramètres → IA."
+    },
+    {
+      "locale": "fr",
+      "key": "ui.3bb1d8d6af",
+      "before": "IA : non configurée (Paramètres → Général → IA)",
+      "after": "IA : non configurée (Paramètres → IA)"
+    },
+    {
+      "locale": "fr",
+      "key": "ui.fb12c74329",
+      "before": "Configurez l’IA pour les résumés automatiques (Paramètres → Général → IA).",
+      "after": "Configurez l’IA pour les résumés automatiques (Paramètres → IA)."
+    },
+    {
+      "locale": "de",
+      "key": "ui.f992530a0a",
+      "before": "KI nicht eingerichtet. Anbieter und Modell unter Einstellungen → Allgemein → KI wählen.",
+      "after": "KI nicht eingerichtet. Anbieter und Modell unter Einstellungen → KI wählen."
+    },
+    {
+      "locale": "de",
+      "key": "ui.e86898bcbd",
+      "before": "Anbieter und Modell unter Einstellungen → Allgemein → KI wählen.",
+      "after": "Anbieter und Modell unter Einstellungen → KI wählen."
+    },
+    {
+      "locale": "de",
+      "key": "ui.3bb1d8d6af",
+      "before": "KI: nicht eingerichtet (Einstellungen → Allgemein → KI)",
+      "after": "KI: nicht eingerichtet (Einstellungen → KI)"
+    },
+    {
+      "locale": "de",
+      "key": "ui.fb12c74329",
+      "before": "KI für automatische Tageszusammenfassungen einrichten (Einstellungen → Allgemein → KI).",
+      "after": "KI für automatische Tageszusammenfassungen einrichten (Einstellungen → KI)."
+    },
+    {
+      "locale": "pt",
+      "key": "ui.f992530a0a",
+      "before": "IA não configurada. Escolha provedor e modelo em Configurações → Geral → IA.",
+      "after": "IA não configurada. Escolha provedor e modelo em Configurações → IA."
+    },
+    {
+      "locale": "pt",
+      "key": "ui.e86898bcbd",
+      "before": "Escolha provedor e modelo em Configurações → Geral → IA.",
+      "after": "Escolha provedor e modelo em Configurações → IA."
+    },
+    {
+      "locale": "pt",
+      "key": "ui.3bb1d8d6af",
+      "before": "IA: não configurada (Configurações → Geral → IA)",
+      "after": "IA: não configurada (Configurações → IA)"
+    },
+    {
+      "locale": "pt",
+      "key": "ui.fb12c74329",
+      "before": "Configure a IA para resumos automáticos (Configurações → Geral → IA).",
+      "after": "Configure a IA para resumos automáticos (Configurações → IA)."
+    }
+  ]
+}

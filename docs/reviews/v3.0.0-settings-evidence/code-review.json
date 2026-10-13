@@ -1,0 +1,35 @@
+{
+  "verifier": "/root/settings_c",
+  "files": [
+    "src-tauri/renderer/assets/app.html",
+    "src-tauri/renderer/src/settings-dialog.js",
+    "src-tauri/renderer/assets/styles.css",
+    "src-tauri/renderer/src/settings-pages.js"
+  ],
+  "issues": [],
+  "observations": [
+    {
+      "file": "src-tauri/renderer/assets/app.html",
+      "summary": "11ページの生成後DOMを静的HTMLへ配置。49入力部品の属性・初期値、フォーム境界・要素順序を独立比較。空class属性33個の除去だけが正規化DOM差。"
+    },
+    {
+      "file": "src-tauri/renderer/src/settings-dialog.js",
+      "summary": "動的ページ再配置のimport/callを除去し、既存matchMediaによるARIA方向更新をwireSettingsPagesへ移動。保存処理は初期8ページと同一。"
+    },
+    {
+      "file": "src-tauri/renderer/assets/styles.css",
+      "summary": "modern-ui.cssで上書き済みの旧workグリッド配置と関連メディアクエリを除去。45状態の画素は不変。"
+    },
+    {
+      "file": "src-tauri/renderer/src/settings-pages.js",
+      "summary": "静的化で不要になったページ/見出し生成と既存部品の移動モジュールを削除。残るARIA方向処理はcontrollerへ保持。"
+    }
+  ],
+  "evidence": [
+    "static-dom/records.json",
+    "static-dom/review.json",
+    "naming-audit.json",
+    "comparison.json"
+  ],
+  "notCovered": "No native app launch or live external effects."
+}

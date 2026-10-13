@@ -9,6 +9,8 @@ import { startHeaderClock, timeToMinutes } from "./ui-utils.js";
 import { applyUiColor } from "./ui-color-picker.js";
 import { initAppUpdater } from "./app-updater.js";
 import { mountViewTemplates } from "./view-shell.js";
+import { resolveLocale, setLocale, applyTranslations, t as translate, th as translateHtml } from './i18n.js';
+import { wireOutlookLinks } from "./outlook-link.js";
 
 // SPAシェル(app.html)で切替可能なビュー一覧。
 const VIEW_MODULE_LOADERS = {
@@ -33,7 +35,7 @@ function showBootstrapError(error) {
   panel.style.color = "#7f1d1d";
   panel.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
   panel.style.whiteSpace = "pre-wrap";
-  panel.textContent = `起動エラー\n${message}\n\nCtrl+Shift+I でコンソールを開き、エラー詳細を確認してください。`;
+  panel.textContent = translate('ui.80648c7b67', { p0: (message) });
   document.body.prepend(panel);
 }
 
@@ -146,6 +148,22 @@ async function bootstrap() {
     mountViewTemplates();
     await window.tcplusUiPreferences?.ready;
     await Store.init();
+    const syncLanguage = () => {
+      setLocale(resolveLocale(Store.getSettings().uiLanguage, Store.getRuntimeInfo().osLocale));
+      applyTranslations();
+      window.__TAURI__?.core?.invoke('set_ui_language',{locale:document.documentElement.lang}).catch(error=>console.warn('[native language]',error));
+    };
+    syncLanguage();
+    wireOutlookLinks(Store);
+    Store.subscribe("settings", syncLanguage);
+    document.addEventListener('tcplus:language', () => { for (const view of _mountedViews.values()) view.activate?.(); });
+    let translating = false;
+    new MutationObserver(records => {
+      if (translating) return;
+      translating = true;
+      for (const record of records) for (const node of record.addedNodes) if (node.nodeType === 1) applyTranslations(node);
+      translating = false;
+    }).observe(document.body, { childList: true, subtree: true });
     applyUiColor(Store.getSettings().uiAccentColor);
     Store.subscribe("settings", () => {
       if (!document.querySelector('[data-settings-dialog]')?.open) applyUiColor(Store.getSettings().uiAccentColor);

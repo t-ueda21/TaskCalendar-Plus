@@ -1,0 +1,368 @@
+{
+  "scope": "real renderer with synthetic HTTP API, synthetic native bridge and synthetic weather; not native application E2E",
+  "sourceRoot": "C:\\Users\\doratatu\\Documents\\Repository\\TaskCalendar-Plus\\out\\refactor-20261008\\initial\\source",
+  "source": {
+    "sha256": "20560c95042823fe9576bbb6a638be51cd0ff763167c32c2fd99f51b6ef3903c",
+    "files": {
+      "assets/app-icon/README.txt": "2e947d8a80a183489834f56169cf6039e7495c7bf9a76385b87d98edf0f20b82",
+      "assets/app-icon/icon.ico": "4b298c33e7baa725e621372921b7521ef01ee3417a4916a81a4a3111a4cf0bc2",
+      "assets/app.html": "94e989c39995d6a09e4111ed6f93a3534426da8d5d99464ee8c1c10274813d14",
+      "assets/styles.css": "4ed6a7bb9b3766e7a6393cdd55c3f43f4f04e4a418423c1753b37052f213d447",
+      "src/ai-client.js": "ac9981ccdffbcb4ec161a147e9a00f370549774fdc70007b6462bcebcd63afbf",
+      "src/ai-memory.js": "5aebcf4b18797430d1569c38f32efdc8f2da9d530ec94e78209c0f96a0274b4e",
+      "src/ai-mode.js": "022f89ca2b99235d149119c25287d48d2de496f001c82f50333e39e7393b78fc",
+      "src/ai-model-picker.js": "241cd6799e685c233156a9be986ff921aff8e3a0804a0636638d0605b284d03d",
+      "src/ai-personalization.js": "00f6dae6a0daa90774271eebf7cadc49872670ac25c04e7fe1abc92d8918d03c",
+      "src/app-update-controller.js": "5e408d266a50d0378816a16f7ff39edbc7655e3f2838175dee74e504fb150e42",
+      "src/app-updater.js": "af4a027988d53786c826acddb5331f9fbe22d8a6ea9090fa4af377e110038280",
+      "src/calendar.js": "c035cc6cd2b0b124b182e2a05ee73c7c4b837ffbe922b8070f5a423cb0e31dc8",
+      "src/company-holidays.js": "dfcf3d03c76ecabc47fcc43ffb3ffdba1b4b8633ef2bc7adcbbc410e1203dbe1",
+      "src/holidays.js": "9d7e2107fd5cce5eb6297174a8820e22168d6808f943b25304ed6cc44ce60e84",
+      "src/i18n.js": "ea87f7cf34102b4bc4553f670cd63acad101ec8cf64ce7ee060a897463cd3a40",
+      "src/local-ai-settings.js": "b8be66dbf8f423c4015071a9b3d5bb24200e28c6f51dddb720c76122beb80729",
+      "src/locales/catalogs.js": "fe7d18e223d82a55c76e37bfcc86a411c7b4ea6ddf1c6dfaec27c9bb954cc6f6",
+      "src/locales/catalogs.json": "1c872964faf186dc33f5a528473340054494b9dd97bf44d8bea9ab7fdae31d99",
+      "src/locales/generated.js": "efc87217e12efb0563b46cb1eeef82d8dd29d0b9c9c0563e5e9e4f9f9e0d4bd2",
+      "src/main.js": "0d8bd05a573ef62e453b2bb58ee54f1f3d3970f241960838e6e1a4493f892a6f",
+      "src/markdown.js": "ef820a8520614713fbb3977f08f72d8f3f20a9f5fdb97f27491db378018f30df",
+      "src/mini-calendar-picker.js": "856838ef108f8d0d42c5c3c6fbadf1426785762b6952dc438e8466d09f7b24fb",
+      "src/mini-calendar-state.js": "fa24c3735bcaac988a72b66f852e8e39ef231db755e0f6005e9a905c623d5dd3",
+      "src/outlook-link.js": "3f391de892bd16970d02f782c7cc3ad415cbc2cbcab9438f2042023a0668a178",
+      "src/outlook-settings.js": "2a798b2c7d10fd2958539b31d5cabdcb90f4ec56f35350f83b86345ab808b7c6",
+      "src/settings-dialog.js": "fac8017035384aa1363cff07985c74e8deccc644a4443299e7da4c523e0e4e5d",
+      "src/settings-transfer.js": "ad9babc45fa03c3594b5aa4e7fae500c54870e1455f9cfe483ad28b6b5f7a179",
+      "src/store.js": "b4cbc6466bbf88cf233284939d3ad2e63fc37b95ffe66630858ff0d764b2c54a",
+      "src/tag-manager.js": "bf1da63afdb5d5887852f978762060dc3dc3627620ffb4bbe98d0c288eeaff75",
+      "src/tasks.js": "36853813c3127926cb3b075346f73e75e4588ed3d8f59c21a69a9606803f6ae3",
+      "src/tauri-shell-bridge.js": "251bb973017e7ac08187f49821fcc008e5a06d3a97de9643e932316ca30a949e",
+      "src/time-grid.js": "990fab3b567818dea7298d5a9437671383c55a2a6172eaa475315a0e1f13bcf9",
+      "src/transfer-file.js": "a5b17850da4be77f89f27fe748ca97797834fc95b0e69ede53347a6aee694dd7",
+      "src/transfer-ui.js": "1db31fb22c69f8e784f777043d12dbe945a96d9c96cced035e1046a1615d305a",
+      "src/ui-color-picker.js": "ac0b5034b187a43a22dec115b7afab4bab073ba43b4f2e8577d1a5e7ccf3acd3",
+      "src/ui-colors.js": "01b46151a82ae9d61120db25194a8b817a8d977a321a861d9a44fa9fb47462a4",
+      "src/ui-icons.js": "c080db70538e16d5dc8fd199cfa2f981c959201d22d517a4a2a4f04657c4a35c",
+      "src/ui-utils.js": "a151d75d988d4dc122fcbe678bebf6a3cd89db51c53402ae9f02c36aa44788d8",
+      "src/view-shell.js": "88dcc968a78767e14b600d67e9a952ccee309cc6edaa84371279e4e714121e76",
+      "src/weather.js": "3fa6d4be19c95d31671daac2dc15027d4f744eb8daa726f07a00efde464876c1",
+      "src/work-time.js": "e91482f9c6d85cc10ca38ac4b432f1321b67e4fc9c3d89107a484a2cbbee7d3e"
+    }
+  },
+  "browser": "151.0.7922.34",
+  "playwright": "1.62.1",
+  "node": "v24.18.0",
+  "nodeExecutableSha256": "9a4eb5f1c29c6a2e93852ead46b999e284a6a5ca8bab4d4e241d587d025a52de",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "deviceScaleFactor": 1,
+  "locale": "ja-JP",
+  "timezone": "Asia/Tokyo",
+  "fixedNow": "2026-10-08T01:15:00.000Z",
+  "os": "10.0.26300",
+  "cpu": "Intel(R) Core(TM) Ultra 7 265K",
+  "memoryBytes": 33754415104,
+  "captured": [
+    "calendar-day",
+    "calendar-week",
+    "mini-month",
+    "mini-year",
+    "tasks",
+    "task-edit",
+    "settings-general",
+    "settings-advanced",
+    "settings-tags",
+    "settings-outlook",
+    "settings-about",
+    "settings-shortcuts",
+    "tasks-dark"
+  ],
+  "states": {
+    "calendar-day": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "calendar-week": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "mini-month": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "mini-year": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "tasks": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "task-edit": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-general": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-advanced": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-tags": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-outlook": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-about": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "settings-shortcuts": {
+      "theme": "light",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.10)",
+        "--accent-strong": "#0072bc",
+        "--accent-hover": "#0061a0",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#ffffff"
+      },
+      "paletteMatches": true
+    },
+    "tasks-dark": {
+      "theme": "dark",
+      "actual": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "expected": {
+        "--accent": "#0072bc",
+        "--accent-rgb": "0, 114, 188",
+        "--accent-soft": "rgba(0, 114, 188, 0.16)",
+        "--accent-strong": "#3d94cc",
+        "--accent-hover": "#2687c6",
+        "--on-accent": "#ffffff",
+        "--on-accent-hover": "#000000"
+      },
+      "paletteMatches": true
+    }
+  }
+}

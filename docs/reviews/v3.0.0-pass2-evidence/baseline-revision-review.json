@@ -1,0 +1,46 @@
+{
+  "verifier": "/root/refactor2_verify",
+  "reviewedAt": "2026-10-07T18:45:55.477819+00:00",
+  "scope": "C read and recomputed counts from A-owned saved diagnostic evidence; C independently reran the complete final v2 UI suite, not the earlier race diagnostic.",
+  "diagnostics": [
+    {
+      "name": "position-race-before",
+      "sha256": "770e722c8f88b7f41cd838c0b5f4af3c25aea7bff0be3b0df9557aa7a94b60be",
+      "sourceSha256": "a7189d09f0d8edd27adacacce10e5be03ba705b5572a5c64181820dd5f574d72",
+      "iterations": 16,
+      "observations": 44,
+      "failedIterations": 3
+    },
+    {
+      "name": "position-race-after",
+      "sha256": "60b9a2da1eec3d36a49746f51069eba5cf0c5e8d74d6796929acd86aa862c3cf",
+      "sourceSha256": "d9c67a9e08b1c38da62e9dbf5700f9f1476e4e072da09e422a3a33a5dbab7b5a",
+      "iterations": 16,
+      "observations": 48,
+      "failedIterations": 0
+    },
+    {
+      "name": "position-actionability-before",
+      "sha256": "6509cdcacd86461a1e2032aa9d15d262596fc2d52ffb95d59826b3843dd286b0",
+      "sourceSha256": "a7189d09f0d8edd27adacacce10e5be03ba705b5572a5c64181820dd5f574d72",
+      "iterations": 16,
+      "observations": 48,
+      "failedIterations": 0
+    },
+    {
+      "name": "position-actionability-after",
+      "sha256": "d9b5102a010a9d30dba7f002442a4641fb99b2ca050ba9ab84eb16b09c95e1c9",
+      "sourceSha256": "d9c67a9e08b1c38da62e9dbf5700f9f1476e4e072da09e422a3a33a5dbab7b5a",
+      "iterations": 16,
+      "observations": 48,
+      "failedIterations": 0
+    }
+  ],
+  "findings": [
+    "最初のB自己試験で位置検査が1件失敗した記録を残している。CもAの保存診断を読み、変更前ソースの16反復中3反復で同種のメニュー消失を確認した。失敗traceはcontextmenu→hidden=false→既存gridWrap scroll→hideTaskTagMenu→hidden=trueの順だった。",
+    "Aは座標イベントの前に実右クリックと同じactionabilityをtrialクリックで確認する前提だけを追加した。必須ID、座標期待値、8px境界、画像マスクなし、性能許容差を保った。変更前と変更後それぞれ16反復×3座標の保存診断は48観測すべて成功していた。",
+    "採用基準v2では元3アプリファイルをexact復元して、変更前の172ケース・20画面・16指標×7を採取し直している。Cはその固定v2と完成版だけを最終比較し、全35UIケースを独立に再実行した。旧基準、初回失敗、診断は削除していない。"
+  ],
+  "applicationFixIncluded": false,
+  "sourceEvidence": "C:\\Users\\doratatu\\Documents\\Repository\\TaskCalendar-Plus\\out\\refactor-20261008-pass2\\baseline-v2\\before-ui-tests\\contract-revision-diagnostics"
+}

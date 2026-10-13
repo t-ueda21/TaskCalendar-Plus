@@ -28,6 +28,12 @@ import { _renderTagManager, buildHslPicker } from "./tag-manager.js";
 import { loadSelectedModels, populateModelSelection, readModelSelection } from "./ai-model-picker.js";
 import { LOCAL_AI_PROVIDERS, populateLocalAiSettings, readLocalAiSettings, validateSelectedLocalAi, describeLocalAiImport, validateLocalAiImport } from "./local-ai-settings.js";
 import { applyUiColor, populateUiColor, readUiColor, wireUiColorPicker } from "./ui-color-picker.js";
+import { LANGUAGES, t as translate, applyTranslations, th as translateHtml } from './i18n.js';
+import { readPersonalization, populatePersonalization } from "./ai-personalization.js";
+import { populateOutlookCalendars, loadOutlookCalendars } from "./outlook-calendar-picker.js";
+import { wireOutlookSync as wireOutlookSyncV3 } from "./outlook-settings.js";
+import { wireTransferUi } from "./transfer-ui.js";
+import { showAppAlert, showAppConfirm } from './app-dialogs.js';
 
 // ── 設定ダイアログ共通ヘルパー(3画面(calendar/tasks/ai-mode)で共用) ──
 /**
@@ -71,8 +77,8 @@ function syncAiProviderPanels(settingsDialog) {
   if (note) {
     note.hidden = provider === "none";
     note.textContent = LOCAL_AI_PROVIDERS[provider]
-      ? "予定・メモの内容は指定したエンドポイントに送信します。このPC内で使う場合は localhost の接続先とローカルモデルを選んでください。"
-      : "予定のタイトル・時刻・メモ・気づきメモの内容が、選んだAIサービスへ送信されます。";
+      ? translate('ui.4a16781f97')
+      : translate('ui.d071681f9d');
   }
   const detect = settingsDialog.querySelector("[data-ai-detect-btn]");
   if (detect) detect.hidden = Boolean(LOCAL_AI_PROVIDERS[provider]);
@@ -124,20 +130,20 @@ function wireAiProviderSettings(settingsDialog) {
   detectBtn?.addEventListener("click", async () => {
     if (!resultEl) return;
     resultEl.hidden = false;
-    resultEl.textContent = "確認中...";
+    resultEl.textContent = translate('ui.0c40e92e4e');
     detectBtn.disabled = true;
     try {
       const res = await fetch("/api/ai/detect");
       const data = await res.json();
       const line = (label, row) => {
-        if (!row?.available) return `${label}: 見つかりません（${row?.error || "不明なエラー"}）`;
-        const notes = [row.version || "バージョン不明"];
-        if (row.olderThanTested) notes.push(`動作確認済みの ${row.testedVersion} より古いため、動かない可能性があります`);
-        return `${label}: 利用できます（${notes.join("、")}）`;
+        if (!row?.available) return translate('ui.6b5d7576c3', { p0: (label), p1: (row?.error || "不明なエラー") });
+        const notes = [row.version || translate('ui.e2c7d045c0')];
+        if (row.olderThanTested) notes.push(translate('ui.387f965eb3', { p0: (row.testedVersion) }));
+        return translate('ui.7bfa1d0443', { p0: (label), p1: (notes.join("、")) });
       };
       resultEl.textContent = `${line("Claude Code", data.claudeCode)} ／ ${line("Codex", data.codex)}`;
     } catch (e) {
-      resultEl.textContent = `確認に失敗しました: ${String(e?.message ?? e)}`;
+      resultEl.textContent = translate('ui.821b093462', { p0: (String(e?.message ?? e)) });
     } finally {
       detectBtn.disabled = false;
     }
@@ -160,17 +166,24 @@ function populateWeatherLocationSelect(settingsDialog, selectedKey, options) {
 }
 
 /**
- * 設定ダイアログのタブ切り替えを配線する。
+ * 設定ダイアログのページ切り替えを配線する。
  */
-function wireSettingsTabs(settingsDialog) {
+function wireSettingsPages(settingsDialog) {
   const tabButtons = Array.from(settingsDialog.querySelectorAll("[data-settings-tab]"));
   const tabPanels = Array.from(settingsDialog.querySelectorAll("[data-settings-tab-panel]"));
   if (!tabButtons.length || !tabPanels.length) {
     return { activate: () => {} };
   }
 
-  const activate = (tabName) => {
-    const target = String(tabName || tabButtons[0]?.getAttribute("data-settings-tab") || "general");
+  const tabs = settingsDialog.querySelector('.settingsTabs');
+  const narrow = window.matchMedia('(max-width: 620px)');
+  const syncOrientation = () => tabs.setAttribute('aria-orientation', narrow.matches ? 'horizontal' : 'vertical');
+  narrow.addEventListener('change', syncOrientation);
+  syncOrientation();
+
+  const activate = (pageName) => {
+    const requested = String(pageName || 'display');
+    const target = tabButtons.some(button => button.dataset.settingsTab === requested) ? requested : 'display';
 
     tabButtons.forEach((btn) => {
       const active = btn.getAttribute("data-settings-tab") === target;
@@ -184,15 +197,25 @@ function wireSettingsTabs(settingsDialog) {
       panel.classList.toggle("isActive", active);
       panel.hidden = !active;
     });
+    settingsDialog.querySelector('.settingsDialogBody').scrollTop = 0;
+    if (target === 'outlook') void loadOutlookCalendars(settingsDialog);
   };
 
   tabButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       activate(btn.getAttribute("data-settings-tab"));
     });
+    btn.addEventListener('keydown', event => {
+      const index = tabButtons.indexOf(btn);
+      const next = { ArrowDown: (index + 1) % tabButtons.length, ArrowUp: (index + tabButtons.length - 1) % tabButtons.length, ArrowRight: (index + 1) % tabButtons.length, ArrowLeft: (index + tabButtons.length - 1) % tabButtons.length, Home: 0, End: tabButtons.length - 1 }[event.key];
+      if (next === undefined) return;
+      event.preventDefault();
+      activate(tabButtons[next].dataset.settingsTab);
+      tabButtons[next].focus();
+    });
   });
 
-  activate("general");
+  activate("display");
   return { activate };
 }
 
@@ -262,24 +285,24 @@ function readCompanyHolidaySettings(settingsDialog) {
 function describeSensitiveImportSettings(settings, providerLabels) {
   const lines = [];
   if (typeof settings.urlAutoOpenUrl === "string" && settings.urlAutoOpenUrl.trim()) {
-    const enabled = settings.urlAutoOpenEnabled === true ? "有効" : "無効";
-    lines.push(`・URL自動オープン（${enabled}）: ${settings.urlAutoOpenUrl.trim()}`);
+    const enabled = settings.urlAutoOpenEnabled === true ? translate('ui.3ac909bffc') : translate('ui.383bbb5e84');
+    lines.push(translate('ui.ddd6b62fbd', { p0: (enabled), p1: (settings.urlAutoOpenUrl.trim()) }));
   }
   normalizeQuickLinks(settings.quickLinks).forEach((row) => {
-    lines.push(`・クイックリンク: ${row.label} → ${row.url}`);
+    lines.push(translate('ui.949c460181', { p0: (row.label), p1: (row.url) }));
   });
   if (settings.aiCliEnabled === true) {
-    lines.push("・Claude Code / Codex との連携: オン");
+    lines.push(translate('ui.c5d9d4a44d'));
   }
   if (typeof settings.aiProvider === "string" && settings.aiProvider !== "none") {
     const vendor = AI_CLI_VENDORS[settings.aiProvider];
     const label = providerLabels[settings.aiProvider] ?? settings.aiProvider;
     lines.push(vendor
-      ? `・AIの接続先: ${label}（予定の内容が${vendor}へ送信されます）`
-      : `・AIの接続先: ${label}`);
+      ? translate('ui.12b03038b3', { p0: (label), p1: (vendor) })
+      : translate('ui.97ce940f2f', { p0: (label) }));
   }
   if (typeof settings.appIconUrl === "string" && settings.appIconUrl.trim()) {
-    lines.push(`・アプリアイコンのURL: ${settings.appIconUrl.trim().slice(0, 200)}`);
+    lines.push(translate('ui.b42af3153f', { p0: (settings.appIconUrl.trim().slice(0, 200)) }));
   }
   return lines;
 }
@@ -288,61 +311,6 @@ function describeSensitiveImportSettings(settings, providerLabels) {
  * 設定のエクスポート/インポートを配線する。ページ初期化時に一度だけ呼び出すこと。
  * インポートは即時に反映し、フォームの古い値で上書きしないようダイアログを閉じる。
  */
-function bindSettingsTransfer(settingsDialog, Store) {
-  const exportBtn = settingsDialog.querySelector("[data-settings-export-btn]");
-  const fileEl = settingsDialog.querySelector("[data-settings-import-file]");
-  const importBtn = settingsDialog.querySelector("[data-settings-import-btn]");
-  const fileNameEl = settingsDialog.querySelector("[data-settings-import-file-name]");
-
-  exportBtn?.addEventListener("click", () => {
-    const data = buildSettingsExport(Store.getSettings(), Store.getAllTags());
-    downloadJsonFile(data, `taskcalendar-plus-settings-${formatDateKey(new Date())}.json`);
-    alert("設定を「ダウンロード」フォルダに保存しました。");
-  });
-
-  if (!(fileEl instanceof HTMLInputElement) || !(importBtn instanceof HTMLButtonElement)) return;
-  fileEl.addEventListener("change", () => {
-    if (fileNameEl) fileNameEl.textContent = fileEl.files?.[0]?.name ?? "未選択";
-  });
-  importBtn.addEventListener("click", async () => {
-    const file = fileEl.files?.[0];
-    if (!file) {
-      alert("設定ファイル(JSON)を選択してください。");
-      return;
-    }
-    let parsed;
-    try {
-      parsed = parseSettingsImport(await file.text(), { allowedSettingKeys: Object.keys(Store.getSettings()) });
-      validateLocalAiImport(parsed.settings, Store.getSettings());
-    } catch (e) {
-      alert(e?.message || "設定ファイルの読み込みに失敗しました。");
-      return;
-    }
-    const settingCount = Object.keys(parsed.settings).length;
-    const details = [
-      ...describeSensitiveImportSettings(parsed.settings, Store.AI_PROVIDER_LABELS ?? {}),
-      ...describeLocalAiImport(parsed.settings, Store.getSettings()),
-    ];
-    const message = [
-      `設定${settingCount}項目とタグ${parsed.tags.length}件を取り込みます。現在の設定は上書きされます。`,
-      ...(details.length ? ["", "次の設定が含まれています。内容を確認してください。", ...details] : []),
-      "",
-      "よろしいですか？",
-    ].join("\n");
-    if (!confirm(message)) return;
-    try {
-      const result = await Store.applySettingsImport(parsed);
-      fileEl.value = "";
-      if (fileNameEl) fileNameEl.textContent = "未選択";
-      settingsDialog.close();
-      alert(`取り込みました(設定${result.settingKeys}項目、タグ新規${result.createdTags}件・既存${result.existingTags}件)。`);
-    } catch (e) {
-      console.warn(`[settings] settings import failed:`, e);
-      alert("設定の取り込みに失敗しました。");
-    }
-  });
-}
-
 /** JSONをファイルとしてダウンロードさせる(WebView2では「ダウンロード」フォルダへ保存される)。 */
 function downloadJsonFile(data, fileName) {
   const blob = new Blob([`${JSON.stringify(data, null, 2)}\n`], { type: "application/json" });
@@ -360,77 +328,6 @@ function downloadJsonFile(data, fileName) {
  * 全データのバックアップ/復元を配線する。ページ初期化時に一度だけ呼び出すこと。
  * 復元後は各画面の状態を作り直すためページを読み直す。
  */
-function bindBackupRestore(settingsDialog, Store) {
-  const exportBtn = settingsDialog.querySelector("[data-backup-export-btn]");
-  const fileEl = settingsDialog.querySelector("[data-backup-file]");
-  const restoreBtn = settingsDialog.querySelector("[data-backup-restore-btn]");
-  const fileNameEl = settingsDialog.querySelector("[data-backup-file-name]");
-
-  exportBtn?.addEventListener("click", async () => {
-    try {
-      const res = await fetch("/api/backup");
-      if (!res.ok) throw new Error(`status ${res.status}`);
-      downloadJsonFile(await res.json(), `taskcalendar-plus-backup-${formatDateKey(new Date())}.json`);
-      alert("バックアップを「ダウンロード」フォルダに保存しました。");
-    } catch (e) {
-      console.warn(`[settings] backup failed:`, e);
-      alert("バックアップの作成に失敗しました。");
-    }
-  });
-
-  if (!(fileEl instanceof HTMLInputElement) || !(restoreBtn instanceof HTMLButtonElement)) return;
-  fileEl.addEventListener("change", () => {
-    if (fileNameEl) fileNameEl.textContent = fileEl.files?.[0]?.name ?? "未選択";
-  });
-  restoreBtn.addEventListener("click", async () => {
-    const file = fileEl.files?.[0];
-    if (!file) {
-      alert("バックアップファイル(JSON)を選択してください。");
-      return;
-    }
-    let data;
-    try {
-      data = JSON.parse(await file.text());
-    } catch {
-      alert("JSONとして読み込めませんでした。");
-      return;
-    }
-    const taskCount = Array.isArray(data?.tasks) ? data.tasks.length : 0;
-    const tagCount = Array.isArray(data?.tags) ? data.tags.length : 0;
-    const exportedAt = String(data?.exportedAt ?? "不明");
-    const details = describeSensitiveImportSettings(
-      data?.settings && typeof data.settings === "object" ? data.settings : {},
-      Store.AI_PROVIDER_LABELS ?? {},
-    );
-    if (!confirm([
-      `バックアップ(作成日時: ${exportedAt}、タスク${taskCount}件、タグ${tagCount}件)で全データを置き換えます。`,
-      "今のタスク・タグ・設定・サマリー・メモはすべて消え、元に戻せません。",
-      "念のため、先に今のデータの「バックアップ」を取っておくことをおすすめします。",
-      ...(details.length ? ["", "次の設定が含まれています。内容を確認してください。", ...details] : []),
-      "",
-      "復元しますか？",
-    ].join("\n"))) return;
-    try {
-      const res = await fetch("/api/restore", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.error || `status ${res.status}`);
-      alert(`復元しました(タスク${body.tasks}件、タグ${body.tags}件、サマリー・メモ等${body.aiMemory}件)。画面を読み直します。`);
-      window.location.reload();
-    } catch (e) {
-      console.warn(`[settings] restore failed:`, e);
-      alert(`復元に失敗しました。データは変更されていません。
-${String(e?.message ?? e)}`);
-    }
-  });
-}
-
-/**
- * 会社休日のJSON/CSV取込フォームを配線する。ページ初期化時に一度だけ呼び出すこと。
- */
 function bindCompanyHolidayImport(settingsDialog) {
   const fileEl = settingsDialog.querySelector("[data-company-holidays-import-file]");
   const importBtn = settingsDialog.querySelector("[data-company-holidays-import-btn]");
@@ -442,23 +339,25 @@ function bindCompanyHolidayImport(settingsDialog) {
   if (importBtn.dataset.holidaysImportBound === "1") return;
 
   importBtn.dataset.holidaysImportBound = "1";
+  importBtn.disabled = !fileEl.files?.length;
   fileEl.addEventListener("change", () => {
     const name = fileEl.files?.[0]?.name ?? null;
-    if (fileNameEl) fileNameEl.textContent = name ?? "未選択";
+    if (fileNameEl) fileNameEl.textContent = name ?? translate('ui.a28710cc66');
+    importBtn.disabled = !fileEl.files?.length;
   });
 
   importBtn.addEventListener("click", async () => {
     const file = fileEl.files?.[0];
     if (!file) {
-      alert("JSON/CSVファイルを選択してください。");
+      await showAppAlert(translate('ui.48ec6e953a'));
       return;
     }
-
+    importBtn.disabled = true;
     try {
       const text = await file.text();
       const importedEntries = parseCompanyHolidayText(text);
       if (!importedEntries.length) {
-        alert("取り込める休日データが見つかりませんでした。");
+        await showAppAlert(translate('ui.394a685552'));
         return;
       }
 
@@ -466,11 +365,13 @@ function bindCompanyHolidayImport(settingsDialog) {
       const mergedEntries = normalizeCompanyHolidayEntries([...manualEntries, ...importedEntries]);
       inputEl.value = formatCompanyHolidayInputText(mergedEntries);
       fileEl.value = "";
-      if (fileNameEl) fileNameEl.textContent = "未選択";
-      alert(`${importedEntries.length}件の休日を取り込みました。`);
+      if (fileNameEl) fileNameEl.textContent = translate('ui.a28710cc66');
+      await showAppAlert(translate('ui.5384f8a49c', { p0: (importedEntries.length) }));
     } catch (e) {
       console.warn(`[settings] company holiday import failed:`, e);
-      alert("JSON/CSVの読み込みに失敗しました。ファイル形式を確認してください。");
+      await showAppAlert(translate('ui.8ca39f56b3'), { tone: 'error' });
+    } finally {
+      importBtn.disabled = !fileEl.files?.length;
     }
   });
 }
@@ -481,116 +382,6 @@ function bindCompanyHolidayImport(settingsDialog) {
  * @param {object} Store 呼び出し側でimportした Store モジュール
  * @param {{getTagMgrMonth: () => string}} opts
  */
-function wireOutlookSync(settingsDialog, Store, { getTagMgrMonth } = {}) {
-  const syncBtn = settingsDialog.querySelector("[data-sync-outlook-btn]");
-  const statusEl = settingsDialog.querySelector("[data-outlook-sync-status]");
-  const daysEl = settingsDialog.querySelector("[name='outlookDays']");
-  const tagEl = settingsDialog.querySelector("[data-outlook-tag-select]");
-  const calendarEl = settingsDialog.querySelector("[name='outlookCalendarName']");
-
-  if (!syncBtn || !statusEl) return;
-
-  // タグ選択肢を更新
-  const updateTagOptions = () => {
-    if (!tagEl) return;
-    const currentValue = tagEl.value;
-    const options = tagEl.querySelectorAll("option");
-    options.forEach((opt) => {
-      if (opt.value !== "") opt.remove();
-    });
-    const tagMgrMonth = getTagMgrMonth();
-    const tags = Store.hasMonthTagOrder(tagMgrMonth)
-      ? Store.getTagsForMonth(tagMgrMonth)
-      : [];
-    tags.forEach((tag) => {
-      const option = document.createElement("option");
-      option.value = tag.id;
-      option.textContent = tag.name;
-      tagEl.appendChild(option);
-    });
-    const exists = tags.some((tag) => String(tag.id) === String(currentValue));
-    tagEl.value = exists ? currentValue : "";
-  };
-  settingsDialog.__refreshOutlookTagOptions = updateTagOptions;
-  updateTagOptions();
-
-  syncBtn.addEventListener("click", async () => {
-    syncBtn.disabled = true;
-    statusEl.textContent = "同期中...";
-    statusEl.className = "settingsOutlookStatus";
-    const controller = new AbortController();
-    const timeoutMs = 45000;
-    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-    try {
-      const days = Math.max(1, Math.min(Number(daysEl?.value) || 90, 365));
-      const tagId = tagEl?.value || "";
-      const calendarName = String(calendarEl?.value ?? "").trim() || "Calendar";
-
-      // 次回自動同期用に同期パラメータを設定に保存
-      await Store.updateSettings({
-        outlookSyncCalendarName: calendarName,
-        outlookSyncTagId: tagId,
-        outlookSyncDaysAhead: days,
-      }).catch(() => {});
-
-      const response = await fetch("/api/outlook/auto-sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-        signal: controller.signal,
-      });
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err?.error || "Outlook同期に失敗しました");
-      }
-
-      const result = await response.json();
-      if (!result?.success) {
-        throw new Error("Outlook同期の応答が無効です");
-      }
-
-      await Store.refreshTasks().catch(() => {});
-
-      const added = Number(result?.added || 0);
-      const skipped = Number(result?.skipped || 0);
-      const deleted = Number(result?.deleted || 0);
-
-      if (added === 0 && skipped === 0 && deleted === 0) {
-        statusEl.textContent = "変更はありませんでした";
-      } else {
-        const parts = [`${added}件を取り込み`];
-        if (skipped > 0) parts.push(`${skipped}件を重複スキップ`);
-        if (deleted > 0) parts.push(`${deleted}件を削除`);
-        statusEl.textContent = parts.join("、");
-      }
-      statusEl.className = "settingsOutlookStatus success";
-
-      setTimeout(() => {
-        statusEl.textContent = "";
-        statusEl.className = "settingsOutlookStatus";
-      }, 4000);
-
-    } catch (e) {
-      console.warn(`[settings] Outlook sync failed:`, e);
-      const message = e?.name === "AbortError"
-        ? `タイムアウト: ${Math.floor(timeoutMs / 1000)}秒以内に完了しませんでした。Outlookを開いて再試行してください。`
-        : String(e?.message || e || "不明なエラー");
-      statusEl.textContent = `エラー: ${message}`;
-      statusEl.className = "settingsOutlookStatus error";
-      setTimeout(() => {
-        statusEl.textContent = "";
-        statusEl.className = "settingsOutlookStatus";
-      }, 5000);
-    } finally {
-      clearTimeout(timeoutId);
-      syncBtn.disabled = false;
-    }
-  });
-
-  Store.subscribe("tags", () => updateTagOptions());
-}
-
 function _applyTheme(theme) {
   const isDark = theme === "dark";
   document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
@@ -644,6 +435,34 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   const timeValues = buildSettingsTimeValues(15);
   let _tagMgrMonth = formatYearMonth(new Date());
   const state = { activeConfig: {} };
+  const languageSelect = settingsDialog.querySelector('[data-language-select]');
+  if (languageSelect) {
+    languageSelect.replaceChildren();
+    for (const row of [{ code: 'auto', name: translate('language.auto') }, ...LANGUAGES]) {
+      const option = document.createElement('option'); option.value = row.code; option.textContent = row.name;
+      if (row.code === 'auto') option.dataset.i18n = 'language.auto';
+      languageSelect.appendChild(option);
+    }
+  }
+  settingsDialog.querySelector('[data-ai-personality-reset]')?.addEventListener('click', () => populatePersonalization(settingsDialog, {}));
+  let previewController = null;
+  settingsDialog.addEventListener('close', () => { previewController?.abort(); previewController = null; });
+  settingsDialog.querySelector('[data-ai-personality-preview]')?.addEventListener('click', async (event) => {
+    if (previewController) return;
+    const controller = new AbortController(); previewController = controller;
+    const status = settingsDialog.querySelector('[data-ai-preview-status]');
+    event.currentTarget.disabled = true;
+    status.textContent = translate('ui.bf1fc22354');
+    const timer = setTimeout(() => controller.abort(), 180000);
+    try {
+      const response = await fetch('/api/ai/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: { ...readAiProviderSettings(settingsDialog), uiLanguage: languageSelect?.value ?? 'auto', aiPersonalization: readPersonalization(settingsDialog) } }), signal: controller.signal });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || translate('ui.d0596ad069'));
+      if (previewController === controller) status.textContent = String(data.message?.content ?? '');
+    } catch (error) { if (previewController === controller) status.textContent = String(error?.message ?? error); }
+    finally { clearTimeout(timer); if (previewController === controller) previewController = null; if (!previewController) settingsDialog.querySelector('[data-ai-personality-preview]').disabled = false; }
+  });
   const getConfig = () => state.activeConfig;
 
   const renderTagManager = () => _renderTagManager(settingsDialog, Store, _tagMgrMonth);
@@ -657,12 +476,11 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   };
   settingsDialog.querySelector('[name="outlookAutoSync"]').addEventListener('change', syncSettingToggles);
   bindCompanyHolidayImport(settingsDialog);
-  bindSettingsTransfer(settingsDialog, Store);
-  bindBackupRestore(settingsDialog, Store);
+  wireTransferUi(settingsDialog, Store, { downloadJsonFile, describeSensitiveImportSettings });
   wireAiProviderSettings(settingsDialog);
-  wireOutlookSync(settingsDialog, Store, { getTagMgrMonth: () => _tagMgrMonth });
+  wireOutlookSyncV3(settingsDialog, Store, { getTagMgrMonth: () => _tagMgrMonth, getSelectedDate: () => getConfig().getTagMgrSeedDate?.() ?? new Date() });
 
-  const tabControl = wireSettingsTabs(settingsDialog);
+  const pageControl = wireSettingsPages(settingsDialog);
 
   // 全画面で実際には同じ既定色(DEFAULT_TAG_COLOR)を渡してくるため、
   // ピッカー自体はコア配線時の1回だけ生成すればよい。
@@ -728,9 +546,10 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   };
 
   let savingSettings = false;
+  let confirmingSettings = false;
   let dialogSession = 0;
   const saveSettings = async () => {
-    if (savingSettings || !validateSelectedLocalAi(settingsDialog)) return false;
+    if (savingSettings || confirmingSettings || !validateSelectedLocalAi(settingsDialog)) return false;
     const savingSession = dialogSession;
     const onAfterSave = getConfig().onAfterSave;
     const current = Store.getSettings();
@@ -739,15 +558,19 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     const vendor = nextCliEnabled ? AI_CLI_VENDORS[nextProvider] : undefined;
     if (vendor && (nextProvider !== current.aiProvider || !current.aiCliEnabled)) {
       const label = Store.AI_PROVIDER_LABELS?.[nextProvider] ?? nextProvider;
-      const ok = confirm(
-        `${label}を使うと、AIモード・日次サマリーの実行時に、予定のタイトル・時刻・メモ・気づきメモの内容が`
-        + `このPCの${label}を通じて${vendor}へ送信されます。
-
-よろしいですか？`,
-      );
-      if (!ok) return false;
+      confirmingSettings = true;
+      let ok;
+      try {
+        ok = await showAppConfirm(
+          translate('ui.4bc3090c37', { p0: (label) })
+          + translate('ui.9a7c517e8d', { p0: (label), p1: (vendor) }),
+        );
+      } finally { confirmingSettings = false; }
+      if (!ok || dialogSession !== savingSession || !settingsDialog.open) return false;
     }
     const patch = {
+      uiLanguage: languageSelect?.value ?? current.uiLanguage,
+      aiPersonalization: readPersonalization(settingsDialog),
       workStart: settingsDialog.querySelector("[name='workStart']")?.value || current.workStart,
       workEnd: settingsDialog.querySelector("[name='workEnd']")?.value || current.workEnd,
       breaks: readBreaksFromEditor(settingsDialog.querySelector("[data-breaks-list]")),
@@ -760,6 +583,10 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
       ...readAiProviderSettings(settingsDialog),
       weatherLocationKey: settingsDialog.querySelector("[name='weatherLocationKey']")?.value || current.weatherLocationKey || "tokyo",
       outlookAutoSync: Boolean(settingsDialog.querySelector("[name='outlookAutoSync']")?.checked),
+      outlookWriteEnabled: Boolean(settingsDialog.querySelector('[name="outlookWriteEnabled"]')?.checked),
+      outlookWriteDefault: Boolean(settingsDialog.querySelector('[name="outlookWriteDefault"]')?.checked),
+      outlookSyncCalendarName: settingsDialog.querySelector('[name="outlookCalendarName"]')?.value.trim() || 'Calendar',
+      outlookWriteCalendarName: settingsDialog.querySelector('[name="outlookWriteCalendarName"]')?.value || 'Calendar',
       outlookAutoSyncIntervalMin: Number(settingsDialog.querySelector("[name='outlookAutoSyncIntervalMin']")?.value) || 10,
       trayEnabled: Boolean(settingsDialog.querySelector("[name='trayEnabled']")?.checked),
       checkUpdatesOnStartup: Boolean(settingsDialog.querySelector("[name='checkUpdatesOnStartup']")?.checked),
@@ -778,7 +605,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
       onAfterSave?.(patch);
       return dialogSession === savingSession;
     } catch (error) {
-      alert(`設定を保存できませんでした。もう一度お試しください。\n${String(error?.message ?? error)}`);
+      await showAppAlert(translate('ui.008379f02c', { p0: (String(error?.message ?? error)) }), { tone: 'error' });
       return false;
     } finally {
       savingSettings = false;
@@ -786,10 +613,14 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     }
   };
 
-  const openDialog = (initialTab) => {
+  const openDialog = (initialPage) => {
     dialogSession += 1;
     const { getTagMgrSeedDate, getWeatherLocationOptions } = getConfig();
     const s = Store.getSettings();
+    if (languageSelect) languageSelect.value = s.uiLanguage ?? 'auto';
+    populatePersonalization(settingsDialog, s);
+    settingsDialog.querySelector('[data-ai-preview-status]').textContent = '';
+    applyTranslations(settingsDialog);
     const updateCheckEl = settingsDialog.querySelector("[name='checkUpdatesOnStartup']");
     if (updateCheckEl) updateCheckEl.checked = s.checkUpdatesOnStartup !== false;
     populateUiColor(settingsDialog, s.uiAccentColor);
@@ -806,11 +637,15 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     if (businessOnlyEl) businessOnlyEl.checked = Boolean(s.showBusinessDaysOnly);
     const autoSyncEl = settingsDialog.querySelector("[name='outlookAutoSync']");
     if (autoSyncEl) autoSyncEl.checked = Boolean(s.outlookAutoSync);
+    settingsDialog.querySelector('[name="outlookWriteEnabled"]').checked = s.outlookWriteEnabled === true;
+    settingsDialog.querySelector('[name="outlookWriteDefault"]').checked = s.outlookWriteDefault === true;
+    settingsDialog.querySelector('[name="outlookWriteCalendarName"]').value = s.outlookWriteCalendarName || 'Calendar';
     const intervalEl = settingsDialog.querySelector("[name='outlookAutoSyncIntervalMin']");
     if (intervalEl) intervalEl.value = String(s.outlookAutoSyncIntervalMin || 10);
     syncSettingToggles();
     const calEl = settingsDialog.querySelector("[name='outlookCalendarName']");
-    if (calEl) calEl.value = s.outlookSyncCalendarName || calEl.value;
+    if (calEl) calEl.value = s.outlookSyncCalendarName || 'Calendar';
+    populateOutlookCalendars(settingsDialog);
     const daysEl2 = settingsDialog.querySelector("[name='outlookDays']");
     if (daysEl2) daysEl2.value = String(s.outlookSyncDaysAhead || daysEl2.value);
     const trayEnabledEl = settingsDialog.querySelector("[name='trayEnabled']");
@@ -829,12 +664,13 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
         }).catch(() => {});
       }
     }
-    tabControl.activate(initialTab || "general");
+    pageControl.activate(initialPage || "display");
     _tagMgrMonth = formatYearMonth(getTagMgrSeedDate ? getTagMgrSeedDate() : new Date());
     renderTagManager();
     settingsDialog.showModal();
     requestAnimationFrame(() => {
-      settingsDialog.querySelector("[data-settings-save]")?.focus({ preventScroll: true });
+      settingsDialog.querySelector('.settingsDialogBody').scrollTop = 0;
+      settingsDialog.querySelector('[data-settings-tab][aria-selected="true"]')?.focus({ preventScroll: true });
     });
   };
 
@@ -869,7 +705,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
   saveBtn?.addEventListener("click", saveSettings);
 
   settingsDialog.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter") return;
+    if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
     if (e.target.closest("button")) return;
     if (e.target instanceof HTMLTextAreaElement) return;
     if (e.target.closest("[data-tag-list]")) {
@@ -886,11 +722,11 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     saveSettings();
   });
 
-  return { state, openDialog, tabControl, saveSettings };
+  return { state, openDialog, pageControl, saveSettings };
 }
 
 /**
- * 設定ダイアログ全体(タブ切替・休憩時間・会社休日・URL自動オープン・
+ * 設定ダイアログ全体(ページ切替・休憩時間・会社休日・URL自動オープン・
  * AIモデル管理・タグ管理・Outlook同期・保存/キャンセル)を配線する。
  * calendar/tasks/ai-modeの3画面から画面ごとに呼ばれる(それぞれ自身の
  * ⚙設定ボタンをtriggerRootで指定)が、ダイアログ本体の実配線は初回呼び出し時
@@ -917,18 +753,18 @@ export function wireSettingsDialog(settingsDialog, Store, {
   const core = settingsDialog._wsdCore;
   const config = { getTagMgrSeedDate, onAfterSave, getWeatherLocationOptions };
 
-  const open = (initialTab) => {
+  const open = (initialPage) => {
     core.state.activeConfig = config;
-    core.openDialog(initialTab);
+    core.openDialog(initialPage);
   };
 
   triggerRoot.querySelector("[data-settings-btn]")?.addEventListener("click", () => open());
 
-  return { open, tabControl: core.tabControl };
+  return { open, pageControl: core.pageControl };
 }
 
 // サイドバーの月次/日次集計のタグ行をクリックしたら、設定ダイアログを
-// タグ管理タブが開いた状態で起動する。行の描画がStore更新のたびに再生成される
+// タグ管理ページが開いた状態で起動する。行の描画がStore更新のたびに再生成される
 // ため、親要素(サイドバー全体)へのイベント委譲で対応する。calendar.js/tasks.js/
 // ai-mode.jsの3画面で共用する。getSettingsDialogControlは
 // 呼び出し側のwireSettingsDialog()戻り値を毎回最新の状態で参照するための
@@ -955,7 +791,7 @@ function setTimeSelectOptions(selectEl, selectedValue, timeValues) {
   if (normalized && !timeValues.includes(normalized)) {
     const opt = document.createElement("option");
     opt.value = normalized;
-    opt.textContent = `${normalized}（既存値）`;
+    opt.textContent = translate('ui.08628f2e5b', { p0: (normalized) });
     selectEl.appendChild(opt);
   }
   selectEl.value = normalized || timeValues[0];
@@ -974,19 +810,19 @@ function renderBreaksEditor(container, breaks, timeValues) {
     .map((_, i) => `
       <div class="settingsTimeRange settingsBreakRow" data-break-row="${i}">
         <div class="settingsTimeField">
-          <label>開始</label>
+          <label>${translateHtml('ui.cc147e162c')}</label>
           <select class="settingsTimeSelect" data-break-start></select>
         </div>
         <div class="settingsTimeField">
-          <label>終了</label>
+          <label>${translateHtml('ui.8f26d43810')}</label>
           <select class="settingsTimeSelect" data-break-end></select>
         </div>
         <label class="uiToggle settingsBreakCountAsWork">
           <input class="uiToggleInput" type="checkbox" role="switch" data-break-count-as-work />
           <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-          <span class="themeToggleLabel">工数に含める</span>
+          <span class="themeToggleLabel">${translateHtml('ui.14348b04f7')}</span>
         </label>
-        <button class="btn settingsBreakRemoveBtn" type="button" data-remove-break aria-label="この休憩時間を削除">✕</button>
+        <button class="btn settingsBreakRemoveBtn" type="button" data-remove-break aria-label="${translateHtml('ui.97d99595dc')}">✕</button>
       </div>
     `)
     .join("");

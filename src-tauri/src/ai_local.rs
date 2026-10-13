@@ -422,10 +422,13 @@ async fn chat_with_timeout(
     let session = agent.then(|| Session::new(&state.proposals));
     let today = chrono::Local::now().date_naive();
     let tools = if agent {
-        messages.insert(
-            0,
-            json!({"role":"system","content":crate::ai::agent_system_prompt(today)}),
-        );
+        if !messages.first().and_then(|m| m.get("content")).and_then(Value::as_str).is_some_and(|s| s.starts_with("# TaskCalendar+ application instructions")) {
+            let config = {
+                let conn = state.conn.lock().map_err(|_| "Database lock failed")?;
+                crate::repositories::settings_get(&conn).map_err(|e| e.to_string())?.unwrap_or(Value::Null)
+            };
+            messages.insert(0, json!({"role":"system","content":crate::ai::build_system_instructions(today, &config, &state.os_locale, true)}));
+        }
         Some(Value::Array(mcp::tool_definitions().as_array().expect("MCP definitions array").iter().map(|tool| {
             json!({"type":"function","function":{"name":tool["name"],"description":tool["description"],"parameters":tool["inputSchema"]}})
         }).collect()))
@@ -585,6 +588,7 @@ mod tests {
         let conn = rusqlite::Connection::open_in_memory().unwrap();
         crate::db::migrate(&conn, "2026-09").unwrap();
         AppState {
+            os_locale: "ja-JP".into(),
             conn: Arc::new(Mutex::new(conn)),
             static_root: Default::default(),
             proposals: Default::default(),

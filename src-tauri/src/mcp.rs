@@ -3,7 +3,7 @@
 //! AIモードのチャット1回ごとにセッションを発行し、CLIはこのサーバーの道具で予定を調べたり、
 //! 予定の作成・変更・削除を「提案」したりする。道具はDBへ書き込まない。提案はセッションごとに
 //! 記録してチャットの応答と一緒に画面へ返し、利用者が確認カードで確定したときだけ画面側が実行する。
-//! 時間はすべて分と「○時間○分」の両方で返し、AIに計算させない。
+//! 時間は秒で集計し、既存の分・「○時間○分」も返す(分未満は集計後に切り捨て)。
 
 use crate::calendar::{self, WorkSettings};
 use crate::repositories as repo;
@@ -58,7 +58,7 @@ fn contains_ci(haystack: &str, needle: &str) -> bool {
 
 pub(crate) fn tool_definitions() -> Value {
     let date = json!({ "type": "string", "description": "YYYY-MM-DD" });
-    let time = json!({ "type": "string", "description": "HH:MM(24時間表記)" });
+    let time = json!({ "type": "string", "description": "HH:MMまたはHH:MM:SS(24時間表記)" });
     json!([
         {
             "name": "get_context",
@@ -167,8 +167,17 @@ impl Data {
         self.tag_names.get(&task.tag_id).cloned().unwrap_or_default()
     }
 
+    fn segments(&self, task: &repo::TaskRow, from: Option<NaiveDate>, to: Option<NaiveDate>) -> Vec<(NaiveDate,i64)> {
+        self.work.event_work_segments(&task.date,task.end_date.as_deref(),task.start_time.as_deref(),task.end_time.as_deref(),task.is_all_day)
+            .into_iter().filter(|(day,_)| from.is_none_or(|f| *day >= f) && to.is_none_or(|t| *day <= t)).collect()
+    }
+
+    fn seconds(&self, task: &repo::TaskRow) -> i64 {
+        self.segments(task,None,None).iter().map(|(_,seconds)| seconds).sum()
+    }
+
     fn minutes(&self, task: &repo::TaskRow) -> i64 {
-        self.work.duration_minutes(task.start_time.as_deref(), task.end_time.as_deref(), task.is_all_day)
+        self.seconds(task) / 60
     }
 
     fn describe(&self, task: &repo::TaskRow) -> Value {
@@ -177,6 +186,8 @@ impl Data {
         json!({
             "id": task.id,
             "date": task.date,
+            "endDate": task.end_date,
+            "outlookDetails": task.outlook_details,
             "weekday": weekday,
             "startTime": task.start_time,
             "endTime": task.end_time,
@@ -184,6 +195,7 @@ impl Data {
             "title": task.title,
             "tag": self.tag_name(task),
             "minutes": minutes,
+            "durationSeconds": self.seconds(task),
             "duration": format_minutes(minutes),
             "memo": task.memo,
         })
@@ -198,10 +210,7 @@ impl Data {
         let mut rows: Vec<&repo::TaskRow> = self
             .tasks
             .iter()
-            .filter(|t| {
-                let Some(day) = calendar::parse_date(&t.date) else { return false };
-                from.is_none_or(|f| day >= f) && to.is_none_or(|x| day <= x)
-            })
+            .filter(|task| !self.segments(task,from,to).is_empty())
             .filter(|t| tag.is_none_or(|name| contains_ci(&self.tag_name(t), name)))
             .filter(|t| {
                 let tag_name = self.tag_name(t);
@@ -235,45 +244,56 @@ fn get_context(ctx: &McpContext, data: &Data) -> Value {
 
 fn search_tasks(data: &Data, args: &Value) -> Result<Value, String> {
     let rows = data.filter(args)?;
+    let from = arg_date(args,"dateFrom")?;
+    let to = arg_date(args,"dateTo")?;
     let limit = args.get("limit").and_then(|v| v.as_u64()).map(|n| n as usize).unwrap_or(DEFAULT_TASK_LIMIT).clamp(1, MAX_TASK_LIMIT);
-    let total: i64 = rows.iter().map(|t| data.minutes(t)).sum();
+    let matched_seconds = |task: &repo::TaskRow| -> i64 { data.segments(task,from,to).iter().map(|(_,seconds)| seconds).sum() };
+    let seconds: i64 = rows.iter().map(|task| matched_seconds(task)).sum();
+    let total = seconds / 60;
     Ok(json!({
-        "count": rows.len(),
-        "totalMinutes": total,
-        "total": format_minutes(total),
-        "truncated": rows.len() > limit,
-        "tasks": rows.iter().take(limit).map(|t| data.describe(t)).collect::<Vec<_>>(),
+        "count": rows.len(), "totalMinutes": total, "totalSeconds": seconds,
+        "total": format_minutes(total), "truncated": rows.len() > limit,
+        "tasks": rows.iter().take(limit).map(|task| {
+            let mut row = data.describe(task);
+            let matched = matched_seconds(task);
+            row["matchedMinutes"] = json!(matched / 60);
+            row["matchedSeconds"] = json!(matched);
+            row
+        }).collect::<Vec<_>>(),
     }))
 }
 
 fn summarize_work(data: &Data, args: &Value) -> Result<Value, String> {
     let rows = data.filter(args)?;
+    let from = arg_date(args,"dateFrom")?;
+    let to = arg_date(args,"dateTo")?;
     let group_by = arg_str(args, "groupBy").unwrap_or("tag");
     let mut groups: BTreeMap<String, (i64, usize)> = BTreeMap::new();
-    let mut total = 0;
-    for t in &rows {
-        let minutes = data.minutes(t);
-        total += minutes;
-        let key = match group_by {
-            "day" => t.date.clone(),
-            "title" => t.title.clone(),
-            _ => Some(data.tag_name(t)).filter(|n| !n.is_empty()).unwrap_or_else(|| "タグなし".to_string()),
-        };
-        let entry = groups.entry(key).or_default();
-        entry.0 += minutes;
-        entry.1 += 1;
+    let mut total_seconds = 0;
+    for task in &rows {
+        let segments = data.segments(task,from,to);
+        let seconds: i64 = segments.iter().map(|(_,seconds)| seconds).sum();
+        total_seconds += seconds;
+        if group_by == "day" {
+            for (day,seconds) in segments {
+                let entry = groups.entry(day.format("%Y-%m-%d").to_string()).or_default();
+                entry.0 += seconds; entry.1 += 1;
+            }
+        } else {
+            let key = if group_by == "title" { task.title.clone() }
+                else { Some(data.tag_name(task)).filter(|name| !name.is_empty()).unwrap_or_else(|| "タグなし".to_string()) };
+            let entry = groups.entry(key).or_default();
+            entry.0 += seconds; entry.1 += 1;
+        }
     }
     let mut list: Vec<(String, (i64, usize))> = groups.into_iter().collect();
-    if group_by != "day" {
-        list.sort_by_key(|(_, (minutes, _))| std::cmp::Reverse(*minutes));
-    }
+    if group_by != "day" { list.sort_by_key(|(_, (seconds, _))| std::cmp::Reverse(*seconds)); }
     Ok(json!({
-        "groupBy": group_by,
-        "count": rows.len(),
-        "totalMinutes": total,
-        "total": format_minutes(total),
-        "groups": list.into_iter().map(|(key, (minutes, count))| json!({
-            "key": key, "minutes": minutes, "duration": format_minutes(minutes), "count": count,
+        "groupBy": group_by, "count": rows.len(), "totalMinutes": total_seconds / 60,
+        "totalSeconds": total_seconds, "total": format_minutes(total_seconds / 60),
+        "groups": list.into_iter().map(|(key, (seconds, count))| json!({
+            "key": key, "minutes": seconds / 60, "seconds": seconds,
+            "duration": format_minutes(seconds / 60), "count": count,
         })).collect::<Vec<_>>(),
     }))
 }
@@ -287,15 +307,12 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
         None => (ctx.today.year(), ctx.today.month()),
     };
     let (first, last) = calendar::month_bounds(year, month).ok_or("month が不正です")?;
-    let in_month = |t: &&repo::TaskRow| calendar::parse_date(&t.date).is_some_and(|d| d >= first && d <= last);
-
     let mut used_by_tag: HashMap<&str, i64> = HashMap::new();
-    let mut minutes_by_day: HashMap<NaiveDate, i64> = HashMap::new();
-    for t in data.tasks.iter().filter(in_month) {
-        let minutes = data.minutes(t);
-        *used_by_tag.entry(t.tag_id.as_str()).or_default() += minutes;
-        if let Some(day) = calendar::parse_date(&t.date) {
-            *minutes_by_day.entry(day).or_default() += minutes;
+    let mut seconds_by_day: HashMap<NaiveDate, i64> = HashMap::new();
+    for task in &data.tasks {
+        for (day,seconds) in data.segments(task,Some(first),Some(last)) {
+            *used_by_tag.entry(task.tag_id.as_str()).or_default() += seconds;
+            *seconds_by_day.entry(day).or_default() += seconds;
         }
     }
     let budgets: Vec<Value> = data
@@ -304,12 +321,13 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
         .filter(|t| t.budget_max_minutes.is_some_and(|m| m > 0))
         .map(|t| {
             let max = t.budget_max_minutes.unwrap_or(0);
-            let used = used_by_tag.get(t.id.as_str()).copied().unwrap_or(0);
+            let used_seconds = used_by_tag.get(t.id.as_str()).copied().unwrap_or(0);
+            let used = used_seconds / 60;
             let state = if max >= used { format!("残り{}", format_minutes(max - used)) } else { format!("{}超過", format_minutes(used - max)) };
             json!({
                 "summary": format!("{}: 今月の実績{} / 上限{} → {state}", t.name, format_minutes(used), format_minutes(max)),
                 "tag": t.name,
-                "usedMinutes": used, "used": format_minutes(used),
+                "usedMinutes": used, "usedSeconds": used_seconds, "used": format_minutes(used),
                 "maxMinutes": max, "max": format_minutes(max),
                 "minMinutes": t.budget_min_minutes, "min": t.budget_min_minutes.map(format_minutes),
                 "remainingMinutes": max - used,
@@ -328,15 +346,18 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
             total_days += 1;
             if day >= start {
                 remaining_dates.push(format!("{}({})", day.format("%m/%d"), calendar::weekday_jp(day)));
-                scheduled += daily.min(minutes_by_day.get(&day).copied().unwrap_or(0));
+                scheduled += (daily * 60).min(seconds_by_day.get(&day).copied().unwrap_or(0));
             }
         }
         day += Duration::days(1);
     }
     let remaining_days = remaining_dates.len() as i64;
     let remaining_work = remaining_days * daily;
-    let available = (remaining_work - scheduled).max(0);
-    let worked: i64 = minutes_by_day.iter().filter(|(d, _)| **d < ctx.today).map(|(_, m)| m).sum();
+    let available = (remaining_work * 60 - scheduled).max(0) / 60;
+    let worked_seconds: i64 = seconds_by_day.iter().filter(|(d, _)| **d < ctx.today).map(|(_, seconds)| seconds).sum();
+    let worked = worked_seconds / 60;
+    let scheduled_seconds = scheduled;
+    let scheduled = scheduled_seconds / 60;
     Ok(json!({
         "month": format!("{year:04}-{month:02}"),
         "availableWorkTime": {
@@ -352,7 +373,9 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
             "dailyWorkMinutes": daily,
             "remainingWorkMinutes": remaining_work,
             "alreadyScheduledMinutes": scheduled,
+            "alreadyScheduledSeconds": scheduled_seconds,
             "workedBeforeTodayMinutes": worked,
+            "workedBeforeTodaySeconds": worked_seconds,
             "workedBeforeToday": format_minutes(worked),
         },
         "budgets": budgets,
@@ -397,23 +420,36 @@ fn normalized_task(args: &Value, base: Option<&Map<String, Value>>) -> Result<Ma
         return Err("title は必須です".to_string());
     }
     let all_day = pick("allDay").and_then(|v| v.as_bool()).unwrap_or(false);
+    let end_date = text("endDate");
+    let end_date = (!end_date.is_empty()).then_some(end_date);
     let (start, end) = if all_day {
         (String::new(), String::new())
     } else {
         let start = text("startTime");
-        let s = calendar::time_to_minutes(&start).ok_or("終日でない予定には startTime(HH:MM)が必要です")?;
+        let start_minutes = calendar::time_to_minutes(&start).ok_or("終日でない予定には startTime(HH:MMまたはHH:MM:SS)が必要です")?;
         let end = match text("endTime") {
-            e if e.is_empty() => format!("{:02}:{:02}", ((s + 60).min(24 * 60)) / 60, ((s + 60).min(24 * 60)) % 60),
+            e if e.is_empty() && start.split(':').count() == 3 => {
+                let seconds = (calendar::time_to_seconds(&start).unwrap_or(0) + 3600).min(86400);
+                format!("{:02}:{:02}:{:02}",seconds / 3600,seconds % 3600 / 60,seconds % 60)
+            },
+            e if e.is_empty() => {
+                let minutes = (start_minutes + 60).min(1440);
+                format!("{:02}:{:02}",minutes / 60,minutes % 60)
+            },
             e => e,
         };
-        let e = calendar::time_to_minutes(&end).ok_or("endTime は HH:MM 形式で指定してください")?;
-        if e <= s {
-            return Err("endTime は startTime より後にしてください".to_string());
-        }
-        (format!("{:02}:{:02}", s / 60, s % 60), format!("{:02}:{:02}", e / 60, e % 60))
+        let normalize = |value: String| -> Result<String,String> {
+            if value == "24:00" || value == "24:00:00" { return Ok(value); }
+            let clock = crate::event_data::clock(&value)?;
+            Ok(clock.format(if value.split(':').count() == 3 {"%H:%M:%S"} else {"%H:%M"}).to_string())
+        };
+        (normalize(start)?,normalize(end)?)
     };
+    crate::event_data::range(&date,end_date.as_deref(),all_day,Some(&start),Some(&end))?;
     let mut task = Map::new();
     task.insert("date".into(), json!(date));
+    if let Some(end_date) = end_date { task.insert("endDate".into(),json!(end_date)); }
+    if let Some(details) = base.and_then(|row| row.get("outlookDetails")) { task.insert("outlookDetails".into(),details.clone()); }
     task.insert("startTime".into(), json!(start));
     task.insert("endTime".into(), json!(end));
     task.insert("allDay".into(), json!(all_day));
@@ -426,6 +462,8 @@ fn normalized_task(args: &Value, base: Option<&Map<String, Value>>) -> Result<Ma
 fn task_as_map(data: &Data, task: &repo::TaskRow) -> Map<String, Value> {
     let mut m = Map::new();
     m.insert("date".into(), json!(task.date));
+    if let Some(end_date) = &task.end_date { m.insert("endDate".into(),json!(end_date)); }
+    m.insert("outlookDetails".into(),task.outlook_details.clone());
     m.insert("startTime".into(), json!(task.start_time.clone().unwrap_or_default()));
     m.insert("endTime".into(), json!(task.end_time.clone().unwrap_or_default()));
     m.insert("allDay".into(), json!(task.is_all_day));
@@ -605,6 +643,61 @@ mod tests {
         assert_eq!(s["structuredContent"]["totalMinutes"], 360);
         assert_eq!(s["structuredContent"]["total"], "6時間");
         assert_eq!(s["structuredContent"]["groups"][0]["key"], "開発");
+    }
+
+    #[test]
+    fn full_event_queries_clip_each_day_and_keep_metadata() {
+        let (conn, store) = setup();
+        conn.execute_batch("DELETE FROM tasks;
+            INSERT INTO tasks(id,title,date,end_date,is_all_day,start_time,end_time,tag_id,memo,created_at,updated_at,outlook_details) VALUES
+            ('span','Across month','2026-09-30','2026-10-02',0,'23:30:15','00:00','g1','','x','x','{\"location\":\"Room A\"}'),
+            ('away','Away','2026-09-30','2026-10-02',1,NULL,NULL,'g2','','x','x','{}');").unwrap();
+        let data = load(&conn).unwrap();
+        let search = search_tasks(&data, &json!({"dateFrom":"2026-10-01","dateTo":"2026-10-01"})).unwrap();
+        assert_eq!(search["count"], 2);
+        assert_eq!(search["totalMinutes"], 1380);
+        assert_eq!(search["totalSeconds"], 82800);
+        let span = search["tasks"].as_array().unwrap().iter().find(|task| task["id"] == "span").unwrap();
+        assert_eq!(span["endDate"], "2026-10-02");
+        assert_eq!(span["outlookDetails"]["location"], "Room A");
+        let last = search_tasks(&data, &json!({"dateFrom":"2026-10-02","dateTo":"2026-10-02"})).unwrap();
+        assert_eq!(last["count"], 1, "timed midnight is exclusive, all-day end is inclusive");
+        let summary = summarize_work(&data, &json!({"dateFrom":"2026-09-30","dateTo":"2026-10-02","groupBy":"day"})).unwrap();
+        assert_eq!(summary["totalMinutes"], 1409);
+        assert_eq!(summary["groups"][0]["minutes"], 29);
+        assert_eq!(summary["groups"][1]["minutes"], 1380);
+        let month = call(&conn,&store,"month_status",json!({"month":"2026-10"}))["structuredContent"].clone();
+        assert_eq!(month["budgets"][0]["usedMinutes"],1380);
+    }
+
+    #[test]
+    fn full_event_proposal_preserves_range_seconds_and_metadata() {
+        let (conn, store) = setup();
+        conn.execute("UPDATE tasks SET end_date='2026-09-02',start_time='23:30:15',end_time='01:00:45',outlook_details='{\"location\":\"Room A\"}' WHERE id='1'", []).unwrap();
+        let proposed = call(&conn,&store,"propose_update_task",json!({"taskId":"1","title":"New title"}));
+        assert_eq!(proposed["isError"],false);
+        let proposals=store.lock().unwrap();
+        let task=&proposals["s1"][0]["task"];
+        assert_eq!(task["endDate"],"2026-09-02");
+        assert_eq!(task["startTime"],"23:30:15");
+        assert_eq!(task["endTime"],"01:00:45");
+        assert_eq!(task["outlookDetails"]["location"],"Room A");
+        let title:String=conn.query_row("SELECT title FROM tasks WHERE id='1'",[],|r|r.get(0)).unwrap();
+        assert_eq!(title,"定例","proposals remain read-only until user confirmation");
+    }
+
+    #[test]
+    fn full_event_seconds_round_only_after_aggregation() {
+        let (conn, _) = setup();
+        conn.execute_batch("DELETE FROM tasks;
+            INSERT INTO tasks(id,title,date,is_all_day,start_time,end_time,tag_id,memo,created_at,updated_at) VALUES
+            ('a','Short','2026-10-01',0,'09:00:00','09:00:40','g1','','x','x'),
+            ('b','Short','2026-10-01',0,'09:01:00','09:01:40','g1','','x','x');").unwrap();
+        let data=load(&conn).unwrap();
+        let summary=summarize_work(&data,&json!({})).unwrap();
+        assert_eq!(summary["totalSeconds"],80);
+        assert_eq!(summary["totalMinutes"],1);
+        assert_eq!(summary["groups"][0]["minutes"],1);
     }
 
     #[test]

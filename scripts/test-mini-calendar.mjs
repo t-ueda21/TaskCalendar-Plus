@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { createMiniCalendarState, advancePicker, pickYear, pickMonth, movePicker, yearChoices } from '../src-tauri/renderer/src/mini-calendar-state.js';
+let state = createMiniCalendarState(new Date(2026,9,7));
+state = advancePicker(state); assert.equal(state.mode,'months');
+state = advancePicker(state); assert.equal(state.mode,'years');
+assert.deepEqual(yearChoices(state),[2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026,2027]);
+state = movePicker(state,1); assert.equal(state.pickerYear,2038);
+state = pickYear(state,2030); assert.equal(state.mode,'months'); assert.equal(state.pickerYear,2030);
+state = pickMonth(state,1); assert.equal(state.mode,'days'); assert.equal(state.year,2030); assert.equal(state.month,1);
+state = movePicker(createMiniCalendarState(new Date(2026,11,1)),1); assert.equal(state.year,2027); assert.equal(state.month,0);
+state = movePicker(createMiniCalendarState(new Date(2026,0,1)),-1); assert.equal(state.year,2025); assert.equal(state.month,11);
+console.log('PASS: day/month/year hierarchy, twelve-year pages and month boundaries');

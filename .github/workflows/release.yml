@@ -9,6 +9,10 @@ on:
         description: 'Existing version tag (for example v0.1.0)'
         required: true
         type: string
+      stage_only:
+        description: 'Build and upload workflow artifacts without editing a GitHub Release'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -27,13 +31,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: ${{ inputs.stage_only && github.sha || inputs.tag || github.ref }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install isolated renderer test browser
+        shell: pwsh
+        run: |
+          $testDependencies = Join-Path $env:RUNNER_TEMP 'tcplus-test-dependencies'
+          npm install --prefix $testDependencies --no-package-lock --no-save playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $testModules = Join-Path $testDependencies 'node_modules'
+          "TCPLUS_TEST_NODE_MODULES=$testModules" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          node (Join-Path $testModules 'playwright/cli.js') install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -55,26 +69,47 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npx --yes @tauri-apps/cli@2.11.5 build --ci --bundles nsis -- --locked
-      - name: Create update feed
+      - name: Create stable update feed (skip prereleases)
         run: node scripts/release-manifest.mjs
+      - name: Stage distribution files
+        if: inputs.stage_only == true
+        shell: pwsh
+        run: |
+          $assetJson = node scripts/release-manifest.mjs --assets
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $distribution = Join-Path $env:RUNNER_TEMP 'taskcalendar-distribution'
+          New-Item -ItemType Directory -Path $distribution -Force | Out-Null
+          foreach ($asset in @($assetJson | ConvertFrom-Json)) {
+            Copy-Item -LiteralPath $asset -Destination $distribution
+          }
+      - uses: actions/upload-artifact@v4
+        if: inputs.stage_only == true
+        with:
+          name: taskcalendar-distribution
+          path: ${{ runner.temp }}/taskcalendar-distribution/*
+          if-no-files-found: error
       - name: Create draft release
+        if: inputs.stage_only != true
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
           $notesPath = "docs/releases/$env:RELEASE_TAG.md"
+          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $isPrerelease = $version.Contains('-')
+          $releaseFlags = @()
+          if ($isPrerelease) { $releaseFlags += @('--prerelease', '--latest=false') }
           $existing = gh release view $env:RELEASE_TAG --json isDraft 2>$null
           if ($LASTEXITCODE -eq 0) {
             if (-not ($existing | ConvertFrom-Json).isDraft) { throw 'Refusing to overwrite a published release' }
-            gh release edit $env:RELEASE_TAG --notes-file $notesPath
+            gh release edit $env:RELEASE_TAG --notes-file $notesPath @releaseFlags
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           } else {
-            gh release create $env:RELEASE_TAG --verify-tag --draft --title "TaskCalendar+ $env:RELEASE_TAG" --notes-file $notesPath
+            gh release create $env:RELEASE_TAG --verify-tag --draft --title "TaskCalendar+ $env:RELEASE_TAG" --notes-file $notesPath @releaseFlags
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
-          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          $installer = @(Get-ChildItem src-tauri/target/release/bundle/nsis -File -Filter "*_${version}_x64-setup.exe")
-          if ($installer.Count -ne 1) { throw 'Expected one installer for the current version' }
-          $assets = @($installer[0].FullName, ($installer[0].FullName + '.sig'), 'src-tauri/target/release/bundle/nsis/latest.json')
+          $assetJson = node scripts/release-manifest.mjs --assets
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $assets = @($assetJson | ConvertFrom-Json)
           gh release upload $env:RELEASE_TAG @assets --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "run_id": "refactor-20261008-pass2",
+  "coordinator_agent_id": "/root",
+  "design": {
+    "agent_id": "/root/refactor2_baseline",
+    "owns": [
+      "behavior-contract",
+      "cases",
+      "tests-before-freeze",
+      "before-evidence",
+      "guards"
+    ]
+  },
+  "implementation": {
+    "agent_id": "/root/refactor2_impl",
+    "owns": [
+      "application-refactoring",
+      "change-log",
+      "related-self-checks"
+    ]
+  },
+  "verification": {
+    "agent_id": "/root/refactor2_verify",
+    "owns": [
+      "independent-after-checks",
+      "ui-comparison",
+      "measurements",
+      "final-verdict"
+    ]
+  },
+  "starting_commit": "c87c570032a545faf968d9577c7844db6c09907d",
+  "local_branch": "develop",
+  "remote_develop_at_start": null,
+  "handoffs": [],
+  "baseline_revision": 2,
+  "baseline_run": "out/refactor-20261008-pass2/baseline-v2"
+}

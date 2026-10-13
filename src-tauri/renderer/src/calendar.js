@@ -1,3 +1,7 @@
+import { validateEventForm, eventDaySegment, shiftEventDate, moveEventRange, resizeEventRange, eventDateKeys } from "./event-fields.js";
+import { t as translate, th as translateHtml } from './i18n.js';
+import { wireTaskBatch } from './task-batch-ui.js';
+import { showAppAlert, showAppConfirm, chooseRecurrenceScope } from './app-dialogs.js';
 /**
  * calendar.js — カレンダーページのロジック
  *
@@ -8,7 +12,6 @@
  */
 
 import * as Store from "./store.js";
-import { buildUiPalette } from "./ui-colors.js";
 import {
   pad2,
   escHtml,
@@ -31,12 +34,12 @@ import {
   normalizeBreaks,
   getCombinedHolidaysInMonth,
   normalizeHexColor,
-  DEFAULT_TAG_COLOR,
   wireSidebarToggle,
   renderSideSummaries,
   wireMonthTagPopup,
   ensureTaskTagMenu,
   hideTaskTagMenu,
+  renderTaskTagMenu,
 } from "./ui-utils.js";
 import { renderTimeGrid, positionTaskBlock, ROW_HEIGHT, updateNowLine } from "./time-grid.js";
 import { wireSettingsDialog, wireSideTagClickToSettings } from "./settings-dialog.js";
@@ -260,30 +263,27 @@ function _getDialogTagsForDateKey(dateKey, currentTagId = "") {
 }
 
 // 繰り返し予定の削除範囲を選ばせる(Outlookの「これ以降の予定」相当)。1=このみ/2=すべて/3=今日以降すべて。
-function _chooseDeleteModeForTask(task) {
+async function _chooseDeleteModeForTask(task) {
   const count = Store.getTaskSeriesCount(task);
-  if (count <= 1) return "single";
-  const answer = window.prompt("削除方法: 1=選択した予定のみ / 2=繰り返し予定をすべて / 3=今日以降すべて", "1");
-  if (answer == null) return null; // キャンセル
-  const token = String(answer).trim();
-  if (token === "") return null; // 空入力は誤削除防止のため中止
-  if (token === "2" || /すべて|全て|全部|series/i.test(token)) return "series";
-  if (token === "3" || /今日以降|future/i.test(token)) return "future";
-  if (token === "1" || /これ|のみ|単一|single/i.test(token)) return "single";
-  return null; // 想定外の入力は安全側で中止
+  const message = task.title + '\n' + task.date;
+  if (count > 1) return chooseRecurrenceScope({title:translate('ui.e9653dc3ed'),message,operation:'delete'});
+  return await showAppConfirm(message, {title:translate('ui.e9653dc3ed'),confirmLabel:translate('ui.e9653dc3ed'),danger:true}) ? 'single' : null;
 }
 
 async function _deleteTaskByChoice(taskId, preferredMode = null) {
   const task = Store.getAllTasks().find((t) => t.id === taskId);
   if (!task) return;
-  const mode = preferredMode ?? _chooseDeleteModeForTask(task);
-  if (!mode) return;
+  const mode = preferredMode ?? await _chooseDeleteModeForTask(task);
+  if (!mode) return false;
+  if (preferredMode && !await showAppConfirm(task.title + '\n' + task.date, {title:translate('ui.e9653dc3ed'),confirmLabel:translate('ui.e9653dc3ed'),danger:true})) return false;
   // 繰り返し全体(series)の削除はUndo対象外(複数行の巻き戻しが複雑なため)。
   // 単一予定の削除(single)のみUndo/Redoに対応する。
-  await Store.deleteTaskWithMode(taskId, mode);
+  try { await Store.deleteTaskWithMode(taskId, mode); }
+  catch (error) { await showAppAlert(String(error?.message ?? error), {tone:'error'}); return false; }
   if (mode === "single") {
     _recordAction({ type: "delete", taskId, task });
   }
+  return true;
 }
 
 function _ensureTaskTimePreview() {
@@ -323,90 +323,25 @@ function _openTaskTagMenu(task, clientX, clientY, sourceEl = null) {
 
   const tags = _getDialogTagsForDateKey(task.date, task.tagId);
   const seriesCount = Store.getTaskSeriesCount(task);
+  const contextTasks = _batchControl.getContextTasks(task.id);
 
-  menu.innerHTML = "";
-
-  const addActionItem = (label, onClick, { danger = false } = {}) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "taskTagContextItem";
-    if (danger) btn.classList.add("danger");
-    btn.textContent = label;
-    btn.addEventListener("click", async () => {
-      await onClick();
-      hideTaskTagMenu();
-    });
-    menu.appendChild(btn);
-  };
-
-  addActionItem("編集", async () => {
-    openEditDialog($dialog, task, _getDialogTagsForDateKey(task.date, task.tagId));
-  });
-  addActionItem("削除（この予定）", async () => {
-    await _deleteTaskByChoice(task.id, "single");
-  }, { danger: true });
-  if (seriesCount > 1) {
-    addActionItem(`削除（繰り返し全体: ${seriesCount}件）`, async () => {
-      await _deleteTaskByChoice(task.id, "series");
-    }, { danger: true });
-  }
-
-  const sep = document.createElement("div");
-  sep.className = "taskTagContextSeparator";
-  menu.appendChild(sep);
-
-  const title = document.createElement("div");
-  title.className = "taskTagContextTitle";
-  title.textContent = "タグを選択";
-  menu.appendChild(title);
-
-  const addItem = (label, value, color = "", active = false) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "taskTagContextItem";
-    if (active) btn.classList.add("active");
-    btn.textContent = label;
-
-    if (value) {
-      const tagColor = normalizeHexColor(color, DEFAULT_TAG_COLOR);
-      btn.style.background = tagColor;
-      btn.style.border = `1px solid ${tagColor}`;
-      btn.style.color = buildUiPalette(tagColor)["--on-accent"];
-      if (active) {
-        btn.style.outline = "2px solid rgba(255, 255, 255, 0.75)";
-        btn.style.outlineOffset = "-2px";
-        btn.style.fontWeight = "700";
-      }
-    }
-
-    btn.addEventListener("click", () => {
+  renderTaskTagMenu(menu, {
+    task, tags, seriesCount, clientX, clientY,
+    selectionCount: contextTasks.length,
+    selectedTagId: contextTasks.every(row => row.tagId === task.tagId) ? task.tagId : null,
+    onBulkEdit: () => _batchControl.openEditor(),
+    onBulkDelete: () => _batchControl.deleteSelected(contextTasks),
+    onEdit: async () => {
+      openEditDialog($dialog, task, _getDialogTagsForDateKey(task.date, task.tagId));
+    },
+    onDelete: (mode) => _deleteTaskByChoice(task.id, mode),
+    onTagSelect: (value) => {
+      if (contextTasks.length > 1) return _batchControl.applyContextTag(contextTasks, value);
       _recordAction({ type: "update", taskId: task.id, before: { tagId: task.tagId }, after: { tagId: value } });
       Store.updateTask(task.id, { tagId: value });
       hideTaskTagMenu();
-    });
-    menu.appendChild(btn);
-  };
-
-  addItem("タグなし", "", "", !task.tagId);
-  tags.forEach((tag) => addItem(tag.name, tag.id, tag.color, tag.id === task.tagId));
-
-  if (tags.length === 0) {
-    const empty = document.createElement("div");
-    empty.className = "taskTagContextEmpty";
-    empty.textContent = "この月に利用できるタグがありません。";
-    menu.appendChild(empty);
-  }
-
-  menu.hidden = false;
-  menu.style.left = "0px";
-  menu.style.top = "0px";
-
-  const rect = menu.getBoundingClientRect();
-  const margin = 8;
-  const left = Math.max(margin, Math.min(clientX, window.innerWidth - rect.width - margin));
-  const top = Math.max(margin, Math.min(clientY, window.innerHeight - rect.height - margin));
-  menu.style.left = `${left}px`;
-  menu.style.top = `${top}px`;
+    },
+  });
 }
 
 // ── DOM refs（初期化後に取得） ─────────────────────────
@@ -419,6 +354,7 @@ let $weekHeader, $weekAllDay, $weekBody, $weekTimes;
 let $sideMonthSummary, $sideDaySummary;
 let $calendarDayWeather;
 let _settingsDialogControl;
+let _batchControl;
 
 // ── 初期化 ────────────────────────────────────────────
 let _initialized = false;
@@ -468,6 +404,14 @@ export function init(rootEl) {
   });
 
   _wireDragDropTargets();
+  _batchControl = wireTaskBatch(_root, Store, {
+    orderedIds: () => {
+      const visible = new Set([..._root.querySelectorAll('[data-task-id]')].filter(node=>node.getClientRects().length&&!node.closest('[hidden]')).map(node=>node.dataset.taskId));
+      return Store.getAllTasks().filter(task=>visible.has(task.id)).sort((a,b)=>a.date.localeCompare(b.date)||(a.startTime??'00:00').localeCompare(b.startTime??'00:00')||a.id.localeCompare(b.id)).map(task=>task.id);
+    },
+    onFocus: id => _setFocusedTaskElement([..._root.querySelectorAll('[data-task-id]')].find(node=>node.dataset.taskId===id)??null),
+  });
+  Store.subscribe('task-bulk-changed', ({ids}) => { ids.forEach(taskId=>_forgetTaskHistory({taskId})); });
   setInterval(() => { if (!_root.hidden) updateNowLine(_granularity, _viewMode); }, 30_000);
 }
 
@@ -475,6 +419,7 @@ export function init(rootEl) {
 // クエリ経由で拾い直す(initは初回マウント時にしか呼ばれないため)。
 export function activate() {
   _settings = Store.getSettings();
+  _updateShiftLabels();
   if ($granularitySelect) $granularitySelect.value = String(_granularity);
   if ($businessOnlyChk) $businessOnlyChk.checked = _businessOnly;
   _renderTimeGrids();
@@ -570,6 +515,7 @@ function _wireToolbar() {
 
 // ── ビュー管理 ─────────────────────────────────────────
 function _applyViewMode(mode) {
+  _batchControl?.clear();
   _setFocusedTaskElement(null);
   _setFocusedSlotElement(null);
   const dayView  = _root.querySelector("[data-view='day']");
@@ -588,6 +534,7 @@ function _applyViewMode(mode) {
 }
 
 function _setViewDate(date) {
+  _batchControl?.clear();
   _setFocusedTaskElement(null);
   _setFocusedSlotElement(null);
   _viewDate = new Date(date);
@@ -627,13 +574,13 @@ function _updateDateLabel() {
 }
 
 function _updateShiftLabels() {
-  const prev = _viewMode === "week" ? "前の週" : "前の日";
-  const next = _viewMode === "week" ? "次の週" : "次の日";
+  const prev = _viewMode === "week" ? translate('ui.66f1cdb955') : translate('ui.09f7b583a1');
+  const next = _viewMode === "week" ? translate('ui.290d8e8495') : translate('ui.6a53ffb998');
   $shiftPrev?.setAttribute("aria-label", prev);
   $shiftPrev && ($shiftPrev.title = prev);
   $shiftNext?.setAttribute("aria-label", next);
   $shiftNext && ($shiftNext.title = next);
-  for (const [button, label] of [[$shiftPrev, _viewMode === "week" ? "前週" : "前日"], [$shiftNext, _viewMode === "week" ? "翌週" : "翌日"]]) {
+  for (const [button, label] of [[$shiftPrev, _viewMode === "week" ? translate('ui.70bb4b963e') : translate('ui.e1e3664a59')], [$shiftNext, _viewMode === "week" ? translate('ui.7d5c0d7e0c') : translate('ui.40b8fbe539')]]) {
     const text = button?.querySelector('[data-nav-label]');
     if (text) text.textContent = label;
   }
@@ -659,13 +606,13 @@ function _scrollToWorkStart() {
 
 // ── 週カラム ───────────────────────────────────────────
 const DAY_META = [
-  { key: "Sun", offset: -1, label: "日", cls: "sun" },
-  { key: "Mon", offset:  0, label: "月", cls: "" },
-  { key: "Tue", offset:  1, label: "火", cls: "" },
-  { key: "Wed", offset:  2, label: "水", cls: "" },
-  { key: "Thu", offset:  3, label: "木", cls: "" },
-  { key: "Fri", offset:  4, label: "金", cls: "" },
-  { key: "Sat", offset:  5, label: "土", cls: "sat" },
+  { key: "Sun", offset: -1, get label() { return translate('ui.85217f7aff'); }, cls: "sun" },
+  { key: "Mon", offset:  0, get label() { return translate('ui.1625179bad'); }, cls: "" },
+  { key: "Tue", offset:  1, get label() { return translate('ui.d4cfe8c82c'); }, cls: "" },
+  { key: "Wed", offset:  2, get label() { return translate('ui.327b54d04f'); }, cls: "" },
+  { key: "Thu", offset:  3, get label() { return translate('ui.9213ab0589'); }, cls: "" },
+  { key: "Fri", offset:  4, get label() { return translate('ui.3c1e31a193'); }, cls: "" },
+  { key: "Sat", offset:  5, get label() { return translate('ui.7c18dba314'); }, cls: "sat" },
 ];
 
 function _weekMonday() {
@@ -697,7 +644,7 @@ function _renderWeekColumns() {
 
     const headerCell = _root.querySelector(`.weekDay[data-weekday="${key}"]`);
     if (headerCell) {
-      headerCell.innerHTML = `<span class="weekDayMain">${escHtml(`${label} ${mmdd}`)}</span><span class="weekDayWeather">天気取得中...</span>`;
+      headerCell.innerHTML = `<span class="weekDayMain">${escHtml(`${label} ${mmdd}`)}</span><span class="weekDayWeather">${translateHtml('ui.387cf48bf1')}...</span>`;
       headerCell.hidden = !show;
       headerCell.classList.toggle("today", dateKey === formatDateKey(new Date()));
     }
@@ -724,7 +671,7 @@ async function _renderCalendarWeather() {
   const token = ++_weatherRenderToken;
   const selectedDateKey = formatDateKey(_viewDate);
   if ($calendarDayWeather) {
-    $calendarDayWeather.textContent = "天気取得中...";
+    $calendarDayWeather.textContent = translate('ui.e766dd8d41');
     $calendarDayWeather.classList.add("loading");
   }
 
@@ -760,10 +707,10 @@ async function _renderCalendarWeather() {
     if (token !== _weatherRenderToken || _root.hidden) return;
     if ($calendarDayWeather) {
       $calendarDayWeather.classList.remove("loading");
-      $calendarDayWeather.textContent = "天気取得に失敗しました";
+      $calendarDayWeather.textContent = translate('ui.545c4f248f');
     }
     _root.querySelectorAll(".weekDayWeather").forEach((el) => {
-      el.textContent = "取得失敗";
+      el.textContent = translate('ui.a64e47b541');
     });
   }
 }
@@ -788,34 +735,35 @@ function _renderTimeGrids() {
 }
 
 // ── タスクブロック描画 ────────────────────────────────
-function _makeTaskBlock(task, tags) {
+function _makeTaskBlock(task, tags, dateKey = task.date) {
+  const segment = eventDaySegment(task, dateKey) || task;
   const allTags = Store.getAllTags();
   const tag = tags.find((t) => t.id === task.tagId) || allTags.find((t) => t.id === task.tagId);
   const isRecurring = task?.recurrence?.type && task.recurrence.type !== "none";
-  const durationMins = Math.max(0, timeToMinutes(task.endTime) - timeToMinutes(task.startTime));
+  const durationMins = Math.max(0, timeToMinutes(segment.endTime) - timeToMinutes(segment.startTime));
   const isCompact = durationMins <= Math.max(_granularity, 30);
   const el = document.createElement("div");
   el.className = `taskBlock${isCompact ? " compact" : ""}`;
   _applyTagColorStyle(el, tag?.color || DEFAULT_TASK_COLOR);
   el.draggable = true;
   el.setAttribute("data-task-id", task.id);
-  el.setAttribute("data-start", task.startTime);
-  el.setAttribute("data-end",   task.endTime);
+  el.setAttribute("data-start", segment.startTime);
+  el.setAttribute("data-end",   segment.endTime);
   if (isRecurring) el.setAttribute("data-recurring", "1");
 
-  const titleText = escHtml(task.title || "無題");
+  const titleText = escHtml(task.title || translate('ui.6ada6dbdde'));
   const tagName   = escHtml(tag?.name ?? "");
   const startStr  = escHtml(task.startTime ?? "");
   const endStr    = escHtml(task.endTime   ?? "");
   const durationH = durationMins > 0 ? `(${(durationMins / 60).toFixed(durationMins % 60 === 0 ? 0 : 1)}h)` : "";
-  const timeRange = startStr && endStr ? `${startStr}〜${endStr} ${durationH}` : "";
+  const timeRange = startStr && endStr ? `${task.endDate && task.endDate !== task.date ? `${task.date} ${startStr}〜${task.endDate} ${endStr}` : `${startStr}〜${endStr}`} ${durationH}` : "";
   const subLine   = [timeRange, tagName].filter(Boolean).join(" / ");
   const teamsBtn  = task.meetingUrl
-    ? `<button type="button" class="taskTeamsJoinBtn" title="Teams会議に参加">📹</button>`
+    ? `<button type="button" class="taskTeamsJoinBtn" title="Teams${translateHtml('ui.2bb89d4102')}">📹</button>`
     : "";
   el.innerHTML = `<span class="taskMain">${titleText}</span><small>${escHtml(subLine)}</small>${teamsBtn}`;
   const memoText = String(task.memo ?? "").trim();
-  el.title = `${task.title || "無題"} (${task.startTime ?? ""}-${task.endTime ?? ""}${tag?.name ? ` / ${tag.name}` : ""})${memoText ? `\n${memoText}` : ""}`;
+  el.title = `${task.title || translate('ui.6ada6dbdde')} (${task.startTime ?? ""}-${task.endTime ?? ""}${tag?.name ? ` / ${tag.name}` : ""})${memoText ? `\n${memoText}` : ""}`;
 
   if (task.meetingUrl) {
     el.querySelector(".taskTeamsJoinBtn")?.addEventListener("click", (e) => {
@@ -825,7 +773,7 @@ function _makeTaskBlock(task, tags) {
     });
   }
 
-  positionTaskBlock(el, task.startTime, task.endTime, _granularity);
+  positionTaskBlock(el, segment.startTime, segment.endTime, _granularity);
 
   // ダブルクリックで編集
   el.addEventListener("dblclick", (e) => {
@@ -844,10 +792,10 @@ function _makeTaskBlock(task, tags) {
   });
 
   // DnD: 移動 (F-TASK-003)
-  _wireDragMove(el, task);
+  _wireDragMove(el, task, dateKey);
 
   // リサイズ (F-TASK-004)
-  _wireResize(el, task);
+  _wireResize(el, task, dateKey);
 
   return el;
 }
@@ -962,11 +910,11 @@ function _renderDayTasks() {
   const timedTasks = tasks.filter((t) => !t.isAllDay);
   const blocksById = new Map();
   timedTasks.forEach((t) => {
-    const block = _makeTaskBlock(t, tags);
+    const block = _makeTaskBlock(t, tags, dateKey);
     blocksById.set(t.id, block);
     $daycol.appendChild(block);
   });
-  _applyOverlapLayout(timedTasks, blocksById);
+  _applyOverlapLayout(timedTasks.map(t => eventDaySegment(t, dateKey)).filter(Boolean), blocksById);
 }
 
 function _renderWeekTasks() {
@@ -982,11 +930,11 @@ function _renderWeekTasks() {
     const tasks   = Store.getTasksByDate(dateKey).filter((t) => !t.isAllDay);
     const blocksById = new Map();
     tasks.forEach((t) => {
-      const block = _makeTaskBlock(t, tags);
+      const block = _makeTaskBlock(t, tags, dateKey);
       blocksById.set(t.id, block);
       col.appendChild(block);
     });
-    _applyOverlapLayout(tasks, blocksById);
+    _applyOverlapLayout(tasks.map(t => eventDaySegment(t, dateKey)).filter(Boolean), blocksById);
   });
 
   _renderAllDayLane();
@@ -1105,14 +1053,17 @@ function _wireDialog() {
   let _saving = false;
   const saveTask = async () => {
     if (_saving) return;
-    const form = readDialogForm($dialog);
-    if (!form.title) { alert("タイトルを入力してください。"); return; }
+    let form;
+    try { form = readDialogForm($dialog); }
+    catch (error) { await showAppAlert(String(error.message || error), {tone:"error"}); return; }
+    if (!validateEventForm($dialog, form)) return;
+    if (!form.title) { await showAppAlert(translate('ui.f611575d37'), {tone:'error'}); return; }
     const { editScope, ...taskPatch } = form;
     const mode = editScope || "single";
 
     const saveBtn = $dialog.querySelector("[data-save]");
     _saving = true;
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.dataset.origText = saveBtn.textContent; saveBtn.textContent = "保存中…"; }
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.dataset.origText = saveBtn.textContent; saveBtn.textContent = translate('ui.ff509c9ba0'); }
     try {
       const editId = $dialog.getAttribute("data-edit-id");
       if (editId) {
@@ -1138,10 +1089,10 @@ function _wireDialog() {
       }
       $dialog.close();
     } catch (error) {
-      alert(`予定を保存できませんでした。\n${String(error?.message ?? error)}`);
+      await showAppAlert(translate('ui.20817f47e9', { p0: (String(error?.message ?? error)) }), {tone:'error'});
     } finally {
       _saving = false;
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.origText || "保存"; }
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.origText || translate('ui.a3030bf8f1'); }
     }
   };
 
@@ -1171,13 +1122,13 @@ function _wireDialog() {
   $dialog.querySelector("[data-delete]")?.addEventListener("click", async () => {
     const editId = $dialog.getAttribute("data-edit-id");
     if (editId) {
-      await _deleteTaskByChoice(editId);
-      $dialog.close();
+      if (await _deleteTaskByChoice(editId)) $dialog.close();
     }
   });
 
   $dialog.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter") return;
+    if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
+    if (e.target.closest('button')) return;
     if (e.target instanceof HTMLTextAreaElement) return;
     e.preventDefault();
     void saveTask();
@@ -1207,7 +1158,7 @@ function _openAllDayCreateDialog(dateKey) {
     date: dateKey,
     tags: _getDialogTagsForDateKey(dateKey),
     isAllDay: true,
-    dialogTitle: "終日タスクを追加",
+    dialogTitle: translate('ui.9eda243008'),
     focusTitle: true,
   });
 }
@@ -1319,7 +1270,7 @@ function _wireSelectionColumn(colEl, slotsEl, getDateKey) {
     const em = Math.max(sm + _minTaskDurationMinutes(), yToSnap(bY, "end"));
     clearSel();
 
-    openCreateFromRange(sm, em, getDateKey(), "タスク作成（ドラッグ選択から作成）");
+    openCreateFromRange(sm, em, getDateKey());
   });
 
   colEl.addEventListener("pointercancel", () => {
@@ -1337,16 +1288,18 @@ function _wireSelectionColumn(colEl, slotsEl, getDateKey) {
     const y = Math.max(0, Math.min(rect.height, e.clientY - rect.top));
     const sm = yToSnap(y, "start");
     const em = Math.min(1440, sm + _minTaskDurationMinutes());
-    openCreateFromRange(sm, em, getDateKey(), "タスク作成（ダブルクリックから作成）");
+    openCreateFromRange(sm, em, getDateKey());
   });
 }
 
 // ── DnD 移動 (F-TASK-003) ─────────────────────────────
-function _wireDragMove(el, task) {
+let _dragSourceDate = null;
+function _wireDragMove(el, task, dateKey = task.date) {
   el.addEventListener("dragstart", (e) => {
     e.dataTransfer.setData("text/plain", task.id);
     e.dataTransfer.effectAllowed = "copyMove";
     _draggingTaskId = task.id;
+    _dragSourceDate = dateKey;
     _dragCopyMode = Boolean(e.ctrlKey || e.metaKey || _ctrlOrMetaPressed);
     // ブロック内でのクリック位置（px）→ 分に変換して記録
     const rect = el.getBoundingClientRect();
@@ -1382,12 +1335,9 @@ function _wireDrop(colEl, getDateKey) {
     const rect = slots.getBoundingClientRect();
     const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
     const rawMins = y * (_granularity / ROW_HEIGHT) - _dragOffsetMins;
-    const duration = _normalizeTaskDurationMinutes(
-      timeToMinutes(task.endTime) - timeToMinutes(task.startTime),
-    );
-    const startMins = Math.max(0, Math.min(1440 - duration, _snapTaskMinutes(rawMins, "start")));
-    const endMins = Math.min(1440, _snapTaskMinutes(startMins + duration, "end"));
-    return { startMins, endMins };
+    const startMins = Math.max(0, Math.min(1439, _snapTaskMinutes(rawMins, "start")));
+    const patch = moveEventRange(task, _dragSourceDate || task.date, getDateKey(), startMins);
+    return patch ? {startMins, endMins:timeToMinutes(patch.endTime), patch} : null;
   };
 
   colEl.addEventListener("dragover", (e) => {
@@ -1402,7 +1352,7 @@ function _wireDrop(colEl, getDateKey) {
 
     const draft = resolveDraft(e.clientY, task);
     if (draft) {
-      const previewLabel = _dragCopyMode ? "コピー" : "移動";
+      const previewLabel = _dragCopyMode ? translate('ui.70f7ae4afa') : translate('ui.de2596ff85');
       _showTaskTimePreview(
         `${previewLabel}: ${minutesToTime(draft.startMins)} - ${minutesToTime(draft.endMins)}`,
         e.clientX,
@@ -1428,16 +1378,16 @@ function _wireDrop(colEl, getDateKey) {
     const draft = resolveDraft(e.clientY, task);
     if (!draft) return;
 
-    const date = getDateKey();
-    const startTime = minutesToTime(draft.startMins);
-    const endTime = minutesToTime(draft.endMins);
+    const {date,endDate,startTime,endTime} = draft.patch;
     const copyMode = Boolean(e.ctrlKey || e.metaKey || _ctrlOrMetaPressed || _dragCopyMode);
 
     if (copyMode) {
       const created = await Store.createTask({
         ...task,
         id: undefined,
+        outlookEnabled: Store.getSettings().outlookWriteDefault,
         date,
+        endDate,
         startTime,
         endTime,
         recurrence: { type: "none" },
@@ -1447,11 +1397,12 @@ function _wireDrop(colEl, getDateKey) {
       _recordAction({
         type: "update",
         taskId,
-        before: { date: task.date, startTime: task.startTime, endTime: task.endTime },
-        after: { date, startTime, endTime },
+        before: { date: task.date, endDate: task.endDate, startTime: task.startTime, endTime: task.endTime },
+        after: { date, endDate, startTime, endTime },
       });
       await Store.updateTask(taskId, {
         date,
+        endDate,
         startTime,
         endTime,
       });
@@ -1461,131 +1412,52 @@ function _wireDrop(colEl, getDateKey) {
 }
 
 // ── リサイズ (F-TASK-004) ─────────────────────────────
-function _wireResize(el, task) {
-  // 上端ハンドル（開始時刻変更）
-  const topHandle = document.createElement("div");
-  topHandle.className = "resizeHandle";
-  topHandle.style.cssText = "position:absolute;top:0;left:0;right:0;height:8px;cursor:ns-resize;z-index:2;";
-  topHandle.setAttribute("aria-hidden", "true");
-  el.prepend(topHandle);
-
-  let topStartY = 0, origStartMins = 0;
-  topHandle.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    topStartY     = e.clientY;
-    origStartMins = _snapTaskMinutes(timeToMinutes(task.startTime), "start");
-    const fixedEndMins = _snapTaskMinutes(timeToMinutes(task.endTime), "end");
-    topHandle.setPointerCapture(e.pointerId);
-    function onMove(ev) {
-      const deltaMins = (ev.clientY - topStartY) * (_granularity / ROW_HEIGHT);
-      const newStart  = _snapTaskMinutes(origStartMins + deltaMins, "start");
-      const clamped   = Math.max(0, Math.min(fixedEndMins - _minTaskDurationMinutes(), newStart));
-      positionTaskBlock(el, minutesToTime(clamped), minutesToTime(fixedEndMins), _granularity);
-      _showTaskTimePreview(
-        `${minutesToTime(clamped)} - ${minutesToTime(fixedEndMins)}`,
-        ev.clientX,
-        ev.clientY,
-      );
-    }
-    function onUp(ev) {
-      const deltaMins = (ev.clientY - topStartY) * (_granularity / ROW_HEIGHT);
-      const newStart  = _snapTaskMinutes(origStartMins + deltaMins, "start");
-      const clamped   = Math.max(0, Math.min(fixedEndMins - _minTaskDurationMinutes(), newStart));
-      _hideTaskTimePreview();
-      // 確定直前に対象が消えていないか（自動更新等での再描画と競合）を確認
-      if (Store.getAllTasks().some((t) => t.id === task.id)) {
-        _recordAction({
-          type: "update",
-          taskId: task.id,
-          before: { startTime: task.startTime, endTime: task.endTime },
-          after: { startTime: minutesToTime(clamped), endTime: minutesToTime(fixedEndMins) },
-        });
-        Store.updateTask(task.id, {
-          startTime: minutesToTime(clamped),
-          endTime: minutesToTime(fixedEndMins),
-        });
-      }
-      topHandle.removeEventListener("pointermove", onMove);
-      topHandle.removeEventListener("pointerup",   onUp);
-      topHandle.removeEventListener("pointercancel", onCancel);
-    }
-    function onCancel() {
-      _hideTaskTimePreview();
-      topHandle.removeEventListener("pointermove", onMove);
-      topHandle.removeEventListener("pointerup",   onUp);
-      topHandle.removeEventListener("pointercancel", onCancel);
-    }
-    topHandle.addEventListener("pointermove", onMove);
-    topHandle.addEventListener("pointerup",   onUp);
-    topHandle.addEventListener("pointercancel", onCancel);
-  });
-
-  // 下端ハンドル（終了時刻変更）
-  const handle = document.createElement("div");
-  handle.className = "resizeHandle";
-  handle.style.cssText = "position:absolute;bottom:0;left:0;right:0;height:8px;cursor:ns-resize;";
-  handle.setAttribute("aria-hidden", "true");
-  el.appendChild(handle);
-
-  let startY = 0, origEndMins = 0;
-
-  handle.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    startY       = e.clientY;
-    origEndMins  = _snapTaskMinutes(timeToMinutes(task.endTime), "end");
-    const fixedStartMins = _snapTaskMinutes(timeToMinutes(task.startTime), "start");
-    handle.setPointerCapture(e.pointerId);
-
-    function onMove(ev) {
-      const deltaY    = ev.clientY - startY;
-      const deltaMins = deltaY * (_granularity / ROW_HEIGHT);
-      const newEnd    = _snapTaskMinutes(origEndMins + deltaMins, "end");
-      const clampedEnd = Math.min(1440, Math.max(fixedStartMins + _minTaskDurationMinutes(), newEnd));
-      positionTaskBlock(el, minutesToTime(fixedStartMins), minutesToTime(clampedEnd), _granularity);
-      _showTaskTimePreview(
-        `${minutesToTime(fixedStartMins)} - ${minutesToTime(clampedEnd)}`,
-        ev.clientX,
-        ev.clientY,
-      );
-    }
-
-    function onUp(ev) {
-      const deltaY    = ev.clientY - startY;
-      const deltaMins = deltaY * (_granularity / ROW_HEIGHT);
-      const newEnd    = _snapTaskMinutes(origEndMins + deltaMins, "end");
-      const clampedEnd = Math.min(1440, Math.max(fixedStartMins + _minTaskDurationMinutes(), newEnd));
-      _hideTaskTimePreview();
-      // 確定直前に対象が消えていないか（自動更新等での再描画と競合）を確認
-      if (Store.getAllTasks().some((t) => t.id === task.id)) {
-        _recordAction({
-          type: "update",
-          taskId: task.id,
-          before: { startTime: task.startTime, endTime: task.endTime },
-          after: { startTime: minutesToTime(fixedStartMins), endTime: minutesToTime(clampedEnd) },
-        });
-        Store.updateTask(task.id, {
-          startTime: minutesToTime(fixedStartMins),
-          endTime: minutesToTime(clampedEnd),
-        });
-      }
-      handle.removeEventListener("pointermove", onMove);
-      handle.removeEventListener("pointerup", onUp);
-      handle.removeEventListener("pointercancel", onCancel);
-    }
-
-    function onCancel() {
-      _hideTaskTimePreview();
-      handle.removeEventListener("pointermove", onMove);
-      handle.removeEventListener("pointerup", onUp);
-      handle.removeEventListener("pointercancel", onCancel);
-    }
-
-    handle.addEventListener("pointermove", onMove);
-    handle.addEventListener("pointerup",   onUp);
-    handle.addEventListener("pointercancel", onCancel);
-  });
+function _wireResize(el, task, dateKey = task.date) {
+  const dates = eventDateKeys(task);
+  const segment = eventDaySegment(task, dateKey);
+  if (!segment) return;
+  for (const edge of ['start','end']) {
+    if (edge === 'start' && dateKey !== dates[0] || edge === 'end' && dateKey !== dates.at(-1)) continue;
+    const handle = document.createElement('div');
+    handle.className = 'resizeHandle';
+    handle.dataset.resizeEdge = edge;
+    handle.style.cssText = `position:absolute;${edge === 'start' ? 'top' : 'bottom'}:0;left:0;right:0;height:8px;cursor:ns-resize;z-index:2;`;
+    handle.setAttribute('aria-hidden','true');
+    el.appendChild(handle);
+    handle.addEventListener('pointerdown', event => {
+      event.stopPropagation(); event.preventDefault();
+      const originY = event.clientY;
+      const originMinutes = timeToMinutes(edge === 'start' ? segment.startTime : segment.endTime);
+      handle.setPointerCapture(event.pointerId);
+      const patchFor = ev => resizeEventRange(task,dateKey,edge,Math.max(0,Math.min(1440,_snapTaskMinutes(originMinutes + (ev.clientY-originY)*(_granularity/ROW_HEIGHT),edge))));
+      const onMove = ev => {
+        const patch = patchFor(ev);
+        if (!patch) return;
+        const next = eventDaySegment({...task,...patch},dateKey);
+        if (next) positionTaskBlock(el,next.startTime,next.endTime,_granularity);
+        _showTaskTimePreview(`${patch.startTime || task.startTime} - ${patch.endTime || task.endTime}`,ev.clientX,ev.clientY);
+      };
+      const cleanup = () => {
+        _hideTaskTimePreview();
+        handle.removeEventListener('pointermove',onMove);
+        handle.removeEventListener('pointerup',onUp);
+        handle.removeEventListener('pointercancel',onCancel);
+      };
+      const onCancel = () => { positionTaskBlock(el,segment.startTime,segment.endTime,_granularity); cleanup(); };
+      const onUp = ev => {
+        const patch = patchFor(ev);
+        if (patch && Store.getAllTasks().some(t => t.id === task.id)) {
+          const before = Object.fromEntries(Object.keys(patch).map(key => [key,task[key]]));
+          _recordAction({type:'update',taskId:task.id,before,after:patch});
+          void Store.updateTask(task.id,patch);
+        } else positionTaskBlock(el,segment.startTime,segment.endTime,_granularity);
+        cleanup();
+      };
+      handle.addEventListener('pointermove',onMove);
+      handle.addEventListener('pointerup',onUp);
+      handle.addEventListener('pointercancel',onCancel);
+    });
+  }
 }
 // ── コピー＆ペースト (F-TASK-005) ────────────────────
 function _wireCopyPaste() {
@@ -1626,7 +1498,9 @@ function _wireCopyPaste() {
         const created = await Store.createTask({
           ..._clipboard,
           id: undefined,
+          outlookEnabled: Store.getSettings().outlookWriteDefault,
           date: formatDateKey(_viewDate),
+          endDate: _clipboard.endDate ? shiftEventDate(_clipboard.endDate, (Date.parse(formatDateKey(_viewDate)) - Date.parse(_clipboard.date))/86400000) : undefined,
           recurrence: { type: "none" },
         });
         if (created) _recordAction({ type: "create", taskId: created.id, task: created });

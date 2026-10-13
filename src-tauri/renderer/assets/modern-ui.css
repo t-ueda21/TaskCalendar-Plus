@@ -1,0 +1,123 @@
+/* Shared modal surfaces and the settings workspace use the existing theme tokens. */
+.appDialog {
+  color: var(--text); background: var(--panel); border: 1px solid var(--border);
+  border-radius: 18px; padding: 0; width: min(480px, calc(100vw - 32px));
+  max-height: min(720px, calc(100dvh - 40px)); overflow: hidden;
+  box-shadow: 0 24px 80px rgba(10, 20, 35, .24);
+}
+.appDialog::backdrop { background: rgba(15, 22, 35, .43); backdrop-filter: blur(3px); }
+.appDialogForm { display: flex; flex-direction: column; margin: 0; max-height: min(720px, calc(100dvh - 40px)); }
+.appDialogHeader { display: flex; align-items: center; gap: 12px; padding: 24px 24px 4px; }
+.appDialogSymbol { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; border-radius: 12px; background: var(--accent-soft); color: var(--accent-strong); font-size: 21px; font-weight: 700; }
+.appDialog[data-tone="error"] .appDialogSymbol, .appDialog[data-tone="danger"] .appDialogSymbol { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); }
+.appDialogTitle { margin: 0; font-size: 18px; line-height: 1.5; font-weight: 700; overflow-wrap: anywhere; }
+.appDialogContent { padding: 12px 24px 24px; min-height: 0; overflow-y: auto; }
+.appDialogMessage { margin: 0; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.7; }
+.appDialogFooter { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border); background: var(--panel2); }
+.appDialogFooter .btn { min-width: 90px; min-height: 38px; justify-content: center; }
+.appDialogFooter .appDialogDestructive { background: var(--danger); border-color: var(--danger); color: #fff; }
+[data-theme="dark"] .appDialogFooter .appDialogDestructive { color: #231018; }
+.appDialogChoices { display: grid; gap: 8px; padding: 0; border: 0; margin: 18px 0 0; min-width: 0; }
+.appDialogChoice { display: flex; gap: 12px; align-items: flex-start; padding: 13px 14px; border: 1px solid var(--border); border-radius: 11px; cursor: pointer; }
+.appDialogChoice:hover { background: var(--panel2); }
+.appDialogChoice:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.appDialogChoice input { margin: 4px 0 0; accent-color: var(--accent); flex-shrink: 0; }
+.appDialogChoiceText { display: grid; gap: 4px; min-width: 0; }
+.appDialogChoiceText strong { font-size: 14px; font-weight: 600; }
+.appDialogChoiceText > span { font-size: 12px; color: var(--muted); line-height: 1.5; }
+.appDialogError { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, transparent); overflow-wrap: anywhere; }
+.appDialogStatus { margin: 14px 0 0; color: var(--muted); }
+.appDialog [hidden] { display: none; }
+.appDialog :focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.appDialog .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+
+dialog.settingsDialog.settingsPages[open] { display: grid; }
+.settingsDialog.settingsPages {
+  --settings-canvas: #dce4ee;
+  --settings-surface: #edf2f8;
+  --settings-navigation: #d0dce9;
+  --settings-heading: color-mix(in srgb, var(--accent) 8%, #d5e0ed);
+  --settings-chrome: #e4ebf3;
+  --border: #a5b3c5;
+  --border-strong: #8293a9;
+  --muted: #49576a;
+  width: min(1000px, calc(100vw - 32px)); height: min(820px, calc(100dvh - 40px)); max-height: calc(100dvh - 40px);
+  grid-template-columns: 198px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto;
+  border-radius: 18px; overflow: hidden;
+}
+:root[data-theme="dark"] .settingsDialog.settingsPages {
+  --settings-canvas: #111a28;
+  --settings-surface: #202c3e;
+  --settings-navigation: #162338;
+  --settings-heading: color-mix(in srgb, var(--accent) 16%, #273850);
+  --settings-chrome: #1a2638;
+  --border: #62728a;
+  --border-strong: #7a8ba3;
+  --muted: #b9c6d9;
+}
+.settingsPages > header { grid-column: 1 / -1; padding: 20px 24px 17px; background: var(--settings-chrome); }
+.settingsPages .settingsDialogTitle { font-size: 21px; }
+.settingsPages .settingsDialogSub { margin-top: 4px; }
+.settingsPages .settingsTabBar { grid-column: 1; grid-row: 2; display: block; padding: 14px 10px; border: 0; border-right: 1px solid var(--border); background: var(--panel2); overflow-y: auto; }
+.settingsPages .settingsTabs { display: flex; flex-direction: column; gap: 3px; flex-wrap: nowrap; }
+.settingsPages .settingsNavHeading { padding: 16px 10px 5px; font-size: 12px; font-weight: 700; letter-spacing: .06em; color: var(--text); }
+.settingsPages .settingsNavHeading:first-child { padding-top: 2px; }
+.settingsPages .settingsTabBtn { border-radius: 7px; min-height: 36px; padding: 7px 12px 7px 22px; font-weight: 400; text-align: left; line-height: 1.5; white-space: normal; overflow-wrap: anywhere; }
+.settingsPages .settingsTabBtn.isActive,
+.settingsPages .settingsTabBtn.isActive:hover { color: var(--text); background: var(--settings-heading); box-shadow: inset 3px 0 var(--accent-strong); font-weight: 700; }
+.settingsPages .settingsTabBtn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.settingsPages .settingsDialogBody { grid-column: 2; grid-row: 2; min-width: 0; background: var(--settings-canvas); scroll-behavior: auto; }
+.settingsPages .settingsTabPanel.isActive { display: flex; flex-direction: column; gap: 16px; padding: 24px 28px; background: var(--settings-canvas); height: auto; min-height: 100%; }
+.settingsPages .settingsPageHeading { display: grid; gap: 6px; padding: 0 0 4px; }
+.settingsPages .settingsPageHeading h2 { margin: 0; color: var(--text); font-size: 20px; line-height: 1.45; }
+.settingsPages .settingsPageHeading p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.settingsPages .settingsSection { padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--settings-surface); box-shadow: none; gap: 8px; min-width: 0; }
+.settingsPages .settingsSectionLabel { font-size: 15px; font-weight: 700; }
+.settingsPages .settingsSection > .settingsSectionLabel,
+.settingsPages .aiPersonalization legend { display: block; width: 100%; padding: 8px 12px; border-radius: 6px; background: var(--settings-heading); color: var(--text); }
+.settingsPages .settingsTabBar { background: var(--settings-navigation); }
+.settingsPages .settingsSection > h3, .settingsPages .settingsSection > p { margin-top: 0; margin-bottom: 0; }
+.settingsPages .settingsSectionSub, .settingsPages .settingsTagHint { line-height: 1.65; }
+.settingsPages .settingsAppearanceControls { display: grid; gap: 12px; }
+.settingsPages .settingsAppearanceControls .themeToggle { position: static; margin: 0; }
+.settingsPages .settingsAppearanceControls .uiColorPicker { margin: 0; justify-self: end; justify-content: flex-end; }
+.settingsPages .settingsSection > .uiToggle,
+.settingsPages .settingsAppearanceControls > .uiToggle { display: flex; justify-content: space-between; width: 100%; padding: 7px 0; gap: 16px; border-radius: 0; }
+.settingsPages .settingsSection > .uiToggle .themeToggleTrack,
+.settingsPages .settingsAppearanceControls > .uiToggle .themeToggleTrack { order: 2; flex-shrink: 0; }
+.settingsPages .settingsSection > .uiToggle .themeToggleLabel,
+.settingsPages .settingsAppearanceControls > .uiToggle .themeToggleLabel { order: 1; text-align: left; }
+.settingsPages .settingsTagHint { margin: 0; line-height: 1.6; }
+.settingsPages .settingsFooter { grid-column: 1 / -1; padding: 14px 24px; background: var(--settings-chrome); }
+.settingsPages .settingsFooter .btn { min-width: 90px; justify-content: center; }
+.settingsPages .settingsTabPanel[data-settings-tab-panel="tags"] { min-height: 100%; }
+.settingsPages .settingsTagSection { min-height: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--settings-surface); }
+.settingsPages .settingsTagList { min-height: 160px; }
+.settingsPages .aiPersonalization { display: grid; gap: 12px; margin: 0; padding: 0; border: 0; }
+.settingsPages .aiPersonalization legend { margin-bottom: 12px; font-size: 15px; font-weight: 700; }
+.settingsPages .settingsInlineRow { min-width: 0; grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr); gap: 12px; }
+.settingsPages .settingsInlineRow.settingsModelRow { grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr) auto; }
+.settingsPages .settingsInlineRow > label, .settingsPages .settingsInlineLabel { color: var(--text); }
+.settingsPages .settingsInlineRow select, .settingsPages .settingsInlineRow input { min-height: 34px; }
+.settingsPages .settingsSection .settingsSection { margin-top: 4px; background: var(--panel); }
+.settingsPages .settingsFeatureCard { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 8px 0; }
+.settingsPages input, .settingsPages select, .settingsPages textarea { max-width: 100%; }
+.settingsPages :is(select, textarea, input[type="text"], input[type="url"], input[type="number"], input[type="date"], input[type="time"]) { border-color: var(--border-strong); }
+@media (max-width: 760px) {
+  .settingsDialog.settingsPages { grid-template-columns: 162px minmax(0, 1fr); }
+  .settingsPages .settingsTabPanel.isActive { padding: 18px; }
+  .settingsPages .settingsInlineRow { grid-template-columns: minmax(100px, 1fr) minmax(0, 2fr); }
+}
+@media (max-width: 620px) {
+  .settingsDialog.settingsPages { width: calc(100vw - 16px); height: calc(100dvh - 16px); max-height: calc(100dvh - 16px); grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; border-radius: 12px; }
+  .settingsPages > header { padding: 14px 18px; }
+  .settingsPages .settingsTabBar { grid-column: 1; grid-row: 2; padding: 8px 10px; border-right: 0; border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .settingsPages .settingsTabs { flex-direction: row; width: max-content; }
+  .settingsPages .settingsNavHeading { display: none; }
+  .settingsPages .settingsTabBtn { flex-shrink: 0; min-height: 38px; padding: 7px 12px; white-space: nowrap; }
+  .settingsPages .settingsDialogBody { grid-column: 1; grid-row: 3; }
+  .settingsPages .settingsTabPanel.isActive { padding: 18px 14px; gap: 14px; }
+  .settingsPages .settingsFooter { padding: 12px 16px; }
+  .settingsPages .settingsInlineRowWide, .settingsPages .settingsInlineRowWideTop { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .settingsPages .settingsTagHeader, .settingsPages .settingsActionHeader { flex-wrap: wrap; }
+}

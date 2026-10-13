@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 /**
  * ai-memory.js
  *
@@ -12,20 +13,15 @@ import { getWeatherByDate, formatWeatherForDisplay } from "./weather.js";
 import { callAi, isAiConfigured } from "./ai-client.js";
 
 // 日次サマリーの一言コメントの人柄。事実は捏造させない。
-const SUMMARY_PERSONA = [
-  "あなたは、その人の一日の記録を見守る相棒のような存在です。",
-  "データを淡々と読み上げるのではなく、よく働いた日はねぎらい、詰め込みすぎた日はそっと気遣い、",
-  "面白い偏りがあれば軽くツッコむなど、人間味のある一言を添えます。",
-  "口調はフランクで温かく、説教くさくしないこと。事実は決して捏造しないこと。",
-].join("");
+const SUMMARY_PERSONA = 'Create a factual daily summary. Do not invent records, causes or intentions. Follow the application system instructions for language, tone, warmth, emoji and length.';
 
 const SUMMARY_SCHEMA = {
   type: "object",
   properties: {
-    summaryText: { type: "string", description: "入力データにある事実だけの要約" },
-    comment: { type: "string", description: "その日への人間味のある一言(1〜2文)" },
+    summaryText: { type: "string", get description() { return translate('ui.db6b5e2a54'); } },
+    comment: { type: "string", get description() { return translate('ui.c543a25991'); } },
     mood: { type: "string", enum: ["高稼働", "中稼働", "低稼働", "軽稼働"] },
-    highlights: { type: "array", items: { type: "string" }, description: "事実の箇条書き(最大4つ)" },
+    highlights: { type: "array", items: { type: "string" }, get description() { return translate('ui.e3430da3f7'); } },
   },
   required: ["summaryText", "comment", "mood", "highlights"],
   additionalProperties: false,
@@ -90,21 +86,21 @@ export async function summarizeDay(dateKey, { overwrite = false } = {}) {
   const weather = await getWeatherByDate(dateKey).catch(() => null);
 
   const prompt = [
-    "以下の業務データから日次サマリーを作ってください。",
-    "summaryText と highlights は入力データにある事実のみで淡々とまとめること(ない事実・理由・意図を作らない)。",
-    "comment は、その事実をふまえた人間味のある一言です。その日で一番目立つ点を1つ選び、感心・ねぎらい・気遣い・軽いツッコミなどで1〜2文。事実の捏造はしないこと。",
-    `対象日: ${formatDateJP(parseLocalDate(dateKey))} (${dateKey})`,
-    `タスク件数: ${tasks.length}、合計工数: ${totalMinutes}分`,
-    `天気: ${weather ? formatWeatherForDisplay(weather) : "情報なし"}`,
-    "タスク一覧:",
+    translate('ui.1b2cb0d304'),
+    translate('ui.e5ace782e2'),
+    translate('ui.081ecdbaab'),
+    translate('ui.7b1fa49add', { p0: (formatDateJP(parseLocalDate(dateKey))), p1: (dateKey) }),
+    translate('ui.862604751a', { p0: (tasks.length), p1: (totalMinutes) }),
+    translate('ui.9dac48b964', { p0: (weather ? formatWeatherForDisplay(weather) : "情報なし") }),
+    translate('ui.0dcb8b48aa'),
     ...tasks.slice(0, 80).map((task) => {
-      const tag = tagById.get(String(task.tagId ?? "")) || "タグなし";
-      const time = task.isAllDay ? "終日" : `${task.startTime ?? "--:--"}-${task.endTime ?? "--:--"}`;
+      const tag = tagById.get(String(task.tagId ?? "")) || translate('ui.af1cc864e3');
+      const time = task.isAllDay ? translate('ui.0aff5cf2d8') : `${task.startTime ?? "--:--"}-${task.endTime ?? "--:--"}`;
       const memo = String(task.memo ?? "").trim();
-      return `- ${time} ${String(task.title ?? "").trim() || "無題"} [${tag}] ${Store.taskDurationMinutes(task)}分${memo ? ` メモ:${memo}` : ""}`;
+      return translate('ui.d901206d87', { p0: (time), p1: (String(task.title ?? "").trim() || "無題"), p2: (tag), p3: (Store.taskDurationMinutes(task)), p4: (memo ? ` メモ:${memo}` : "") });
     }),
-    "気づきメモ:",
-    ...(notes.length ? notes.slice(0, 20).map((note) => `- ${String(note.text ?? "").trim()}`) : ["(なし)"]),
+    translate('ui.e966ed6e9c'),
+    ...(notes.length ? notes.slice(0, 20).map((note) => `- ${String(note.text ?? "").trim()}`) : [translate('ui.0b720f3b2e')]),
   ].join("\n");
 
   let parsed;

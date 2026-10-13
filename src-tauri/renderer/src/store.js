@@ -1,3 +1,5 @@
+import { expandNativeDates } from "./native-recurrence-dates.js";
+import { normalizeNativeRule } from "./native-recurrence.js";
 /**
  * store.js — TaskCalendar+ データ層
  *
@@ -11,6 +13,10 @@
 import { normalizeCompanyHolidayEntries } from "./company-holidays.js";
 import { normalizeQuickLinks } from "./settings-transfer.js";
 import { DEFAULT_UI_COLOR, normalizeUiColor } from "./ui-colors.js";
+import { normalizeLocale, t as translate, th as translateHtml } from './i18n.js';
+import { personalization } from "./ai-personalization.js";
+import { eventDateKeys, eventDaySegment, validateEventRange, shiftEventDate } from "./event-fields.js";
+import { summarizeWork } from "./work-time.js";
 import {
   normalizeBreaks, normalizeUrlAutoOpenTimes, _isDateKey, _normalizeDateKey, timeToMinutes, minutesToTime,
   formatDateKey, formatYearMonth, parseLocalDate,
@@ -18,7 +24,7 @@ import {
 
 // AIの接続先。"none"(既定)のときはAIを呼ばない。
 export const AI_PROVIDER_LABELS = {
-  none: "使わない",
+  get none() { return translate('ui.16f23fffd1'); },
   "claude-code": "Claude Code",
   codex: "Codex",
   ollama: "Ollama",
@@ -48,6 +54,8 @@ function _normalizeShortText(value) {
 
 // ── デフォルト値 ──────────────────────────────────────
 const DEFAULT_SETTINGS = {
+  uiLanguage: "auto",
+  aiPersonalization: personalization({}),
   workStart:           "09:00",
   workEnd:             "18:00",
   // 休憩時間帯ごとに工数計算へ含めるか選べるようにする。
@@ -85,6 +93,9 @@ const DEFAULT_SETTINGS = {
   outlookSyncCalendarName: "Calendar",
   outlookSyncTagId: "",
   outlookSyncDaysAhead: 90,
+  outlookWriteEnabled: false,
+  outlookWriteDefault: false,
+  outlookWriteCalendarName: "Calendar",
   trayEnabled: true, // 「✕」でタスクトレイへ格納するか(Rust側main.rsが起動時に読む)
   startMinimizedToTray: false, // 起動時にタスクトレイのみで起動するか
 };
@@ -97,7 +108,7 @@ function genId() {
 }
 
 // ── バリデーション ─────────────────────────────────────
-const RE_HHMM = /^([01]\d|2[0-3]):[0-5]\d$|^24:00$/;
+const RE_HHMM = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$|^24:00(?::00)?$/;
 
 function _normalizeAutoOpenEnabled(value) {
   if (typeof value === "boolean") return value;
@@ -157,6 +168,14 @@ function _normalizeSettings(settingsLike) {
   merged.urlAutoOpenTimes = normalizeUrlAutoOpenTimes(merged.urlAutoOpenTimes);
   merged.quickLinks = normalizeQuickLinks(merged.quickLinks);
   merged.uiAccentColor = normalizeUiColor(merged.uiAccentColor);
+  merged.uiLanguage = merged.uiLanguage === "auto" ? "auto" : normalizeLocale(merged.uiLanguage);
+  merged.aiPersonalization = personalization(merged);
+  merged.outlookWriteEnabled = merged.outlookWriteEnabled === true;
+  merged.outlookWriteDefault = merged.outlookWriteDefault === true;
+  for (const key of ['outlookWriteCalendarName','outlookSyncCalendarName']) {
+    const value = String(merged[key] ?? 'Calendar').trim();
+    merged[key] = (value.startsWith('outlook-folder:') ? value : value.slice(0, 200)) || 'Calendar';
+  }
   merged.companyHolidayEntries = normalizeCompanyHolidayEntries(merged.companyHolidayEntries ?? merged.companyHolidays);
   merged.companyHolidays = merged.companyHolidayEntries.map((row) => row.dateKey);
   merged.aiCliEnabled = merged.aiCliEnabled === true;
@@ -189,23 +208,8 @@ function _normalizeTaskTimeRange(taskLike) {
     return { startTime: startRaw, endTime: endRaw };
   }
 
-  // 手入力時は分単位をそのまま保持し、境界と前後関係のみ補正する。
-  let startMins = Math.max(0, Math.min(1439, timeToMinutes(startRaw)));
-  let endMins = Math.max(0, Math.min(1440, timeToMinutes(endRaw)));
-
-  // 終了が開始以下のときは最小1分だけ伸ばす。
-  if (endMins <= startMins) {
-    endMins = Math.min(1440, startMins + 1);
-    if (endMins <= startMins) {
-      startMins = 1439;
-      endMins = 1440;
-    }
-  }
-
-  return {
-    startTime: minutesToTime(startMins),
-    endTime: minutesToTime(endMins),
-  };
+  // Preserve the user's range, including cross-day clocks and imported seconds.
+  return { startTime: startRaw, endTime: endRaw };
 }
 
 // patchがisAllDay/startTime/endTimeのいずれかを含む場合のみ、updatedの時刻を
@@ -231,6 +235,7 @@ function validateTask(t) {
     if (!RE_HHMM.test(t.startTime)) return false;
     if (!RE_HHMM.test(t.endTime))   return false;
   }
+  if (validateEventRange(t)) return false;
   if (typeof t.tagId !== "string") return false;
   return true;
 }
@@ -357,7 +362,7 @@ let _syncReloading = false;
 
 function _strictApiError(action, error) {
   const reason = String(error?.message ?? error ?? "Unknown error");
-  return new Error(`${action}に失敗しました。\n${reason}`);
+  return new Error(translate('ui.a4d69ea188', { p0: (action), p1: (reason) }));
 }
 
 async function _failStrictApi(channel, action, error) {
@@ -395,6 +400,10 @@ function _advanceRecurrenceDate(date, type, originDay) {
 }
 
 function _normalizeRecurrence(raw, baseDateKey) {
+  if (raw?.native) return {
+    ...structuredClone(raw), type: "native", native: normalizeNativeRule(raw.native),
+    groupId: String(raw.groupId || genId()), originDate: raw.originDate || raw.native.patternStartDate || baseDateKey,
+  };
   const typeRaw = String(raw?.type ?? "none");
   const type = ["none", "daily", "weekly", "monthly"].includes(typeRaw) ? typeRaw : "none";
   if (type === "none") return { type: "none" };
@@ -407,6 +416,7 @@ function _normalizeRecurrence(raw, baseDateKey) {
 }
 
 function _expandRecurrenceDateKeys(startDateKey, recurrence) {
+  if (recurrence?.native) return expandNativeDates(recurrence.native, {from:startDateKey});
   if (!_isDateKey(startDateKey)) return [];
   if (!recurrence || recurrence.type === "none") return [startDateKey];
 
@@ -542,14 +552,19 @@ function _ensureTaskIndex() {
   _tasksByDate = new Map();
   _tasksByMonth = new Map();
   for (const task of _tasks) {
-    const date = task.date, month = date.slice(0, 7);
-    if (!_tasksByDate.has(date)) _tasksByDate.set(date, []);
-    if (!_tasksByMonth.has(month)) _tasksByMonth.set(month, []);
-    _tasksByDate.get(date).push(task);
-    _tasksByMonth.get(month).push(task);
+    const months = new Set();
+    for (const date of eventDateKeys(task)) {
+      if (!_tasksByDate.has(date)) _tasksByDate.set(date, []);
+      _tasksByDate.get(date).push(task);
+      months.add(date.slice(0, 7));
+    }
+    for (const month of months) {
+      if (!_tasksByMonth.has(month)) _tasksByMonth.set(month, []);
+      _tasksByMonth.get(month).push(task);
+    }
   }
 }
-const _copySummary = summary => ({ total: summary.total, byTag: new Map(summary.byTag) });
+const _copySummary = summary => ({ total: summary.total, overtime: summary.overtime ?? 0, byTag: new Map(summary.byTag) });
 
 async function _readTaskSnapshot(etag = null) {
   const headers = etag ? { 'If-None-Match': etag } : {};
@@ -576,7 +591,7 @@ function _refreshTaskSnapshot() {
       }
       return;
     }
-    throw new Error('予定を編集中のため再読み込みできませんでした。もう一度お試しください。');
+    throw new Error(translate('ui.a384f9463f'));
   })().finally(() => { _taskRefreshPromise = null; });
   return _taskRefreshPromise;
 }
@@ -816,20 +831,24 @@ function _makeTaskEntity(data, dateKey, recurrence, nowIso) {
   const isAllDay = Boolean(data.isAllDay);
   const normalizedClock = _normalizeTaskTimeRange({
     isAllDay,
+    date: dateKey || data.date, endDate: data.endDate,
     startTime: data.startTime,
     endTime: data.endTime,
   });
 
   return {
     id:        String(data.id ?? genId()),
-    title:     String(data.title  ?? "").trim() || "無題",
+    title:     String(data.title  ?? "").trim() || translate('ui.6ada6dbdde'),
     date:      String(dateKey ?? data.date ?? ""),
+    ...(data.endDate ? { endDate: shiftEventDate(data.endDate, (Date.parse(dateKey) - Date.parse(data.date)) / 86400000) } : {}),
+    ...(data.outlookDetails ? { outlookDetails: structuredClone(data.outlookDetails) } : {}),
     isAllDay,
     startTime: normalizedClock.startTime,
     endTime:   normalizedClock.endTime,
     tagId:     String(data.tagId  ?? ""),
     recurrence,
     memo:      String(data.memo   ?? "").trim(),
+    outlookEnabled: data.outlookEnabled === undefined ? _settings.outlookWriteDefault : data.outlookEnabled === true,
     createdAt: nowIso,
     updatedAt: nowIso,
   };
@@ -840,11 +859,15 @@ async function createTask(data) {
   const now = new Date().toISOString();
   const baseDateKey = _normalizeDateKey(data.date);
   const recurrence = _normalizeRecurrence(data.recurrence, baseDateKey);
+  if (recurrence.native) {
+    recurrence.template = Object.fromEntries(["title","date","endDate","isAllDay","startTime","endTime","memo","outlookDetails"]
+      .filter(key => data[key] !== undefined).map(key => [key,structuredClone(data[key])]));
+  }
   const dateKeys = _expandRecurrenceDateKeys(baseDateKey, recurrence);
   const nextTasks = dateKeys.map((dateKey) => _makeTaskEntity(
     data,
     dateKey,
-    recurrence.type === "none" ? { type: "none" } : { ...recurrence },
+    recurrence.type === "none" ? { type: "none" } : { ...recurrence, ...(recurrence.native ? {occurrenceDate:dateKey} : {}) },
     now,
   ));
 
@@ -859,16 +882,16 @@ async function createTask(data) {
     await _commitTaskMutation(generation, () => _tasks.push(...createdTasks.filter(validateTask)));
     return createdTasks[0] ?? null;
   } catch (e) {
-    throw _strictApiError("予定の保存", e);
+    throw _strictApiError(translate('ui.01f48f2110'), e);
   }
 }
 
 // The server checks every revision and commits the complete change in one transaction.
-async function _batchTasks(upserts, deleted) {
+async function _batchTasks(upserts, deleted, expectedSnapshots = null) {
   const generation = _tasksGeneration;
   const currentById = new Map(_tasks.map((task) => [task.id, task]));
   const touched = [...upserts.filter((task) => currentById.has(task.id)), ...deleted];
-  const expected = [...new Map(touched.map((task) => [task.id, {
+  const expected = expectedSnapshots ? expectedSnapshots.map(task=>({id:task.id,updatedAt:task.updatedAt})) : [...new Map(touched.map((task) => [task.id, {
     id: task.id, updatedAt: currentById.get(task.id)?.updatedAt ?? task.updatedAt,
   }])).values()];
   const saved = await _api.post("/tasks/batch", {
@@ -885,16 +908,43 @@ async function _batchTasks(upserts, deleted) {
   return _tasks.slice();
 }
 
+/** Apply only the selected instances, with the revisions captured by the editor. */
+async function updateTasksBatch(snapshots, patch) {
+  const {prepareBulkTasks} = await import('./task-selection.js');
+  const upserts = prepareBulkTasks(snapshots, patch);
+  if (upserts.some(task=>!validateTask(task))) throw new Error(translate('errors.generic'));
+  if ('tagId' in patch && patch.tagId && !_tags.some(tag=>tag.id===patch.tagId)) throw new Error(translate('errors.conflict'));
+  if (snapshots.some(task=>_tasks.find(row=>row.id===task.id)?.updatedAt!==task.updatedAt)) throw new Error(translate('errors.conflict'));
+  const saved = await _batchTasks(upserts, [], snapshots);
+  publish('task-bulk-changed', {ids:snapshots.map(task=>task.id)});
+  return saved;
+}
+
+/** Delete exactly the captured occurrences in one revision-checked transaction. */
+async function deleteTasksBatch(snapshots) {
+  if (!Array.isArray(snapshots) || !snapshots.length || snapshots.some(task => !validateTask(task))
+    || new Set(snapshots.map(task => task.id)).size !== snapshots.length) {
+    throw new Error(translate('errors.generic'));
+  }
+  if (snapshots.some(task => {
+    const current = _tasks.find(row => row.id === task.id);
+    return !current || current.updatedAt !== task.updatedAt;
+  })) throw new Error(translate('errors.conflict'));
+  const saved = await _batchTasks([], snapshots, snapshots);
+  publish('task-bulk-changed', {ids:snapshots.map(task => task.id)});
+  return saved;
+}
+
 /** Restore a previously deleted task without changing its identity or recurrence. */
 async function restoreTask(task) {
   if (!validateTask(task) || _tasks.some((row) => row.id === task.id)) {
-    throw new Error("予定を復元できません。元のIDが既に使われています。");
+    throw new Error(translate('ui.a91424ac42'));
   }
   try {
     const saved = await _batchTasks([task], []);
     return saved.find((row) => row.id === task.id) ?? null;
   } catch (e) {
-    throw _strictApiError("予定の復元", e);
+    throw _strictApiError(translate('ui.a521c33722'), e);
   }
 }
 
@@ -935,7 +985,7 @@ async function updateTask(id, patch, { expectedUpdatedAt } = {}) {
     const scheduledDate = _tasks[idx].recurrence?.occurrenceDate ?? _tasks[idx].date;
     updated.recurrence = { ...updated.recurrence };
     if (updated.date === scheduledDate) {
-      delete updated.recurrence.occurrenceDate;
+      if (!updated.recurrence.native) delete updated.recurrence.occurrenceDate;
       delete updated.recurrence.exception;
     } else {
       updated.recurrence.occurrenceDate = scheduledDate;
@@ -955,7 +1005,7 @@ async function updateTask(id, patch, { expectedUpdatedAt } = {}) {
     const recurrenceChanged = previousRecurrence.type !== updated.recurrence?.type
       || previousRecurrence.until !== updated.recurrence?.until
       || _tasks[idx].date !== updated.date;
-    if (patch.recurrence !== undefined && updated.recurrence?.type !== "none"
+    if (patch.recurrence !== undefined && !updated.recurrence?.native && updated.recurrence?.type !== "none"
       && recurrenceChanged && getTaskSeriesCount(_tasks[idx]) === 1) {
       updated.recurrence = { ...updated.recurrence, originDate: updated.date };
       const dates = _expandRecurrenceDateKeys(updated.date, updated.recurrence);
@@ -981,7 +1031,7 @@ async function updateTask(id, patch, { expectedUpdatedAt } = {}) {
     await _commitTaskMutation(generation, () => { _tasks[idx] = saved; });
     return saved;
   } catch (e) {
-    throw _strictApiError("予定の更新", e);
+    throw _strictApiError(translate('ui.7ab0e296d1'), e);
   }
 }
 
@@ -1036,6 +1086,30 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
   const target = _tasks.find((t) => t.id === id);
   if (!target) return null;
 
+  if (target.recurrence?.native || patch.recurrence?.native) {
+    const rule = patch.recurrence === undefined ? target.recurrence?.native : patch.recurrence?.native;
+    const previousRule = target.recurrence?.native;
+    const ruleKeys = new Set([...Object.keys(rule || {}),...Object.keys(previousRule || {})]);
+    const changed = Boolean(rule) !== Boolean(previousRule) || [...ruleKeys].some(key => rule?.[key] !== previousRule?.[key]);
+    if (changed && mode !== "series" && mode !== "future") {
+      throw new Error(translate("event.ruleScopeRequired"));
+    }
+    if (mode === "series" || mode === "future") {
+      const native = rule ? normalizeNativeRule(rule) : null;
+      const payload = {...target,...patch,id:target.id,recurrence:native ? {...target.recurrence,...patch.recurrence,type:"native",native} : {type:"none"}};
+      if (!validateTask(payload)) throw new Error(translate('errors.generic'));
+      const generation = _tasksGeneration;
+      const saved = await _api.post(`/outlook/series/${encodeURIComponent(id)}`, {
+        scope:mode === "future" ? "future" : "all", rule:native, payload,
+        expectedUpdatedAt:options.expectedUpdatedAt ?? target.updatedAt,
+      });
+      if (!Array.isArray(saved) || !saved.every(validateTask)) throw new Error("API returned invalid tasks");
+      await _commitTaskMutation(generation, () => { _tasks = _backfillRecurrenceGroupIds(saved); });
+      await refreshTasks();
+      return _tasks.find(task => task.id === id) || (Array.isArray(saved) ? saved[0] : null);
+    }
+  }
+
   const isMultiMode = mode === "series" || mode === "future";
   let indexes = isMultiMode ? _collectSeriesTaskIndexes(target) : [];
   // 「今日以降すべて」はtarget自身の日付以降(含む)のみに絞る
@@ -1066,7 +1140,7 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
   const normalized = sharedPatch.recurrence === undefined ? { ...oldRecurrence }
     : _normalizeRecurrence(sharedPatch.recurrence, anchor);
   if (normalized.type !== "none" && normalized.until < anchor) {
-    throw new Error("繰り返しの終了日は、変更する予定の開始日以降にしてください。");
+    throw new Error(translate('ui.cf5c0a4a7e'));
   }
   const expansionAnchor = normalized.type === "monthly"
     && oldRecurrence.type === "monthly" && _isDateKey(oldRecurrence.originDate)
@@ -1128,6 +1202,13 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
       id: current?.id ?? genId(), date,
       createdAt: current?.createdAt ?? nowIso, updatedAt: nowIso,
     };
+    if (!current) {
+      delete updated.outlookOccurrenceKey;
+      delete updated.outlookSeriesId;
+      delete updated.meetingUrl;
+    }
+    if (sharedPatch.endDate) updated.endDate = shiftEventDate(sharedPatch.endDate, (Date.parse(updated.date) - Date.parse(patch.date || target.date)) / 86400000);
+    else if (!current && template.endDate) updated.endDate = shiftEventDate(template.endDate, (Date.parse(updated.date) - Date.parse(template.date)) / 86400000);
     _maybeNormalizeClock(sharedPatch, updated);
     if (!validateTask(updated)) return null;
     upserts.push(updated);
@@ -1144,6 +1225,7 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
       },
       id: current.id, date: current.date, updatedAt: nowIso,
     };
+    if (sharedPatch.endDate) updated.endDate = shiftEventDate(sharedPatch.endDate, (Date.parse(updated.date) - Date.parse(patch.date || target.date)) / 86400000);
     _maybeNormalizeClock(sharedPatch, updated);
     if (!validateTask(updated)) return null;
     upserts.push(updated);
@@ -1168,7 +1250,7 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
       ?? saved.find((task) => task.id === upserts[0]?.id)
       ?? null;
   } catch (e) {
-    throw _strictApiError("繰り返し予定の更新", e);
+    throw _strictApiError(translate('ui.774df96a5d'), e);
   }
 }
 
@@ -1208,7 +1290,7 @@ async function deleteTaskWithMode(id, mode = "single", { expectedUpdatedAt } = {
       await _commitTaskMutation(generation, () => { _tasks = nextTasks; });
     }
   } catch (e) {
-    throw _strictApiError("予定の削除", e);
+    throw _strictApiError(translate('ui.a14cee8184'), e);
   }
 }
 
@@ -1231,7 +1313,7 @@ async function createTag(data) {
     publish("tags", _tags);
     return saved;
   } catch (e) {
-    return _failStrictApi("tags", "タグの保存", e);
+    return _failStrictApi("tags", translate('ui.2cbe49d6eb'), e);
   }
 }
 
@@ -1247,7 +1329,7 @@ async function updateTag(id, patch) {
     publish("tags", _tags);
     return saved;
   } catch (e) {
-    return _failStrictApi("tags", "タグの更新", e);
+    return _failStrictApi("tags", translate('ui.279082ada9'), e);
   }
 }
 
@@ -1259,7 +1341,7 @@ async function deleteTag(id) {
     // サーバー側で設定内の参照(monthTagOrders/outlookSyncTagId)も取り除かれるため読み直す。
     await _reloadFromSource("settings");
   } catch (e) {
-    return _failStrictApi("tags", "タグの削除", e);
+    return _failStrictApi("tags", translate('ui.fac387348b'), e);
   }
 }
 
@@ -1349,7 +1431,7 @@ async function updateSettings(patch) {
     _settings = (saved && typeof saved === "object") ? _normalizeSettings(saved) : _normalizeSettings(nextSettings);
     publish("settings", _settings);
   } catch (e) {
-    return _failStrictApi("settings", "設定の更新", e);
+    return _failStrictApi("settings", translate('ui.98cfb65d08'), e);
   }
 }
 
@@ -1369,28 +1451,10 @@ function _breakOverlapMinutes(startMin, endMin) {
   ]));
 }
 
-// [start,end]区間から休憩時間帯と重なる部分を取り除いた残り区間の配列を返す
-// (休憩が区間の途中にある場合は2つに分割される)。countAsWork=trueの休憩は
-// 除外対象にしない。
-function _subtractBreaksFromInterval(startMin, endMin) {
-  const breaks = _excludedBreaks();
-  let segments = [[startMin, endMin]];
-  for (const b of breaks) {
-    const bs = timeToMinutes(b.start);
-    const be = timeToMinutes(b.end);
-    const next = [];
-    for (const [s, e] of segments) {
-      if (be <= s || bs >= e) { next.push([s, e]); continue; }
-      if (bs > s) next.push([s, bs]);
-      if (be < e) next.push([be, e]);
-    }
-    segments = next;
-  }
-  return segments;
-}
-
 // 休憩時間との重なりを除いた実質の工数(分)。タスク一覧の「工数」列・タグ別集計に使用する
-function taskDurationMinutes(task) {
+function taskDurationMinutes(task, dateKey = null) {
+  if (dateKey) return taskDurationMinutes(eventDaySegment(task, dateKey) || {isAllDay:true});
+  if (task.endDate && task.endDate !== task.date) return eventDateKeys(task).reduce((sum, date) => sum + taskDurationMinutes(task, date), 0);
   if (task.isAllDay || !task.startTime || !task.endTime) return 0;
   const startMin = timeToMinutes(task.startTime);
   const endMin = timeToMinutes(task.endTime);
@@ -1427,6 +1491,21 @@ function _mergeIntervalMinutes(intervals) {
   return total;
 }
 
+// 日次・月次とも、保存済みのタグがある予定だけを工数集計へ渡す。
+function _tasksWithKnownTags(tasks) {
+  const validTagIds = new Set(_tags.map((tag) => String(tag.id ?? "").trim()).filter(Boolean));
+  return tasks.filter(task => validTagIds.has(String(task.tagId ?? '').trim()));
+}
+
+function _sumTaskMinutesByTag(tasks) {
+  const byTag = new Map();
+  for (const task of tasks) {
+    const tagId = String(task.tagId ?? '').trim();
+    byTag.set(tagId, (byTag.get(tagId) ?? 0) + taskDurationMinutes(task));
+  }
+  return byTag;
+}
+
 /**
  * 日次集計: { total, byTag: Map<tagId, minutes> }
  * - byTag: タグ別の工数（並行作業はそのまま加算）
@@ -1434,20 +1513,8 @@ function _mergeIntervalMinutes(intervals) {
  */
 function calcDaySummary(dateKey) {
   if (_daySummaryCache.has(dateKey)) return _copySummary(_daySummaryCache.get(dateKey));
-  const tasks = getTasksByDate(dateKey);
-  const validTagIds = new Set(_tags.map((tag) => String(tag.id ?? "").trim()).filter(Boolean));
-  const byTag = new Map();
-  const intervals = [];
-  for (const t of tasks) {
-    const tagId = String(t.tagId ?? "").trim();
-    if (!tagId || !validTagIds.has(tagId)) continue;
-    const mins = taskDurationMinutes(t);
-    byTag.set(tagId, (byTag.get(tagId) ?? 0) + mins);
-    if (!t.isAllDay && t.startTime && t.endTime) {
-      intervals.push(..._subtractBreaksFromInterval(timeToMinutes(t.startTime), timeToMinutes(t.endTime)));
-    }
-  }
-  const result = { total: _mergeIntervalMinutes(intervals), byTag };
+  const tasks = _tasksWithKnownTags(getTasksByDate(dateKey)).map(task => eventDaySegment(task, dateKey)).filter(Boolean);
+  const result = { ...summarizeWork(tasks, _settings), byTag: _sumTaskMinutesByTag(tasks) };
   _daySummaryCache.set(dateKey, result);
   return _copySummary(result);
 }
@@ -1458,26 +1525,15 @@ function calcDaySummary(dateKey) {
  */
 function calcMonthSummary(yearMonth) {
   if (_monthSummaryCache.has(yearMonth)) return _copySummary(_monthSummaryCache.get(yearMonth));
-  const tasks = getTasksByMonth(yearMonth);
-  const validTagIds = new Set(_tags.map((tag) => String(tag.id ?? "").trim()).filter(Boolean));
   const byTag = new Map();
-  const intervalsByDate = new Map();
-  for (const t of tasks) {
-    const tagId = String(t.tagId ?? "").trim();
-    if (!tagId || !validTagIds.has(tagId)) continue;
-    const mins = taskDurationMinutes(t);
-    byTag.set(tagId, (byTag.get(tagId) ?? 0) + mins);
-    if (!t.isAllDay && t.startTime && t.endTime) {
-      const list = intervalsByDate.get(t.date) ?? [];
-      list.push(..._subtractBreaksFromInterval(timeToMinutes(t.startTime), timeToMinutes(t.endTime)));
-      intervalsByDate.set(t.date, list);
-    }
+  let total = 0, overtime = 0;
+  const days = new Date(Number(yearMonth.slice(0,4)), Number(yearMonth.slice(5,7)), 0).getDate();
+  for (let day = 1; day <= days; day++) {
+    const summary = calcDaySummary(`${yearMonth}-${String(day).padStart(2,'0')}`);
+    total += summary.total; overtime += summary.overtime;
+    for (const [tag, mins] of summary.byTag) byTag.set(tag, (byTag.get(tag) || 0) + mins);
   }
-  let total = 0;
-  for (const list of intervalsByDate.values()) {
-    total += _mergeIntervalMinutes(list);
-  }
-  const result = { total, byTag };
+  const result = {total, overtime, byTag};
   _monthSummaryCache.set(yearMonth, result);
   return _copySummary(result);
 }
@@ -1510,7 +1566,7 @@ async function init() {
     console.info("[store] SQLite API で初期化しました");
   } catch (e) {
     console.error("[store] strict SQLite runtime initialization failed:", e);
-    throw _strictApiError("アプリの起動", e);
+    throw _strictApiError(translate('ui.8359a92fa3'), e);
   }
 }
 
@@ -1578,6 +1634,8 @@ export {
   createTask,
   restoreTask,
   updateTask,
+  updateTasksBatch,
+  deleteTasksBatch,
   updateTaskWithMode,
   deleteTask,
   deleteTaskWithMode,

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
+import { t, th } from '../src-tauri/renderer/src/i18n.js';
 
 // Execute the private production functions with deterministic data/transport adapters.
 const source = fs.readFileSync('src-tauri/renderer/src/ai-mode.js', 'utf8');
@@ -9,7 +10,7 @@ const proposalCode = source.slice(source.indexOf(proposalStart), source.indexOf(
 const snapshot = {title:'会議', date:'2026-09-26', startTime:'09:00', endTime:'10:00', memo:'旧メモ', tagName:'作業', allDay:false};
 function proposalContext(current) {
   const operations=[];
-  const ctx=vm.createContext({Store:{
+  const ctx=vm.createContext({t,th,translate:t,translateHtml:th,Store:{
     refreshTasks:async()=>{},getAllTasks:()=>current?[current]:[],getAllTags:()=>[{id:'work',name:'作業'}],
     updateTask:async(id,patch,options)=>{operations.push({kind:'update',id,patch,options});return {...current,...patch};},
     deleteTaskWithMode:async(id,mode,options)=>{operations.push({kind:'delete',id,mode,options});},
@@ -39,7 +40,7 @@ console.log('PASS: valid and legacy proposals send atomic revision guards');
 
 function sendContext() {
   let release;const gate=new Promise(r=>release=r);const messages=[];let calls=0;
-  const c=vm.createContext({_busy:false,_sendCancelled:false,$:{input:{value:'予定を確認'}},_activeDateKey:'2026-09-26',HISTORY_TURNS:12,
+  const c=vm.createContext({t,th,translate:t,translateHtml:th,_busy:false,_sendCancelled:false,$:{input:{value:'予定を確認'}},_activeDateKey:'2026-09-26',HISTORY_TURNS:12,
     isAiConfigured:()=>true,console,cancelAi:()=>{},_showLoading:()=>{},_appendMessage:()=>{},_renderModelStatus:()=>{},
     Store:{refreshTasks:()=>gate,getAiChatHistory:()=>messages,addAiChatMessage:(day,m)=>{messages.push(m);return m;}},
     chatWithAgent:async()=>{calls++;return {content:'回答',proposals:[]};}});

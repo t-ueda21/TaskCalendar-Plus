@@ -12,6 +12,22 @@ use std::thread;
 use tokio::sync::oneshot;
 use winsafe::prelude::*;
 use winsafe::{self as w, co};
+use windows::Win32::System::Variant::VARIANT as AutomationValue;
+
+mod automation;
+pub(crate) mod fields;
+pub(crate) mod series_store;
+pub(crate) use series_store::apply_series_result;
+pub mod recurrence;
+pub mod reconcile;
+#[cfg(test)]
+#[path = "outlook/roundtrip_live_tests.rs"]
+mod roundtrip_live_tests;
+#[cfg(test)]
+#[path = "outlook/outbound_live_tests.rs"]
+mod outbound_live_tests;
+mod calendars;
+pub use calendars::{CalendarList, calendar_label};
 
 const OL_FOLDER_CALENDAR: i32 = 9;
 const OL_APPOINTMENT_CLASS: i32 = 26;
@@ -33,6 +49,8 @@ fn meeting_status_is_active(status: i32) -> Result<bool, String> {
 
 #[derive(Debug, Clone)]
 pub struct OutlookEvent {
+    pub end_date: Option<String>,
+    pub outlook_details: Value,
     pub title: String,
     pub date: String,
     pub start_time: Option<String>,
@@ -44,63 +62,129 @@ pub struct OutlookEvent {
     pub is_recurring: bool,
     pub recurrence: Value,
     pub meeting_url: Option<String>,
+    pub remote: Option<reconcile::RemoteIdentity>,
 }
 
 /// COMで取得した範囲をそのまま削除判定にも使う。取得中に日付が変わっても再計算しない。
 pub struct OutlookSnapshot {
     pub events: Vec<OutlookEvent>,
     pub range: OutlookSyncRange,
+    pub calendar_ref: String,
+    pub observations: Vec<reconcile::Observation>,
+    pub cancelled: Vec<OutlookEvent>,
+    pub warnings:Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct OutlookSyncRange {
-    start_date: chrono::NaiveDate,
-    end_date: chrono::NaiveDate,
+    pub start: chrono::NaiveDateTime,
+    pub end_exclusive: chrono::NaiveDateTime,
+    starts_only: bool,
 }
 
 impl OutlookSyncRange {
-    fn new(now: chrono::NaiveDateTime, days_ahead: i64) -> Self {
-        let start_date = now.date();
+    #[cfg(test)]
+    fn assert_current_time_boundary() {
+        let noon = chrono::NaiveDate::from_ymd_opt(2026, 10, 7).unwrap().and_hms_opt(12, 0, 0).unwrap();
+        let range = Self::new(noon, 1);
+        assert!(!range.contains(noon - chrono::Duration::minutes(1)));
+        assert!(range.contains(noon));
+    }
+    pub fn new(now: chrono::NaiveDateTime, days_ahead: i64) -> Self {
         Self {
-            start_date,
-            end_date: start_date + chrono::Duration::days(days_ahead.clamp(1, 365)),
+            start: now,
+            end_exclusive: (now.date() + chrono::Duration::days(days_ahead.clamp(1, 365) + 1)).and_hms_opt(0, 0, 0).unwrap(),
+            starts_only: true,
         }
     }
 
-    pub fn start_key(self) -> String {
-        date_key(self.start_date)
-    }
-    pub fn end_key(self) -> String {
-        date_key(self.end_date)
+    pub fn dates(start: &str, end: &str) -> Result<Self, String> {
+        let parse = |value: &str| chrono::NaiveDate::parse_from_str(value, "%Y-%m-%d").map_err(|_| "Invalid date: use YYYY-MM-DD".to_string());
+        let first = parse(start)?;
+        let last = parse(end)?;
+        if last < first { return Err("End date must not precede start date".into()); }
+        if (last - first).num_days() > 365 { return Err("Select no more than 366 days".into()); }
+        let next = last.succ_opt().ok_or("End date is out of range")?;
+        Ok(Self { start: first.and_hms_opt(0,0,0).unwrap(), end_exclusive: next.and_hms_opt(0,0,0).unwrap(), starts_only: false })
     }
 
-    fn contains(self, start: chrono::NaiveDateTime) -> bool {
-        self.start_date <= start.date() && start.date() <= self.end_date
+    pub fn start_key(self) -> String {
+        date_key(self.start.date())
+    }
+    pub fn end_key(self) -> String {
+        date_key(self.end_exclusive.date() - chrono::Duration::days(1))
+    }
+
+    pub fn contains(self, start: chrono::NaiveDateTime) -> bool {
+        self.start <= start && start < self.end_exclusive
+    }
+
+    pub fn contains_task(self, date: &str, time: Option<&str>) -> bool {
+        crate::event_data::date_time(date,time.unwrap_or("00:00")).is_ok_and(|start|self.contains(start))
+    }
+
+    pub fn accepts_new_event(self,event:&OutlookEvent)->bool{
+        crate::event_data::range(&event.date,event.end_date.as_deref(),event.is_all_day,event.start_time.as_deref(),event.end_time.as_deref())
+            .is_ok_and(|(start,end)| if self.starts_only {self.contains(start)}else{start<self.end_exclusive&&end>self.start})
     }
 
     fn restrict_filter(self) -> String {
-        // SQLiteの終了日は含むため、COMの排他的な上限はその翌日0時にする。
-        let end_exclusive = self.end_date + chrono::Duration::days(1);
+        // Restrict is minute-precision; accepts_new_event applies the exact captured
+        // boundary. Only an explicit date range includes already-started overlaps.
+        let lower=if self.starts_only {"[Start] >="}else{"[End] >"};
         format!(
-            "[Start] >= '{}' AND [Start] < '{}'",
-            self.start_date.format("%m/%d/%Y"),
-            end_exclusive.format("%m/%d/%Y")
+            "{lower} '{}' AND [Start] < '{}'",
+            self.start.format("%m/%d/%Y %I:%M %p"),
+            self.end_exclusive.format("%m/%d/%Y %I:%M %p")
         )
     }
 }
 
 struct OutlookRequest {
+    tracked: Vec<reconcile::Tracked>,
+    legacy:Vec<(String,String)>,
     calendar_name: String,
-    days_ahead: i64,
+    range: OutlookSyncRange,
     reply: oneshot::Sender<Result<OutlookSnapshot, String>>,
 }
 
-static WORKER: OnceLock<std_mpsc::Sender<OutlookRequest>> = OnceLock::new();
+#[derive(Clone)]
+pub struct WriteRequest {
+    pub authorization: Option<WriteAuthorization>,
+    pub remote: Option<reconcile::RemoteIdentity>,
+    pub force: bool,
+    pub restore_deleted: bool,
+    pub operation: String,
+    pub payload: crate::outlook_jobs::WritePayload,
+    pub calendar_name: String,
+    pub entry_id: Option<String>,
+    pub store_id: Option<String>,
+    pub external_key: String,
+}
 
-fn worker_sender() -> std_mpsc::Sender<OutlookRequest> {
+#[derive(Clone)]
+pub struct WriteAuthorization {pub conn:std::sync::Arc<std::sync::Mutex<rusqlite::Connection>>,pub revision:i64}
+
+#[derive(Default)]
+pub struct WriteIdentity { pub deleted_existing: bool, pub remote: Option<reconcile::RemoteIdentity>, pub entry_id: String, pub store_id: String, pub occurrence_key: String, pub series_id: String }
+
+enum WorkerRequest { Series(Box<recurrence::SeriesEditRequest>,WriteAuthorization,String,oneshot::Sender<Result<recurrence::SeriesEditResult,String>>), Fetch(OutlookRequest), Write(Box<WriteRequest>, oneshot::Sender<Result<WriteIdentity, String>>), Calendars(oneshot::Sender<Result<CalendarList,String>>) }
+
+impl WorkerRequest {
+    fn fail(self, message: String) {
+        match self {Self::Series(_,_,_,reply)=>{let _=reply.send(Err(message));}, Self::Calendars(reply) => {let _=reply.send(Err(message));}, Self::Fetch(request) => { let _ = request.reply.send(Err(message)); }, Self::Write(_, reply) => { let _ = reply.send(Err(message)); } }
+    }
+}
+
+static WORKER: OnceLock<std_mpsc::Sender<WorkerRequest>> = OnceLock::new();
+
+#[test]
+fn current_time_excludes_past_starts() { OutlookSyncRange::assert_current_time_boundary(); }
+
+fn worker_sender() -> std_mpsc::Sender<WorkerRequest> {
     WORKER
         .get_or_init(|| {
-            let (tx, rx) = std_mpsc::channel::<OutlookRequest>();
+            let (tx, rx) = std_mpsc::channel::<WorkerRequest>();
             thread::Builder::new()
                 .name("outlook-com-worker".into())
                 .spawn(move || outlook_worker_loop(rx))
@@ -110,21 +194,30 @@ fn worker_sender() -> std_mpsc::Sender<OutlookRequest> {
         .clone()
 }
 
-fn outlook_worker_loop(rx: std_mpsc::Receiver<OutlookRequest>) {
+fn outlook_worker_loop(rx: std_mpsc::Receiver<WorkerRequest>) {
     let com_guard = w::CoInitializeEx(co::COINIT::APARTMENTTHREADED | co::COINIT::DISABLE_OLE1DDE);
     let _com_guard = match com_guard {
         Ok(g) => g,
         Err(e) => {
             let msg = format!("CoInitializeEx に失敗しました: {e}");
             for req in rx {
-                let _ = req.reply.send(Err(msg.clone()));
+                req.fail(msg.clone());
             }
             return;
         }
     };
     for req in rx {
-        let result = get_outlook_events(&req.calendar_name, req.days_ahead);
-        let _ = req.reply.send(result);
+        match req {
+            WorkerRequest::Series(request,authorization,task_id,reply)=>{let result=(||{
+                let conn=authorization.conn.lock().map_err(|_|"Database lock failed")?;
+                if !crate::outlook_jobs::write_is_authorized(&conn,&task_id,"series",authorization.revision).map_err(|e|e.to_string())?{return Err("Outlookへの送信は停止しています".into());}
+                let ns=automation::object_method(&connect_outlook()?,"GetNamespace",&[AutomationValue::from("MAPI")])?;
+                recurrence::execute(&ns,&request)
+            })();let _=reply.send(result);},
+            WorkerRequest::Calendars(reply) => {let _=reply.send(calendars::discover());},
+            WorkerRequest::Fetch(req) => { let result = get_outlook_events(&req.calendar_name, req.range).map(|mut snapshot| { reconcile::adopt_legacy(&mut snapshot,&req.calendar_name,req.legacy); snapshot.observations=reconcile::observe(req.tracked,&snapshot.events,&snapshot.cancelled);snapshot }); let _ = req.reply.send(result); },
+            WorkerRequest::Write(request, reply) => { let _ = reply.send(write_outlook_event(&request)); },
+        }
     }
     // _com_guardのDropでCoUninitializeが呼ばれる(ここまでスレッド生存)。
 }
@@ -132,24 +225,211 @@ fn outlook_worker_loop(rx: std_mpsc::Receiver<OutlookRequest>) {
 /// Outlookカレンダーから予定一覧を取得する(F-OUTLOOK-001, 002, 005)。
 /// ブロッキングCOM呼び出しは専用ワーカースレッドへ委譲し、HTTPサーバー
 /// 側のtokioランタイムをブロックしない。
+#[cfg(test)]
 pub async fn fetch_events(
     calendar_name: String,
     days_ahead: i64,
 ) -> Result<OutlookSnapshot, String> {
+    fetch_events_in_range(calendar_name, OutlookSyncRange::new(chrono::Local::now().naive_local(), days_ahead)).await
+}
+
+#[cfg(test)]
+pub async fn fetch_events_in_range(calendar_name: String, range: OutlookSyncRange) -> Result<OutlookSnapshot, String> {
+    fetch_for_sync(calendar_name,range,Vec::new()).await
+}
+#[cfg(test)]
+pub async fn fetch_for_sync(calendar_name: String, range: OutlookSyncRange, tracked: Vec<reconcile::Tracked>) -> Result<OutlookSnapshot, String> {
+    fetch_reconcile(calendar_name,range,tracked,Vec::new()).await
+}
+pub async fn fetch_reconcile(calendar_name:String,range:OutlookSyncRange,tracked:Vec<reconcile::Tracked>,legacy:Vec<(String,String)>)->Result<OutlookSnapshot,String>{
     let tx = worker_sender();
     let (reply_tx, reply_rx) = oneshot::channel();
-    tx.send(OutlookRequest {
+    tx.send(WorkerRequest::Fetch(OutlookRequest {
+        tracked,legacy,
         calendar_name,
-        days_ahead,
+        range,
         reply: reply_tx,
-    })
+    }))
     .map_err(|_| "Outlookワーカースレッドが終了しています".to_string())?;
     reply_rx
         .await
         .map_err(|_| "Outlookワーカーからの応答がありませんでした".to_string())?
 }
 
+pub async fn fetch_calendars() -> Result<CalendarList,String> {
+    let (reply,response)=oneshot::channel();
+    worker_sender().send(WorkerRequest::Calendars(reply)).map_err(|_|"Outlook worker stopped")?;
+    response.await.map_err(|_|"Outlook worker did not return a response")?
+}
+
+pub async fn edit_series(request:recurrence::SeriesEditRequest,authorization:WriteAuthorization,task_id:String)->Result<recurrence::SeriesEditResult,String>{
+    let(reply,response)=oneshot::channel();worker_sender().send(WorkerRequest::Series(Box::new(request),authorization,task_id,reply)).map_err(|_|"Outlook worker stopped")?;
+    response.await.map_err(|_|"Outlook worker did not return a response")?
+}
+pub async fn write_event(request: WriteRequest) -> Result<WriteIdentity,String> {
+    let (reply, response) = oneshot::channel();
+    worker_sender().send(WorkerRequest::Write(Box::new(request),reply)).map_err(|_| "Outlook worker stopped")?;
+    response.await.map_err(|_| "Outlook worker did not return a response")?
+}
+
+const TASK_KEY_PROPERTY: &str = "TCPlusTaskKey";
+
+#[cfg(test)]
+fn imported_memo(body: &str, location: &str, managed: bool) -> String {
+    if managed { body.to_string() } else { location.to_string() }
+}
+
+#[test]
+fn managed_appointments_preserve_body_as_task_memo() {
+    assert_eq!(imported_memo("User memo","Room A",true),"User memo");
+    assert_eq!(imported_memo("External body","Room A",false),"Room A");
+}
+
+fn task_property(item: &w::IDispatch) -> Result<Option<String>,String> {
+    let properties=automation::object_get(item,"UserProperties")?;
+    match invoke_optional_dispatch(&properties,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(true)])? {
+        Some(property)=>{
+            let value=automation::get(&property,"Value")?;
+            if unsafe {value.Anonymous.Anonymous.vt} != windows::Win32::System::Variant::VT_BSTR {return Ok(None);}
+            let text=windows::core::BSTR::try_from(&value).map_err(|error|format!("Outlook Value: {error}"))?.to_string();
+            Ok((!text.is_empty()).then_some(text))
+        },
+        None=>Ok(None),
+    }
+}
+
+fn outlook_date(date: &str, time: &str) -> Result<AutomationValue,String> {
+    use chrono::{Datelike,Timelike};
+    let day = chrono::NaiveDate::parse_from_str(date,"%Y-%m-%d").map_err(|_| "Invalid appointment date")?;
+    let value = if time == "24:00" { day.succ_opt().ok_or("Invalid appointment end")?.and_hms_opt(0,0,0).unwrap() } else {
+        day.and_time(crate::event_data::clock(time)?)
+    };
+    let time=w::SYSTEMTIME { wYear:value.year() as u16,wMonth:value.month() as u16,wDay:value.day() as u16,wHour:value.hour() as u16,wMinute:value.minute() as u16,wSecond:value.second() as u16,..Default::default() };
+    let date=w::SystemTimeToVariantTime(&time).map_err(|error|format!("Outlook date conversion: {error}"))?;
+    let mut result=AutomationValue::from(date);
+    // VT_DATE and VT_R8 share their f64 payload; no pointer ownership changes.
+    unsafe {(*result.Anonymous.Anonymous).vt=windows::Win32::System::Variant::VT_DATE;}
+    Ok(result)
+}
+
+/// winsafe 0.0.28 passes a null pointer to SysAllocString for an empty
+/// string and reports E_OUTOFMEMORY before Invoke. Windows VARIANT preserves
+/// the empty BSTR, so clearing a memo works as well as writing Unicode text.
+fn put_outlook_text(item: &w::IDispatch, property: &str, text: &str) -> Result<(), String> {
+    automation::put(item,property,AutomationValue::from(text))
+}
+
+fn write_outlook_event(request: &WriteRequest) -> Result<WriteIdentity,String> {
+    let authorization=request.authorization.as_ref().map(|gate|gate.conn.lock().map_err(|_|"Database lock failed")).transpose()?;
+    if let (Some(conn),Some(gate))=(&authorization,&request.authorization) && !crate::outlook_jobs::write_is_authorized(conn,&request.payload.task_id,&request.operation,gate.revision).map_err(|e|e.to_string())?{return Err("Outlookへの送信は停止しています".into());}
+    if !matches!(request.operation.as_str(),"upsert"|"delete"){return Err("Invalid Outlook write operation".into());}
+    if request.operation=="upsert"{validate_write_precision(&request.payload)?;}
+    if request.operation=="upsert" && let Some(reason)=request.remote.as_ref().and_then(|meta|meta.read_only.as_ref()){return Err(reason.clone());}
+    let outlook=connect_outlook()?;
+    let namespace=automation::object_method(&outlook,"GetNamespace",&[AutomationValue::from("MAPI")])?;
+    let target_folder=if let Some(folder)=calendars::resolve(&namespace,&request.calendar_name)?{folder}else{find_calendar_folder(&namespace,&request.calendar_name)?};
+    let track=reconcile::Tracked{id:request.payload.task_id.clone(),task_revision:None,job_revision:0,job_status:String::new(),operation:request.operation.clone(),external_key:request.external_key.clone(),calendar:request.calendar_name.clone(),entry_id:request.entry_id.clone(),store_id:request.store_id.clone(),remote:request.remote.clone(),enabled:true,subscribed:true,incoming_enabled:true,source_key:None};
+    let mut found=reconcile::find_item(&namespace,&track)?;
+    let restoring=found.is_none()&&request.operation=="upsert"&&request.restore_deleted;
+    if restoring {found=Some(reconcile::restore_original(&namespace,&track,request.force)?);}
+    if let Some(item)=&found {
+        let (event,active)=reconcile::read_item(item,request.remote.as_ref().and_then(|meta|meta.occurrence_start.as_deref()),Some(&target_folder))?;
+        if request.operation=="upsert" && let Some(reason)=event.remote.as_ref().and_then(|meta|meta.read_only.as_ref()){return Err(reason.clone());}
+        if request.operation=="upsert"&&!active {return Err("競合: Outlookでキャンセルされています。Outlook側の状態を確認してください".into());}
+        // A moved item must be saved before recording its persistent identity.
+        if request.operation=="upsert"&&!restoring&&reconcile::payload_matches_event(&request.payload,&event) {
+            return saved_identity(event,request.remote.as_ref());
+        }
+        if !request.force&&!restoring&&request.remote.is_none()&&!reconcile::payload_matches_event(&request.payload,&event) {
+            return Err("競合: 前回同期の比較情報がないため上書きを保留しました。内容を確認し「再試行」でアプリ側を優先してください".into());
+        }
+        if !request.force && !restoring && (request.operation!="upsert"||!reconcile::payload_matches_event(&request.payload,&event)) && request.remote.as_ref().is_some_and(|old|event.remote.as_ref().is_some_and(|new|!reconcile::same_content_version(&old.version,&new.version))) {
+            return Err("競合: Outlook側でも変更されています。「再試行」でアプリ側の内容を優先します".into());
+        }
+    }else if request.operation=="upsert" && (request.remote.as_ref().is_some_and(|meta|meta.imported)||(!request.force&&request.entry_id.is_some())) {
+        return Err("競合: Outlook側で削除されています。元の予定を確認してください。アプリ作成の予定は「再試行」で再登録します".into());
+    }
+    if request.operation=="delete" {
+        let deleted_existing=found.is_some();
+        if let Some(item)=found {automation::method(&item,"Delete",&[])?;}
+        return Ok(WriteIdentity{deleted_existing,..Default::default()});
+    }
+    let creating_native=found.is_none()&&request.payload.recurrence.get("native").is_some_and(|v|!v.is_null());
+    let item=if let Some(item)=found {item}else{
+        let folder=if let Some(folder)=calendars::resolve(&namespace,&request.calendar_name)?{folder}else{find_calendar_folder(&namespace,&request.calendar_name)?};
+        let items=automation::object_get(&folder,"Items")?;
+        automation::object_method(&items,"Add",&[AutomationValue::from(1_i32)])?
+    };
+    let mut base=request.payload.clone();
+    if creating_native&&let Some(template)=request.payload.recurrence.get("template"){
+        base.title=template.get("title").and_then(Value::as_str).unwrap_or(&base.title).into();
+        base.date=template.get("date").and_then(Value::as_str).unwrap_or(&base.date).into();
+        base.end_date=template.get("endDate").and_then(Value::as_str).map(str::to_string);
+        base.is_all_day=template.get("isAllDay").and_then(Value::as_bool).unwrap_or(base.is_all_day);
+        base.start_time=template.get("startTime").and_then(Value::as_str).map(str::to_string);
+        base.end_time=template.get("endTime").and_then(Value::as_str).map(str::to_string);
+        base.memo=template.get("memo").and_then(Value::as_str).unwrap_or(&base.memo).into();
+        base.outlook_details=template.get("outlookDetails").cloned().unwrap_or(base.outlook_details);
+    }
+    apply_payload(&item,&base)?;
+    if creating_native{recurrence::apply(&item,&request.payload.recurrence)?;}
+    if !request.remote.as_ref().is_some_and(|meta|meta.imported) {
+        let properties=automation::object_get(&item,"UserProperties")?;
+        let property=match invoke_optional_dispatch(&properties,"Find",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(true)])? {
+            Some(property)=>property,
+            None=>automation::object_method(&properties,"Add",&[AutomationValue::from(TASK_KEY_PROPERTY),AutomationValue::from(1_i32),AutomationValue::from(true)])?,
+        };
+        put_outlook_text(&property,"Value",&request.external_key)?;
+    }
+    automation::method(&item,"Save",&[])?;
+    let mut original=None;
+    let item=if creating_native{
+        let day=request.payload.recurrence.get("occurrenceDate").and_then(Value::as_str).unwrap_or(&request.payload.date);
+        let at=crate::event_data::date_time(day,if base.is_all_day{"00:00"}else{base.start_time.as_deref().ok_or("Start missing")?})?;
+        original=Some(at.format("%Y-%m-%dT%H:%M:%S").to_string());
+        let pattern=automation::object_method(&item,"GetRecurrencePattern",&[])?;
+        let occurrence=automation::object_method(&pattern,"GetOccurrence",&[outlook_date(&date_key(at.date()),&time_key(at))?])?;
+        let (event,_)=reconcile::read_item(&occurrence,original.as_deref(),Some(&target_folder))?;
+        if !reconcile::payload_matches_event(&request.payload,&event){apply_payload(&occurrence,&request.payload)?;automation::method(&occurrence,"Save",&[])?;}
+        occurrence
+    }else{item};
+    let (saved,active)=reconcile::read_item(&item,original.as_deref().or_else(||request.remote.as_ref().and_then(|meta|meta.occurrence_start.as_deref())),Some(&target_folder))?;
+    if !active{return Err("競合: 保存中にOutlook側でキャンセルされました。Outlookの状態を確認してください".into());}
+    saved_identity(saved,request.remote.as_ref())
+}
+pub(super) fn apply_payload(item:&w::IDispatch,payload:&crate::outlook_jobs::WritePayload)->Result<(),String>{
+    validate_write_precision(payload)?;
+    let (start,end)=crate::event_data::range(&payload.date,payload.end_date.as_deref(),payload.is_all_day,payload.start_time.as_deref(),payload.end_time.as_deref())?;
+    crate::event_data::validate_details(&payload.outlook_details)?;
+    fields::validate_time_zones(item,&payload.outlook_details)?;
+    if reconcile::optional_string(item,"Subject")?!=payload.title{put_outlook_text(item,"Subject",&payload.title)?;}
+    if reconcile::optional_string(item,"Body")?.replace("\r\n","\n").trim_end()!=payload.memo.replace("\r\n","\n").trim_end(){put_outlook_text(item,"Body",&payload.memo)?;}
+    fields::apply(item,&payload.outlook_details)?;
+    automation::put(item,"AllDayEvent",AutomationValue::from(payload.is_all_day))?;
+    automation::put(item,"Start",outlook_date(&date_key(start.date()),&time_key(start))?)?;
+    automation::put(item,"End",outlook_date(&date_key(end.date()),&time_key(end))?)?;
+    Ok(())
+}
+pub(super) fn validate_write_precision(payload:&crate::outlook_jobs::WritePayload)->Result<(),String>{
+    use chrono::Timelike;
+    if !payload.is_all_day && [payload.start_time.as_deref(),payload.end_time.as_deref()].into_iter().flatten().any(|s|crate::event_data::date_time(&payload.date,s).is_ok_and(|t|t.second()!=0)){
+        return Err("Classic OutlookはCOM経由の登録時に秒を分単位へ丸めるため、送信を保留しました。Calendarの入力は保持しています。秒を00にして保存するか、Outlookで編集してください".into());
+    }
+    Ok(())
+}
+fn saved_identity(saved:OutlookEvent,previous:Option<&reconcile::RemoteIdentity>)->Result<WriteIdentity,String>{
+    let mut remote=saved.remote.ok_or("Saved Outlook appointment did not return identity")?;
+    if let Some(old)=previous {remote.imported=old.imported;}
+    Ok(WriteIdentity{deleted_existing:false,entry_id:remote.entry_id.clone(),store_id:remote.store_id.clone(),occurrence_key:saved.outlook_occurrence_key,series_id:saved.outlook_series_id,remote:Some(remote)})
+}
+
 fn connect_outlook() -> Result<w::IDispatch, String> {
+    // Ignored tests are not permission to mutate a user's actual Outlook profile.
+    // Set this only after explicit approval for that live test run.
+    #[cfg(test)]
+    if std::env::var("TCPLUS_RUN_LIVE_OUTLOOK_TESTS").as_deref()!=Ok("1") {
+        return Err("実Outlookのテストは無効です。利用者の明示的な了承後にのみTCPLUS_RUN_LIVE_OUTLOOK_TESTS=1で有効化してください".into());
+    }
     // 1) 既存起動中インスタンスへアタッチ(GetObject相当)。新規アクティブ化より
     //    Outlookのオブジェクトモデルガードによる確認ダイアログが出にくいため優先する。
     if let Ok(disp) = try_get_active_outlook() {
@@ -203,17 +483,6 @@ fn variant_to_i32(v: &w::Variant) -> Option<i32> {
     }
 }
 
-fn variant_to_bool(v: &w::Variant) -> bool {
-    matches!(v, w::Variant::Bool(true))
-}
-
-fn variant_to_required_bool(v: &w::Variant) -> Option<bool> {
-    match v {
-        w::Variant::Bool(value) => Some(*value),
-        _ => None,
-    }
-}
-
 fn variant_to_opt_string(v: &w::Variant) -> Option<String> {
     match v {
         w::Variant::Bstr(s) if !s.is_empty() => Some(s.clone()),
@@ -235,19 +504,21 @@ fn date_key(d: chrono::NaiveDate) -> String {
     d.format("%Y-%m-%d").to_string()
 }
 fn time_key(t: chrono::NaiveDateTime) -> String {
-    t.format("%H:%M").to_string()
+    use chrono::Timelike;
+    t.format(if t.second()==0 {"%H:%M"}else{"%H:%M:%S"}).to_string()
 }
 
 fn find_calendar_folder(
     namespace: &w::IDispatch,
     calendar_name: &str,
 ) -> Result<w::IDispatch, String> {
+    if let Some(folder) = calendars::resolve(namespace, calendar_name)? { return Ok(folder); }
     if is_default_calendar_name(calendar_name) {
         return default_calendar_folder(namespace);
     }
     resolve_named_calendar(
         calendar_name,
-        lookup_named_calendar(namespace, calendar_name),
+        lookup_named_calendar(namespace, calendar_name, false),
     )
 }
 
@@ -260,16 +531,13 @@ fn resolve_named_calendar<T>(name: &str, lookup: Result<Option<T>, String>) -> R
 }
 
 fn default_calendar_folder(namespace: &w::IDispatch) -> Result<w::IDispatch, String> {
-    namespace
-        .invoke_method("GetDefaultFolder", &[&w::Variant::I4(OL_FOLDER_CALENDAR)])
-        .map_err(|e| format!("既定の予定表フォルダの取得に失敗しました: {e}"))?
-        .unwrap_dispatch_opt()
-        .ok_or_else(|| "既定の予定表フォルダの取得に失敗しました".to_string())
+    automation::object_method(namespace,"GetDefaultFolder",&[AutomationValue::from(OL_FOLDER_CALENDAR)])
 }
 
 fn lookup_named_calendar(
     namespace: &w::IDispatch,
     calendar_name: &str,
+    exact: bool,
 ) -> Result<Option<w::IDispatch>, String> {
     if calendar_name.trim().is_empty() {
         return Err("予定表名が空です".into());
@@ -304,13 +572,27 @@ fn lookup_named_calendar(
                 .map_err(|e| format!("Outlookの子フォルダ名を取得できません: {e}"))?;
             let name = variant_to_opt_string(&name_value)
                 .ok_or_else(|| "Outlookの子フォルダ名が不正です".to_string())?;
-            if name.contains(calendar_name) {
+            let item_type = variant_to_i32(&subfolder.invoke_get("DefaultItemType",&[]).map_err(|e|e.to_string())?).ok_or("Cannot identify Outlook folder type")?;
+            if item_type == 1 && if exact { name.eq_ignore_ascii_case(calendar_name) } else { name.contains(calendar_name) } {
                 if found.is_some() {
                     return Err(format!(
                         "予定表名「{calendar_name}」に複数のフォルダが一致します"
                     ));
                 }
-                found = Some(subfolder);
+                found = Some(subfolder.clone());
+            }
+            if item_type == 1 {
+                // Secondary calendars are commonly children of the default calendar.
+                let children = subfolder.invoke_get("Folders",&[]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Calendar folders unavailable")?;
+                for child_index in 1..=folder_count(&children)? {
+                    let child = children.invoke_method("Item",&[&w::Variant::I4(child_index)]).map_err(|e|e.to_string())?.unwrap_dispatch_opt().ok_or("Calendar folder unavailable")?;
+                    let child_name = variant_to_opt_string(&child.invoke_get("Name",&[]).map_err(|e|e.to_string())?).ok_or("Calendar name unavailable")?;
+                    let child_type = variant_to_i32(&child.invoke_get("DefaultItemType",&[]).map_err(|e|e.to_string())?);
+                    if child_type == Some(1) && if exact { child_name.eq_ignore_ascii_case(calendar_name) } else { child_name.contains(calendar_name) } {
+                        if found.is_some() { return Err(format!("Multiple calendars match {calendar_name}")); }
+                        found=Some(child);
+                    }
+                }
             }
         }
     }
@@ -344,80 +626,6 @@ impl UnwrapDispatchOpt for w::Variant {
     }
 }
 
-const RECURRENCE_TYPE_DAILY: i32 = 0;
-const RECURRENCE_TYPE_WEEKLY: i32 = 1;
-const RECURRENCE_TYPE_MONTHLY: i32 = 2;
-
-fn extract_recurrence(
-    item: &w::IDispatch,
-    now: chrono::NaiveDateTime,
-    days_ahead: i64,
-    item_start: chrono::NaiveDateTime,
-) -> Value {
-    let is_recurring = item
-        .invoke_get("IsRecurring", &[])
-        .map(|v| variant_to_bool(&v))
-        .unwrap_or(false);
-    if !is_recurring {
-        return json!({ "type": "none" });
-    }
-    let pattern = match item
-        .invoke_method("GetRecurrencePattern", &[])
-        .ok()
-        .and_then(|v| v.unwrap_dispatch_opt())
-    {
-        Some(p) => p,
-        None => return json!({ "type": "none" }),
-    };
-    let recurrence_type = pattern
-        .invoke_get("RecurrenceType", &[])
-        .ok()
-        .and_then(|v| variant_to_i32(&v))
-        .unwrap_or(-1);
-    // 取得失敗だけでなく、Intervalが0の場合も1へフォールバックする。
-    let interval = pattern
-        .invoke_get("Interval", &[])
-        .ok()
-        .and_then(|v| variant_to_i32(&v))
-        .filter(|&n| n != 0)
-        .unwrap_or(1);
-    let no_end = pattern
-        .invoke_get("NoEndDate", &[])
-        .map(|v| variant_to_bool(&v))
-        .unwrap_or(false);
-
-    let mapped = if interval == 1 {
-        match recurrence_type {
-            RECURRENCE_TYPE_DAILY => Some("daily"),
-            RECURRENCE_TYPE_WEEKLY => Some("weekly"),
-            RECURRENCE_TYPE_MONTHLY => Some("monthly"),
-            _ => None,
-        }
-    } else {
-        None
-    };
-    let Some(mapped) = mapped else {
-        return json!({ "type": "none" });
-    };
-
-    let fallback_until = now + chrono::Duration::days(365);
-    let mut until_dt = if no_end {
-        fallback_until
-    } else {
-        pattern
-            .invoke_get("PatternEndDate", &[])
-            .ok()
-            .and_then(|v| variant_to_naive_datetime(&v))
-            .unwrap_or(fallback_until)
-    };
-    let min_until = now + chrono::Duration::days(days_ahead.max(30));
-    if until_dt.date() <= item_start.date() {
-        until_dt = min_until;
-    }
-
-    json!({ "type": mapped, "until": date_key(until_dt.date()) })
-}
-
 fn extract_teams_meeting_url(body: &str) -> Option<String> {
     let idx = body.find("https://teams.microsoft.com/l/meetup-join/")?;
     let rest = &body[idx..];
@@ -445,82 +653,18 @@ fn collect_bounded<T>(
     }
 }
 
-#[repr(C)]
-struct VariantDispatchLayout {
-    _vt: u16,
-    _reserved: [u16; 3],
-    dispatch: *mut std::ffi::c_void,
-}
-
 fn next_outlook_item(items: &w::IDispatch, method: &str) -> Result<Option<w::IDispatch>, String> {
-    // winsafeのVariant::from_rawはVT_DISPATCHのnullポインタでもAddRefを呼ぶ。
-    // OutlookのNothing終端を安全に扱うため、この列挙呼び出しだけ生VARIANTを確認する。
-    let id = items
-        .GetIDsOfNames(&[method], w::LCID::USER_DEFAULT)
-        .map_err(|e| format!("Outlookの予定列挙({method})に失敗しました: {e}"))?[0];
-    // winsafe 0.0.28のInvokeはS_OK以外をすべてErrにするため、成功応答の
-    // S_FALSE(0x00000001)まで「ファンクションが間違っています」と表示する。
-    // windows-rsの呼び出しでHRESULTの成功/失敗を判定し、成功時は返却値を
-    // 必ず確認する。S_FALSEだけで終端と決めると返却された予定を失う恐れがある。
-    use windows::Win32::System::Com::{DISPATCH_METHOD, DISPPARAMS, IDispatch};
-    use windows::core::{GUID, Interface};
-
-    let mut raw = w::VARIANT::default();
-    let mut exception = w::EXCEPINFO::default();
-    let ptr = items.ptr();
-    // 両クレートの構造体は同じWindows COM ABI。winsafe側がDropで
-    // VARIANT/BSTRを解放し、借用したIDispatchの所有権はitemsが保持する。
-    let result = unsafe {
-        IDispatch::from_raw_borrowed(&ptr)
-            .expect("items is a non-null IDispatch")
-            .Invoke(
-                id,
-                &GUID::zeroed(),
-                w::LCID::USER_DEFAULT.raw(),
-                DISPATCH_METHOD,
-                &DISPPARAMS::default(),
-                Some((&mut raw as *mut w::VARIANT).cast()),
-                Some((&mut exception as *mut w::EXCEPINFO).cast()),
-                None,
-            )
-    };
-    if let Err(error) = result {
-        let hr = unsafe { co::HRESULT::from_raw(error.code().0 as u32) };
-        let detail = if hr == co::HRESULT::DISP_E_EXCEPTION {
-            exception.to_string()
-        } else {
-            hr.to_string()
-        };
-        return Err(format!(
-            "Outlookの予定列挙({method})に失敗しました: {detail}"
-        ));
-    }
-    match raw.vt() {
-        co::VT::EMPTY | co::VT::NULL => Ok(None),
-        co::VT::DISPATCH => {
-            // winsafe 0.0.28のVARIANTはrepr(C)で、vt+予約3語の後にポインタを持つ。
-            // 生VARIANTがDrop時にReleaseするため、返却用にAddRefした所有ポインタを作る。
-            let ptr = unsafe {
-                (&raw as *const w::VARIANT)
-                    .cast::<VariantDispatchLayout>()
-                    .read()
-                    .dispatch
-            };
-            if ptr.is_null() {
-                return Ok(None);
-            }
-            let borrowed = unsafe { w::IDispatch::from_ptr(ptr) };
-            let item = borrowed.clone();
-            std::mem::forget(borrowed);
-            Ok(Some(item))
-        }
-        _ => Err("Outlookの予定列挙が不正な値を返しました".into()),
-    }
+    invoke_optional_dispatch(items, method, &[])
+        .map_err(|error| format!("Outlookの予定列挙({method})に失敗しました: {error}"))
 }
 
-fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<OutlookSnapshot, String> {
-    let now = chrono::Local::now().naive_local();
-    let range = OutlookSyncRange::new(now, days_ahead);
+/// Find/GetFirst/GetNext can successfully return VT_DISPATCH with a null pointer.
+/// Check that pointer before winsafe's Variant conversion, which otherwise AddRefs null.
+fn invoke_optional_dispatch(items: &w::IDispatch, method: &str, params: &[AutomationValue]) -> Result<Option<w::IDispatch>, String> {
+    automation::optional_method(items,method,params)
+}
+
+fn get_outlook_events(calendar_name: &str, range: OutlookSyncRange) -> Result<OutlookSnapshot, String> {
     let outlook = connect_outlook()?;
     let namespace = outlook
         .invoke_method("GetNamespace", &[&w::Variant::from_str("MAPI")])
@@ -557,124 +701,42 @@ fn get_outlook_events(calendar_name: &str, days_ahead: i64) -> Result<OutlookSna
         next_outlook_item(&filtered_items, method)
     })?;
 
-    let mut events = Vec::new();
-    for (index, item) in fetched_items.into_iter().enumerate() {
-        let i = index + 1;
-
-        let class_value = item
-            .invoke_get("Class", &[])
-            .map_err(|e| format!("Outlookの予定{i}の種類を取得できません: {e}"))?;
-        let class = variant_to_i32(&class_value);
-        let class = class.ok_or_else(|| format!("Outlookの予定{i}の種類が不正です"))?;
-        if class != OL_APPOINTMENT_CLASS {
-            continue;
-        }
-
-        let meeting_status_value = item
-            .invoke_get("MeetingStatus", &[])
-            .map_err(|e| format!("Outlookの予定{i}の会議状態を取得できません: {e}"))?;
-        let meeting_status = variant_to_i32(&meeting_status_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の会議状態が不正です"))?;
-        if !meeting_status_is_active(meeting_status)? {
-            // 取得範囲内のキャンセル済み予定は有効な取得一覧から外す。
-            // 全件取得が成功した後、削除済み予定と同じ照合処理でDBから削除される。
-            continue;
-        }
-
-        let start_value = item
-            .invoke_get("Start", &[])
-            .map_err(|e| format!("Outlookの予定{i}の開始時刻を取得できません: {e}"))?;
-        let start_dt = variant_to_naive_datetime(&start_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の開始時刻が不正です"))?;
-        let end_value = item
-            .invoke_get("End", &[])
-            .map_err(|e| format!("Outlookの予定{i}の終了時刻を取得できません: {e}"))?;
-        let end_dt = variant_to_naive_datetime(&end_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の終了時刻が不正です"))?;
-
-        let start_date = start_dt.date();
-        if start_date > range.end_date {
-            continue;
-        }
-        let all_day_value = item
-            .invoke_get("AllDayEvent", &[])
-            .map_err(|e| format!("Outlookの予定{i}の終日設定を取得できません: {e}"))?;
-        let is_all_day = variant_to_required_bool(&all_day_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の終日設定が不正です"))?;
-        // 時間指定・終日とも今日0時から。過去の時刻を除外すると、削除照合で
-        // 「Outlookから消えた予定」と誤判定してしまう。
-        if !range.contains(start_dt) {
-            continue;
-        }
-
-        let start_time = if is_all_day {
-            None
-        } else {
-            Some(time_key(start_dt))
-        };
-        let end_time = if is_all_day {
-            None
-        } else {
-            Some(time_key(end_dt))
-        };
-        let location_value = item
-            .invoke_get("Location", &[])
-            .map_err(|e| format!("Outlookの予定{i}の場所を取得できません: {e}"))?;
-        let location = variant_to_opt_string(&location_value).unwrap_or_default();
-        let entry_id = item
-            .invoke_get("EntryID", &[])
-            .ok()
-            .and_then(|v| variant_to_opt_string(&v));
-        let global_id = item
-            .invoke_get("GlobalAppointmentID", &[])
-            .ok()
-            .and_then(|v| variant_to_opt_string(&v));
-        let recurring_value = item
-            .invoke_get("IsRecurring", &[])
-            .map_err(|e| format!("Outlookの予定{i}の繰り返し設定を取得できません: {e}"))?;
-        let is_recurring = variant_to_required_bool(&recurring_value)
-            .ok_or_else(|| format!("Outlookの予定{i}の繰り返し設定が不正です"))?;
-        let stable_series_id = global_id
-            .clone()
-            .or_else(|| entry_id.clone())
-            .ok_or_else(|| format!("Outlookの予定{i}の識別子を取得できません"))?;
-        let occurrence_stamp = if is_all_day {
-            date_key(start_dt.date())
-        } else {
-            format!("{}T{}", date_key(start_dt.date()), time_key(start_dt))
-        };
-        let occurrence_key = format!("{stable_series_id}|{occurrence_stamp}");
-        let body_value = item
-            .invoke_get("Body", &[])
-            .map_err(|e| format!("Outlookの予定{i}の本文を取得できません: {e}"))?;
-        let body = variant_to_opt_string(&body_value).unwrap_or_default();
-        let meeting_url = extract_teams_meeting_url(&body);
-        let title_value = item
-            .invoke_get("Subject", &[])
-            .map_err(|e| format!("Outlookの予定{i}の件名を取得できません: {e}"))?;
-        let title =
-            variant_to_opt_string(&title_value).unwrap_or_else(|| "(タイトルなし)".to_string());
-
-        events.push(OutlookEvent {
-            title,
-            date: date_key(start_dt.date()),
-            start_time,
-            end_time,
-            location,
-            is_all_day,
-            outlook_series_id: stable_series_id,
-            outlook_occurrence_key: occurrence_key,
-            is_recurring,
-            recurrence: extract_recurrence(&item, now, days_ahead, start_dt),
-            meeting_url,
-        });
+    let calendar_ref=calendars::identify(&calendar_folder)?;
+    let mut events=Vec::new();let mut cancelled=Vec::new();
+    for item in fetched_items {
+        if automation::integer(&item,"Class")?!=OL_APPOINTMENT_CLASS {continue;}
+        let (event,active)=reconcile::read_item(&item,None,Some(&calendar_folder))?;
+        if !event.remote.as_ref().is_some_and(|meta|calendars::same_calendar(&meta.calendar,&calendar_ref)) {continue;}
+        if !range.accepts_new_event(&event) {continue;}
+        if active {events.push(event);}else{cancelled.push(event);}
     }
-    Ok(OutlookSnapshot { events, range })
+    Ok(OutlookSnapshot { events, range,calendar_ref,observations:Vec::new(),cancelled,warnings:Vec::new() })
 }
 
 #[cfg(test)]
 mod sync_range_tests {
     use super::*;
+
+    #[test]
+    fn current_mode_excludes_ongoing_starts_but_explicit_range_includes_overlap() {
+        let now=at("2026-10-13 13:00:30");
+        let current=OutlookSyncRange::new(now,1);
+        let explicit=OutlookSyncRange::dates("2026-10-13","2026-10-13").unwrap();
+        let mut event=OutlookEvent{title:"Ongoing".into(),date:"2026-10-13".into(),end_date:Some("2026-10-13".into()),start_time:Some("12:00".into()),end_time:Some("14:00".into()),location:String::new(),outlook_details:json!({}),is_all_day:false,outlook_series_id:String::new(),outlook_occurrence_key:String::new(),is_recurring:false,recurrence:json!({"type":"none"}),meeting_url:None,remote:None};
+        assert!(!current.accepts_new_event(&event),"now mode must not newly import a meeting already in progress");
+        assert!(explicit.accepts_new_event(&event));
+        for (start,want) in [("13:00:29",false),("13:00:30",true),("13:00:31",true)] {
+            event.start_time=Some(start.into());assert_eq!(current.accepts_new_event(&event),want,"{start}");
+        }
+        event.date="2026-10-12".into();event.start_time=Some("22:00".into());
+        assert!(!current.accepts_new_event(&event));assert!(explicit.accepts_new_event(&event),"a date range still imports a multi-day overlap");
+        event.is_all_day=true;event.start_time=None;event.end_time=None;
+        assert!(!current.accepts_new_event(&event));assert!(explicit.accepts_new_event(&event));
+        event.date="2026-10-14".into();event.end_date=Some(event.date.clone());
+        assert!(current.accepts_new_event(&event));assert!(!explicit.accepts_new_event(&event));
+        let after_midnight=OutlookSyncRange::new(at("2026-10-14 00:00:01"),1);
+        assert!(!after_midnight.accepts_new_event(&event),"capture the exact new-day start boundary");
+    }
 
     #[test]
     fn cancelled_meeting_statuses_are_excluded_and_unknown_status_aborts() {
@@ -702,7 +764,7 @@ mod sync_range_tests {
             "outside",
         ]
         .into_iter()
-        .map(|key| OutlookEvent {
+        .map(|key| OutlookEvent { end_date:None,outlook_details:json!({}),
             title: key.into(),
             date: if key == "outside" {
                 "2026-09-01"
@@ -718,7 +780,7 @@ mod sync_range_tests {
             outlook_occurrence_key: key.into(),
             is_recurring: true,
             recurrence: json!({"type":"daily","until":"2026-10-01"}),
-            meeting_url: None,
+            remote: None, meeting_url: None,
         })
         .collect();
         crate::repositories::outlook_auto_sync(&conn, &events, "", "2026-09-01", "2026-10-01")
@@ -814,7 +876,7 @@ mod sync_range_tests {
             ("future", "15:00", "16:00"),
         ]
         .into_iter()
-        .map(|(key, start, end)| OutlookEvent {
+        .map(|(key, start, end)| OutlookEvent { end_date:None,outlook_details:json!({}),
             title: key.into(),
             date: "2026-09-25".into(),
             start_time: Some(start.into()),
@@ -825,7 +887,7 @@ mod sync_range_tests {
             outlook_occurrence_key: key.into(),
             is_recurring: false,
             recurrence: json!({"type":"none"}),
-            meeting_url: None,
+            remote: None, meeting_url: None,
         })
         .collect();
         crate::repositories::outlook_auto_sync(&conn, &events, "", "2026-09-25", "2026-10-25")
@@ -843,12 +905,11 @@ mod sync_range_tests {
                 range.contains(start)
             })
             .collect();
-        let result = crate::repositories::outlook_auto_sync(
+        let result = crate::repositories::outlook_sync_in_range(
             &conn,
             &fetched,
             "",
-            &range.start_key(),
-            &range.end_key(),
+            range,
         )
         .unwrap();
         assert_eq!(
@@ -859,11 +920,11 @@ mod sync_range_tests {
     }
 
     #[test]
-    fn range_includes_all_of_today_and_the_last_day() {
+    fn range_includes_current_time_and_the_last_day() {
         let range = OutlookSyncRange::new(at("2026-09-25 13:00:00"), 1);
         assert!(!range.contains(at("2026-09-24 23:59:59")));
-        assert!(range.contains(at("2026-09-25 00:00:00")), "今日の終日予定");
-        assert!(range.contains(at("2026-09-25 09:00:00")), "終了済みの予定");
+        assert!(!range.contains(at("2026-09-25 00:00:00")), "今日の終日予定は過去に開始");
+        assert!(!range.contains(at("2026-09-25 09:00:00")), "過去に開始した予定");
         assert!(range.contains(at("2026-09-25 13:00:00")));
         assert!(
             range.contains(at("2026-09-26 23:59:59")),
@@ -872,7 +933,7 @@ mod sync_range_tests {
         assert!(!range.contains(at("2026-09-27 00:00:00")));
         assert_eq!(
             range.restrict_filter(),
-            "[Start] >= '09/25/2026' AND [Start] < '09/27/2026'"
+            "[Start] >= '09/25/2026 01:00 PM' AND [Start] < '09/27/2026 12:00 AM'"
         );
         assert_eq!(
             (range.start_key(), range.end_key()),
@@ -884,6 +945,7 @@ mod sync_range_tests {
     fn snapshot_keeps_its_fetch_dates_across_midnight_and_year_end() {
         let snapshot = OutlookSnapshot {
             events: vec![],
+            calendar_ref:String::new(), observations:Vec::new(),cancelled:Vec::new(),warnings:Vec::new(),
             range: OutlookSyncRange::new(at("2026-12-31 23:59:59"), 1),
         };
         // 取得完了が翌日でも、呼び出し側はsnapshotの範囲を使う。
@@ -891,7 +953,7 @@ mod sync_range_tests {
         assert_eq!(snapshot.range.end_key(), "2027-01-01");
         assert_eq!(
             snapshot.range.restrict_filter(),
-            "[Start] >= '12/31/2026' AND [Start] < '01/02/2027'"
+            "[Start] >= '12/31/2026 11:59 PM' AND [Start] < '01/02/2027 12:00 AM'"
         );
     }
 }

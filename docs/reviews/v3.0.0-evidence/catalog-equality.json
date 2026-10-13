@@ -1,0 +1,46 @@
+{
+  "verifier": "/root/verification_c",
+  "beforePath": "C:\\Users\\doratatu\\Documents\\Repository\\TaskCalendar-Plus\\out\\refactor-20261008\\baseline-v3\\before-source\\source\\src-tauri\\renderer\\src\\locales\\catalogs.js",
+  "afterPath": "C:\\Users\\doratatu\\Documents\\Repository\\TaskCalendar-Plus\\out\\refactor-20261008\\c-final-v3\\source\\source\\src-tauri\\renderer\\src\\locales\\catalogs.js",
+  "equalValues": true,
+  "equalKeyOrder": true,
+  "independentObjects": true,
+  "locales": [
+    {
+      "locale": "ja",
+      "keys": 704
+    },
+    {
+      "locale": "en",
+      "keys": 704
+    },
+    {
+      "locale": "ko",
+      "keys": 704
+    },
+    {
+      "locale": "zh-CN",
+      "keys": 704
+    },
+    {
+      "locale": "zh-TW",
+      "keys": 704
+    },
+    {
+      "locale": "es",
+      "keys": 704
+    },
+    {
+      "locale": "fr",
+      "keys": 704
+    },
+    {
+      "locale": "de",
+      "keys": 704
+    },
+    {
+      "locale": "pt",
+      "keys": 704
+    }
+  ]
+}

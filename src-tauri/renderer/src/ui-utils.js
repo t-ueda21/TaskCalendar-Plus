@@ -1,3 +1,5 @@
+import { showAppConfirm } from "./app-dialogs.js";
+import { populateNativeRecurrence, readNativeRecurrence } from "./native-recurrence.js";
 /**
  * ui-utils.js — 画面共通のユーティリティ
  *
@@ -12,8 +14,11 @@
  * Store自体はimportしない(必要な関数は呼び出し側から引数として渡す)。
  */
 
+import { populateEventFields, readEventFields, clockMinutes } from "./event-fields.js";
+import { setupPicker } from "./mini-calendar-picker.js";
 import { getHolidaysInMonth } from "./holidays.js";
 import { getCompanyHolidaysInMonthMap } from "./company-holidays.js";
+import { t as translate, formatDuration, getLocale, th as translateHtml, weekdayLabels } from './i18n.js';
 
 // ── 文字列フォーマット ─────────────────────────────────
 /** 新しいタグの既定の色。 */
@@ -41,8 +46,8 @@ export function formatYearMonth(date) {
 }
 
 export function formatDateJP(date, { withWeekday = false } = {}) {
-  const label = `${date.getFullYear()}年${pad2(date.getMonth() + 1)}月${pad2(date.getDate())}日`;
-  return withWeekday ? `${label}（${"日月火水木金土"[date.getDay()]}）` : label;
+  const label = translate('ui.666a239028', { p0: (date.getFullYear()), p1: (pad2(date.getMonth() + 1)), p2: (pad2(date.getDate())) });
+  return withWeekday ? `${label}（${weekdayLabels()[date.getDay()]}）` : label;
 }
 
 function formatNow(date) {
@@ -55,7 +60,7 @@ export function formatDurationHtml(minutes) {
   const abs = Math.abs(Math.round(minutes));
   const hoursText = (abs / 60).toFixed(2);
   const minsText = String(abs);
-  return `<span class="durationNum durationNumHours">${hoursText}</span>時間  （<span class="durationNum durationNumMins">${minsText}</span>分）`;
+  return `<span class="durationNum durationNumHours">${hoursText}</span>${translateHtml('ui.bf6267da60')}  （<span class="durationNum durationNumMins">${minsText}</span>${translateHtml('ui.b6a993c256')}）`;
 }
 
 // 月次集計向けの「x時間y分」表記。月単位の合計は分の総量が
@@ -65,14 +70,14 @@ function formatDurationHmHtml(minutes) {
   const abs = Math.abs(Math.round(minutes));
   const hours = Math.floor(abs / 60);
   const mins = abs % 60;
-  return `<span class="durationNum durationNumHmHours">${hours}</span>時間<span class="durationNum durationNumHmMins">${mins}</span>分`;
+  return `<span class="durationNum durationNumHmHours">${hours}</span>${translateHtml('ui.bf6267da60')}<span class="durationNum durationNumHmMins">${mins}</span>${translateHtml('ui.b6a993c256')}`;
 }
 
 // タグの月間予定工数(下限・上限)は時間単位で入力させているため、分は出さず
 // 「X時間」のみにする(小数第2位までに丸めて統一する)。
 function formatBudgetHours(minutes) {
   const hours = Math.round((minutes / 60) * 100) / 100;
-  return `${hours}時間`;
+  return translate('ui.d1a0f36132', { p0: (hours) });
 }
 
 // 残り/超過の表記(実績との差分)は「X時間Y分」で表示する。
@@ -80,7 +85,7 @@ function formatRemainHm(minutes) {
   const abs = Math.abs(Math.round(minutes));
   const hours = Math.floor(abs / 60);
   const mins = abs % 60;
-  return `${hours}時間${mins}分`;
+  return translate('ui.9b8b93a739', { p0: (hours), p1: (mins) });
 }
 
 // サイドバー「月次集計（タグ別）」の行HTML。calendar/tasks/ai-modeで共用する。
@@ -109,12 +114,12 @@ export function renderTagBudgetRowsHtml(tags, byTag) {
       const isOver = remain < 0;
       const pct = Math.max(0, Math.min(100, Math.round((mins / max) * 100)));
       const barClass = isOver ? " over" : pct >= 80 ? " warn" : "";
-      const remainText = isOver ? `超過 ${formatRemainHm(remain)}` : `残り ${formatRemainHm(remain)}`;
+      const remainText = isOver ? translate('ui.76f66d7d35', { p0: (formatRemainHm(remain)) }) : translate('ui.8a37f864ee', { p0: (formatRemainHm(remain)) });
       const rangeText = min == null
-        ? `上限: ${formatBudgetHours(max)}`
-        : `下限: ${formatBudgetHours(min)}　上限: ${formatBudgetHours(max)}`;
+        ? translate('ui.10182bc821', { p0: (formatBudgetHours(max)) })
+        : translate('ui.ba210e9c05', { p0: (formatBudgetHours(min)), p1: (formatBudgetHours(max)) });
       const minPct = min == null ? null : Math.max(0, Math.min(100, Math.round((min / max) * 100)));
-      const minLineHtml = minPct == null ? "" : `<div class="tagBudgetMinLine" style="left:${minPct}%" title="下限: ${escHtml(formatBudgetHours(min))}"></div>`;
+      const minLineHtml = minPct == null ? "" : `<div class="tagBudgetMinLine" style="left:${minPct}%" title="${translateHtml('ui.2c3f8d6ce4')}: ${escHtml(formatBudgetHours(min))}"></div>`;
       return `<div class="tag tagBudgetRow" data-tag-id="${escHtml(t.id)}">
         <div class="tagBudgetHead">
           <div class="name">${nameHtml}</div>　<span class="tagBudgetUsed small">${formatDurationHmHtml(mins)}</span>
@@ -150,16 +155,15 @@ export function renderDaySummaryRowsHtml(tags, byTag) {
 function formatRemaining(minutes) {
   const abs = Math.abs(Math.round(minutes));
   const hoursDec = Math.round((abs / 60) * 100) / 100;
-  const prefix = minutes < 0 ? "定時超過 +" : "";
-  return `${prefix}${hoursDec.toFixed(2)}時間（${abs}分）`;
+  const prefix = minutes < 0 ? translate('ui.2a05ddcfd8') : "";
+  return translate('ui.f17796d2ec', { p0: (prefix), p1: (hoursDec.toFixed(2)), p2: (abs) });
 }
 
 // ── 時刻変換 ───────────────────────────────────────────
 export function timeToMinutes(hhmm) {
   if (!hhmm) return 0;
   if (hhmm === "24:00") return 1440;
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
+  return clockMinutes(hhmm);
 }
 
 export function minutesToTime(minutes) {
@@ -257,7 +261,7 @@ export function syncViewDate(dateLike) {
 }
 
 // ── ミニカレンダー ─────────────────────────────────────
-const DOW_LABELS = ["日","月","火","水","木","金","土"];
+const DOW_LABELS = weekdayLabels();
 
 /**
  * @param {HTMLElement} containerEl
@@ -299,7 +303,8 @@ function buildMiniCalendarCells(containerEl, year, month, holidayMap, onDateSele
     if (holidayName) cls += " holiday";
     if (dateKey === todayKey) cls += " today";
 
-    const el = document.createElement("div");
+    const el = document.createElement("button");
+    el.type = 'button';
     el.className = cls;
     el.setAttribute("data-date", dateKey);
     el.style.cursor = "pointer";
@@ -337,7 +342,7 @@ function wireMiniCalendarDisclosure(containerEl, toggle) {
     body.hidden = !miniCalendarExpanded;
     toggle.textContent = miniCalendarExpanded ? '▼' : '▶';
     toggle.setAttribute('aria-expanded', String(miniCalendarExpanded));
-    const label = miniCalendarExpanded ? 'ミニカレンダーを折りたたむ' : 'ミニカレンダーを表示';
+    const label = miniCalendarExpanded ? translate('ui.b59467a165') : translate('ui.142c310e66');
     toggle.setAttribute('aria-label', label);
     toggle.title = label;
   };
@@ -351,123 +356,10 @@ function wireMiniCalendarDisclosure(containerEl, toggle) {
 /**
  * ミニカレンダーを初期化し、操作オブジェクトを返す。
  */
-export function setupMiniCalendar({ containerEl, monthLabelEl, prevBtn, nextBtn, collapseBtn, onDateSelect, initialDate, getHolidaysInMonth: getHols }) {
-  if (!containerEl) return null;
-  wireMiniCalendarDisclosure(containerEl, collapseBtn);
-  const calendarBody = containerEl.closest('[data-mini-calendar-body]');
-  if (calendarBody?.id) monthLabelEl?.setAttribute('aria-controls', calendarBody.id);
-  const init = initialDate ?? new Date();
-  let calYear  = init.getFullYear();
-  let calMonth = init.getMonth();
-  let selectedDateKey = formatDateKey(init);
-  let choosingMonth = false;
-  let pickerYear = calYear;
-
-  function highlightSelectedDate() {
-    containerEl.querySelectorAll('[data-date]').forEach(el => {
-      el.classList.toggle('selected', el.dataset.date === selectedDateKey);
-    });
-  }
-
-  function renderMonth() {
-    // 日付一覧の高さを引き継ぎ、月の選択画面へ切り替えても集計欄を動かさない。
-    if (choosingMonth && !containerEl.classList.contains('monthPicker')) {
-      const height = containerEl.getBoundingClientRect().height;
-      if (height > 0) containerEl.style.setProperty('--mini-calendar-grid-height', `${height}px`);
-    }
-    containerEl.classList.toggle('monthPicker', choosingMonth);
-    containerEl.setAttribute('aria-label', choosingMonth ? `${pickerYear}年の月を選択` : 'ミニカレンダー');
-    if (choosingMonth) {
-      containerEl.replaceChildren();
-      for (let month = 0; month < 12; month++) {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'miniMonth';
-        button.dataset.miniMonth = String(month);
-        button.textContent = `${month + 1}月`;
-        button.setAttribute('aria-label', `${pickerYear}年${month + 1}月`);
-        button.setAttribute('aria-pressed', String(pickerYear === calYear && month === calMonth));
-        button.addEventListener('click', () => {
-          calYear = pickerYear;
-          calMonth = month;
-          choosingMonth = false;
-          renderMonth();
-          monthLabelEl?.focus({ preventScroll: true });
-        });
-        containerEl.appendChild(button);
-      }
-    } else {
-      const hols = getHols ? getHols(calYear, calMonth) : new Map();
-      buildMiniCalendarCells(containerEl, calYear, calMonth, hols, onDateSelect);
-      highlightSelectedDate();
-    }
-    if (monthLabelEl) {
-      monthLabelEl.textContent = choosingMonth ? `${pickerYear}年` : `${calYear}年${calMonth + 1}月`;
-      monthLabelEl.dataset.yearmonth = `${calYear}-${pad2(calMonth + 1)}`;
-      monthLabelEl.setAttribute('aria-expanded', String(choosingMonth));
-      monthLabelEl.title = choosingMonth ? '日付表示に戻る' : '月を選択';
-    }
-    prevBtn?.setAttribute('aria-label', choosingMonth ? '前の年' : '前の月');
-    nextBtn?.setAttribute('aria-label', choosingMonth ? '次の年' : '次の月');
-    for (const [button, label] of [[prevBtn, choosingMonth ? '前年' : '前月'], [nextBtn, choosingMonth ? '翌年' : '翌月']]) {
-      const text = button?.querySelector('[data-nav-label]');
-      if (text) text.textContent = label;
-      if (button) button.title = button.getAttribute('aria-label');
-    }
-  }
-
-  prevBtn?.addEventListener("click", () => {
-    if (choosingMonth) { pickerYear--; }
-    else if (calMonth === 0) { calMonth = 11; calYear--; } else { calMonth--; }
-    renderMonth();
-  });
-  nextBtn?.addEventListener("click", () => {
-    if (choosingMonth) { pickerYear++; }
-    else if (calMonth === 11) { calMonth = 0; calYear++; } else { calMonth++; }
-    renderMonth();
-  });
-
-  monthLabelEl?.addEventListener('click', () => {
-    choosingMonth = miniCalendarExpanded ? !choosingMonth : true;
-    pickerYear = calYear;
-    setMiniCalendarExpanded(true);
-    renderMonth();
-    if (choosingMonth) containerEl.querySelector(`[data-mini-month="${calMonth}"]`)?.focus({ preventScroll: true });
-  });
-
-  (containerEl.closest('.miniCalSticky') ?? containerEl).addEventListener('keydown', event => {
-    if (!choosingMonth) return;
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      choosingMonth = false;
-      renderMonth();
-      monthLabelEl?.focus({ preventScroll: true });
-      return;
-    }
-    const month = event.target.closest?.('[data-mini-month]');
-    if (!month) return;
-    const index = Number(month.dataset.miniMonth);
-    const target = { ArrowLeft: index - 1, ArrowRight: index + 1, ArrowUp: index - 4, ArrowDown: index + 4, Home: 0, End: 11 }[event.key];
-    if (target === undefined) return;
-    event.preventDefault();
-    containerEl.querySelector(`[data-mini-month="${Math.max(0, Math.min(11, target))}"]`)?.focus({ preventScroll: true });
-  });
-
-  renderMonth();
-
-  return {
-    highlightDate(dateKey) {
-      selectedDateKey = dateKey;
-      if (!choosingMonth) highlightSelectedDate();
-    },
-    navigateToMonth(year, month) {
-      if (calYear === year && calMonth === month && !choosingMonth) return;
-      choosingMonth = false;
-      calYear = year; calMonth = month;
-      renderMonth();
-    },
-    refresh() { renderMonth(); },
-  };
+export function setupMiniCalendar(opts) {
+  if (!opts.containerEl) return null;
+  wireMiniCalendarDisclosure(opts.containerEl, opts.collapseBtn);
+  return setupPicker({ ...opts, buildCells: buildMiniCalendarCells, formatDateKey, expanded: () => miniCalendarExpanded, expand: setMiniCalendarExpanded });
 }
 
 // ── カスタム時刻ピッカー ──────────────────────────────
@@ -531,7 +423,7 @@ function _showTp(input) {
     if (hit) hitEl = btn;
   });
   requestAnimationFrame(() => {
-    if (hitEl) hitEl.scrollIntoView({ block: "center" });
+    if (hitEl) _tpPopup.scrollTop = Math.max(0, hitEl.offsetTop - (_tpPopup.clientHeight - hitEl.offsetHeight) / 2);
     else _tpPopup.scrollTop = 0;
   });
 }
@@ -567,7 +459,7 @@ function _wireTimeStepper(input) {
   upBtn.className = "timeStepperBtn";
   upBtn.textContent = "▲";
   upBtn.tabIndex = -1;
-  upBtn.setAttribute("aria-label", "1分進める");
+  upBtn.setAttribute("aria-label", translate('ui.29436834c8'));
   upBtn.addEventListener("mousedown", (e) => e.preventDefault()); // input の blur を防ぐ
   upBtn.addEventListener("click", () => _stepTimeInput(input, 1));
 
@@ -576,7 +468,7 @@ function _wireTimeStepper(input) {
   downBtn.className = "timeStepperBtn";
   downBtn.textContent = "▼";
   downBtn.tabIndex = -1;
-  downBtn.setAttribute("aria-label", "1分戻す");
+  downBtn.setAttribute("aria-label", translate('ui.0efbc33e84'));
   downBtn.addEventListener("mousedown", (e) => e.preventDefault());
   downBtn.addEventListener("click", () => _stepTimeInput(input, -1));
 
@@ -599,6 +491,11 @@ export function setupTimePicker(input) {
   input.removeAttribute("list");         // datalist を無効化
   input.setAttribute("autocomplete", "off");
   input.addEventListener("focus", () => _showTp(input));
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && _tpActiveInput === input && _tpPopup?.style.display !== 'none') {
+      event.preventDefault();event.stopPropagation();_hideTp();
+    }
+  });
   input.addEventListener("blur",  () => setTimeout(() => {
     if (_tpActiveInput === input) _hideTp();
   }, 160));
@@ -627,7 +524,7 @@ function populateTagOptions(containerEl, tags, selectedTagId) {
   noneBtn.type = "button";
   noneBtn.className = "btnGroupItem" + (!selected ? " active" : "");
   noneBtn.dataset.value = "";
-  noneBtn.textContent = "タグなし";
+  noneBtn.textContent = translate('ui.af1cc864e3');
   noneBtn.addEventListener("click", () => _activate(noneBtn));
   containerEl.appendChild(noneBtn);
 
@@ -749,6 +646,7 @@ function _wireRecurrenceControls(dialog) {
 
   recContainer.querySelectorAll(".btnGroupItem").forEach((btn) => {
     btn.addEventListener("click", () => {
+      dialog._recurrenceChanged = true;
       _setRecurrenceBtn(dialog, btn.dataset.value);
       _syncRecurrenceControls(dialog);
       _syncApplySeriesControl(dialog, {
@@ -758,6 +656,7 @@ function _wireRecurrenceControls(dialog) {
     });
   });
 
+  dialog.querySelector("[name='repeatUntil']")?.addEventListener("change", () => { dialog._recurrenceChanged = true; });
   const dateEl = dialog.querySelector("[name='date']");
   if (dateEl && dateEl.dataset.boundRecurrenceDate !== "1") {
     dateEl.dataset.boundRecurrenceDate = "1";
@@ -798,6 +697,13 @@ function _syncRecurrenceControls(dialog) {
 // calendar.js/tasks.jsで共用する。getFallbackDateは
 // dateKeyが空のときの基準日を返すコールバック(calendar=_viewDate、tasks=_selectedDate)。
 export async function updateTaskByChoice(Store, taskId, patch, mode = "single") {
+  const target = Store.getAllTasks().find(task => task.id === taskId);
+  if (target?.recurrence?.native && patch.recurrence !== undefined && !patch.recurrence?.native && ["series","future"].includes(mode)) {
+    const group = target.recurrence.groupId;
+    const count = Store.getAllTasks().filter(task => (group ? task.recurrence?.groupId === group : task.outlookSeriesId === target.outlookSeriesId)
+      && (mode !== "future" || task.date >= target.date)).length;
+    if (!await showAppConfirm(translate("event.removeRecurrenceConfirm", {count}), {title:translate("event.removeRecurrence"),confirmLabel:translate("event.removeRecurrence"),danger:true})) return false;
+  }
   const updated = await Store.updateTaskWithMode(taskId, patch, mode);
   return Boolean(updated);
 }
@@ -819,14 +725,18 @@ export function getDialogTagsForDateKey(Store, dateKey, currentTagId, getFallbac
  * @param {{ startTime?: string, endTime?: string, date?: string, tags: Array }} opts
  */
 export function openCreateDialog(dialog, opts = {}) {
+  const deleteButton = dialog.querySelector('[data-delete]');
+  if (deleteButton) deleteButton.hidden = true;
   const titleEl = dialog.querySelector("[data-dialog-title]");
-  if (titleEl) titleEl.textContent = opts.dialogTitle ?? "新しいタスクを追加";
+  if (titleEl) titleEl.textContent = opts.dialogTitle ?? translate('ui.d3dd6281b0');
 
   dialog.querySelector("[name='title']").value     = "";
   dialog.querySelector("[name='startTime']").value = opts.startTime ?? "09:00";
   dialog.querySelector("[name='endTime']").value   = opts.endTime   ?? "10:00";
   dialog.querySelector("[name='allDay']").checked  = Boolean(opts.isAllDay);
   dialog.querySelector("[name='memo']").value      = "";
+  const outlook = dialog.querySelector('[name="outlookEnabled"]');
+  if (outlook) { outlook.checked = opts.outlookEnabled ?? dialog.dataset.outlookDefault === 'true'; outlook.disabled = false; }
   if (dialog.querySelector("[name='date']")) {
     dialog.querySelector("[name='date']").value = opts.date ?? formatDateKey(new Date());
   }
@@ -838,14 +748,18 @@ export function openCreateDialog(dialog, opts = {}) {
   const untilEl = dialog.querySelector("[name='repeatUntil']");
   if (untilEl) untilEl.value = opts.repeatUntil ?? (opts.date ?? formatDateKey(new Date()));
 
+  dialog._originalRecurrence = null;
+  populateEventFields(dialog, opts);
   dialog.removeAttribute("data-edit-id");
   _wireRecurrenceControls(dialog);
   _syncRecurrenceControls(dialog);
   _syncApplySeriesControl(dialog, { isEdit: false, recurrenceType: "none" });
 
+  populateNativeRecurrence(dialog, dialog._eventOriginal || {});
+  dialog._recurrenceChanged = false;
   dialog.showModal();
   if (opts.focusTitle) {
-    requestAnimationFrame(() => dialog.querySelector("[name='title']")?.focus());
+    dialog.querySelector("[name='title']")?.focus({ preventScroll: true });
   }
 }
 
@@ -853,14 +767,18 @@ export function openCreateDialog(dialog, opts = {}) {
  * ダイアログを「編集」モードで開く。
  */
 export function openEditDialog(dialog, task, tags) {
+  const deleteButton = dialog.querySelector('[data-delete]');
+  if (deleteButton) deleteButton.hidden = false;
   const titleEl = dialog.querySelector("[data-dialog-title]");
-  if (titleEl) titleEl.textContent = "タスクを編集";
+  if (titleEl) titleEl.textContent = translate('ui.31894d4e1e');
 
   dialog.querySelector("[name='title']").value     = task.title     ?? "";
   dialog.querySelector("[name='startTime']").value = task.startTime ?? "09:00";
   dialog.querySelector("[name='endTime']").value   = task.endTime   ?? "10:00";
   dialog.querySelector("[name='allDay']").checked  = Boolean(task.isAllDay);
   dialog.querySelector("[name='memo']").value      = task.memo      ?? "";
+  const outlook = dialog.querySelector('[name="outlookEnabled"]');
+  if (outlook) { outlook.checked = Boolean(task.outlookEnabled); outlook.disabled = false; }
   if (dialog.querySelector("[name='date']")) {
     dialog.querySelector("[name='date']").value = task.date ?? formatDateKey(new Date());
   }
@@ -868,6 +786,8 @@ export function openEditDialog(dialog, task, tags) {
   if (tagContainer) {
     populateTagOptions(tagContainer, tags ?? [], task.tagId);
   }
+  dialog._originalRecurrence = structuredClone(task.recurrence || {type:"none"});
+  populateEventFields(dialog, task);
   _setRecurrenceBtn(dialog, task.recurrence?.type ?? "none");
   const untilEl = dialog.querySelector("[name='repeatUntil']");
   if (untilEl) untilEl.value = task.recurrence?.until ?? task.date ?? formatDateKey(new Date());
@@ -880,8 +800,10 @@ export function openEditDialog(dialog, task, tags) {
   });
 
   dialog.setAttribute("data-edit-id", task.id);
+  populateNativeRecurrence(dialog, dialog._eventOriginal || {});
+  dialog._recurrenceChanged = false;
   dialog.showModal();
-  requestAnimationFrame(() => dialog.querySelector("[name='title']")?.focus());
+  dialog.querySelector("[name='title']")?.focus({ preventScroll: true });
 }
 
 /**
@@ -903,11 +825,13 @@ export function readDialogForm(dialog) {
 
   return {
     title:    (dialog.querySelector("[name='title']")?.value     ?? "").trim(),
+    outlookEnabled: dialog.querySelector('[name="outlookEnabled"]')?.checked ?? false,
     startTime: dialog.querySelector("[name='startTime']")?.value ?? "09:00",
     endTime:   dialog.querySelector("[name='endTime']")?.value   ?? "10:00",
     isAllDay:  dialog.querySelector("[name='allDay']")?.checked  ?? false,
     tagId:     dialog.querySelector("[name='tag']")?.value       ?? "",
-    recurrence,
+    recurrence: readNativeRecurrence(dialog) || (dialog._originalRecurrence?.native && dialog._nativeRecurrenceChanged ? {type:"none"} : dialog._originalRecurrence && !dialog._recurrenceChanged ? structuredClone(dialog._originalRecurrence) : recurrence),
+    ...readEventFields(dialog),
     // 編集範囲(この予定のみ/今日以降すべて/繰り返し予定すべて)。
     editScope: dialog.querySelector("[name='editScope']")?.value || "single",
     memo:      (dialog.querySelector("[name='memo']")?.value     ?? "").trim(),
@@ -930,7 +854,7 @@ export function startHeaderClock({ workEnd = "18:00", getWorkEnd } = {}) {
     if (dateEl) dateEl.textContent = formatDateJP(now);
 
     const currentWorkEnd = typeof getWorkEnd === "function" ? getWorkEnd() : workEnd;
-    const minKey = `${formatDateKey(now)}-${now.getHours()}-${now.getMinutes()}-${currentWorkEnd}`;
+    const minKey = `${formatDateKey(now)}-${now.getHours()}-${now.getMinutes()}-${currentWorkEnd}-${getLocale()}`;
     if (minKey !== lastMinKey) {
       const endMinutes = timeToMinutes(currentWorkEnd);
       const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -941,6 +865,7 @@ export function startHeaderClock({ workEnd = "18:00", getWorkEnd } = {}) {
   }
 
   tick();
+  document.addEventListener?.('tcplus:language', tick);
   setInterval(tick, 1000);
 }
 
@@ -1024,17 +949,31 @@ export function normalizeHexColor(value, fallback = DEFAULT_TAG_COLOR) {
 
 /** サイドバーの開閉ボタン。アイコンと文字を別要素のまま更新する。 */
 export function wireSidebarToggle(root) {
+  const compact = window.matchMedia('(max-width: 760px)');
+  let explicitChoice = null;
+  const setCollapsed = collapsed => {
+    const layout = root.querySelector('.layout'), btn = root.querySelector('[data-sidebar-toggle]');
+    if (!layout || !btn) return;
+    layout.classList.toggle('sidebar-collapsed', collapsed);
+    const sidebar = layout.querySelector('aside');
+    if (sidebar) {
+      if (collapsed && sidebar.contains(document.activeElement)) btn.focus();
+      sidebar.inert = collapsed;
+    }
+    btn.querySelector('[data-sidebar-chevron]')?.setAttribute('d', collapsed ? 'm13 9 3 3-3 3' : 'm16 9-3 3 3 3');
+    btn.setAttribute('aria-expanded', String(!collapsed));
+    btn.title = collapsed ? translate('ui.d545bd0c1e') : translate('ui.cd3379e939');
+    btn.setAttribute('aria-label', btn.title);
+  };
+  setCollapsed(compact.matches);
+  compact.addEventListener('change', () => { if (explicitChoice === null) setCollapsed(compact.matches); });
   root.querySelector("[data-sidebar-toggle]")?.addEventListener("click", (e) => {
     const layout = root.querySelector(".layout");
     const btn = e.currentTarget;
     if (!layout || !(btn instanceof HTMLButtonElement)) return;
-    const collapsed = layout.classList.toggle("sidebar-collapsed");
-    btn.querySelector("[data-sidebar-chevron]")?.setAttribute(
-      "d", collapsed ? "m13 9 3 3-3 3" : "m16 9-3 3 3 3",
-    );
-    btn.setAttribute("aria-expanded", String(!collapsed));
-    btn.title = collapsed ? "サイドバーを開く" : "サイドバーを折りたたむ";
-    btn.setAttribute("aria-label", btn.title);
+    const collapsed = !layout.classList.contains('sidebar-collapsed');
+    explicitChoice = collapsed;
+    setCollapsed(collapsed);
   });
 }
 
@@ -1044,18 +983,21 @@ export function wireSidebarToggle(root) {
  * @param {{monthEl?: Element, dayEl?: Element, Store: object, dateKey: string, emptyText?: {month: string, day: string}}} opts
  */
 export function renderSideSummaries({ monthEl, dayEl, Store, dateKey, emptyText = {
-  month: "この月の集計データはまだありません。",
-  day: "この日の集計データはまだありません。",
+  month: translate('ui.f8709d84bf'),
+  day: translate('ui.71a82f49d0'),
 } }) {
   const yearMonth = String(dateKey).slice(0, 7);
   const monthTags = Store.getTagsForMonth(yearMonth);
   const tags = monthTags.length > 0 ? monthTags : Store.getAllTags();
+  const totals = summary => `<div class="sideWorkTotals"><div><span>${escHtml(translate('work.totalShort'))}</span><strong>${escHtml(formatDuration(summary.total))}</strong></div><div><span>${escHtml(translate('work.overtimeShort'))}</span><strong>${escHtml(formatDuration(summary.overtime))}</strong></div></div>`;
   if (monthEl) {
-    const html = renderTagBudgetRowsHtml(tags, Store.calcMonthSummary(yearMonth).byTag);
-    monthEl.innerHTML = html || (emptyText ? `<div class="small">${escHtml(emptyText.month)}</div>` : "");
+    const summary = Store.calcMonthSummary(yearMonth);
+    const html = renderTagBudgetRowsHtml(tags, summary.byTag);
+    monthEl.innerHTML = totals(summary) + (html || (emptyText ? `<div class="small">${escHtml(emptyText.month)}</div>` : ""));
   }
   if (dayEl) {
-    const html = renderDaySummaryRowsHtml(tags, Store.calcDaySummary(dateKey).byTag);
+    const summary = Store.calcDaySummary(dateKey);
+    const html = renderDaySummaryRowsHtml(tags, summary.byTag);
     dayEl.innerHTML = html || (emptyText ? `<div class="small">${escHtml(emptyText.day)}</div>` : "");
   }
 }
@@ -1087,7 +1029,7 @@ function _openMonthTagPopup(Store, yearMonth, clientX, clientY) {
   const title = document.createElement("div");
   title.className = "taskTagContextTitle";
   const [y, m] = yearMonth.split("-");
-  title.textContent = `${y}年${Number(m)}月のタグ`;
+  title.textContent = translate('ui.539db9c358', { p0: (y), p1: (Number(m)) });
   popup.appendChild(title);
 
   const sep = document.createElement("div");
@@ -1098,7 +1040,7 @@ function _openMonthTagPopup(Store, yearMonth, clientX, clientY) {
     const empty = document.createElement("div");
     empty.className = "taskTagContextTitle";
     empty.style.paddingTop = "6px";
-    empty.textContent = "この月にタグはありません";
+    empty.textContent = translate('ui.8e4b246a11');
     popup.appendChild(empty);
   } else {
     tags.forEach((tag) => {
@@ -1165,4 +1107,106 @@ export function ensureTaskTagMenu() {
   });
 
   return menu;
+}
+
+/** メニューの描画と配置を共通化する。タグ更新の待ち方とUndoは呼び出し側で維持する。 */
+export function renderTaskTagMenu(menu, { task, tags, seriesCount, clientX, clientY, onEdit, onDelete, onTagSelect, onBulkEdit, onBulkDelete, selectionCount = 1, selectedTagId = task.tagId }) {
+  menu.innerHTML = "";
+  const multiple = selectionCount > 1;
+
+  const addActionItem = (label, onClick, { danger = false } = {}) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "taskTagContextItem";
+    if (danger) btn.classList.add("danger");
+    btn.textContent = label;
+    btn.addEventListener("click", async () => {
+      await onClick();
+      hideTaskTagMenu();
+    });
+    menu.appendChild(btn);
+    return btn;
+  };
+
+  if (!multiple) {
+    addActionItem(translate('ui.11f9049dda'), onEdit);
+    addActionItem(translate('ui.fdc17259a9'), async () => {
+      await onDelete("single");
+    }, { danger: true });
+    if (seriesCount > 1) {
+      addActionItem(translate('ui.2a4fe5975d', { p0: (seriesCount) }), async () => {
+        await onDelete("series");
+      }, { danger: true });
+    }
+
+    const sep = document.createElement("div");
+    sep.className = "taskTagContextSeparator";
+    menu.appendChild(sep);
+  }
+
+  const title = document.createElement("div");
+  title.className = "taskTagContextTitle";
+  title.textContent = multiple
+    ? `${translate('batch.count', { count: selectionCount })} · ${translate('ui.4400fedd36')}`
+    : translate('ui.4400fedd36');
+  menu.appendChild(title);
+
+  let busy = false;
+  const selectTag = async value => {
+    if (busy) return;
+    busy = true;
+    menu.querySelectorAll('button').forEach(button => { button.disabled = true; });
+    try {
+      const saved = await onTagSelect(value);
+      if (saved !== false && menu.contains(title)) hideTaskTagMenu();
+    } finally {
+      // A later right-click may have replaced this menu while the request was pending.
+      if (menu.contains(title)) menu.querySelectorAll('button').forEach(button => { button.disabled = false; });
+      busy = false;
+    }
+  };
+
+  const addItem = (label, value, color = "", active = false) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "taskTagContextItem";
+    if (active) btn.classList.add("active");
+    btn.textContent = label;
+
+    if (value) {
+      const swatch = document.createElement('span'); swatch.className = 'contextTagSwatch';
+      swatch.style.background = normalizeHexColor(color, DEFAULT_TAG_COLOR); swatch.setAttribute('aria-hidden', 'true');
+      btn.prepend(swatch); btn.setAttribute('aria-pressed', String(active));
+    }
+
+    btn.addEventListener("click", () => multiple ? selectTag(value) : onTagSelect(value));
+    menu.appendChild(btn);
+  };
+
+  addItem(translate('ui.af1cc864e3'), "", "", multiple ? selectedTagId === '' : !task.tagId);
+  tags.forEach((tag) => addItem(tag.name, tag.id, tag.color, tag.id === selectedTagId));
+
+  if (tags.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "taskTagContextEmpty";
+    empty.textContent = translate('ui.9ffd96ece9');
+    menu.appendChild(empty);
+  }
+
+  if (multiple) {
+    const separator = document.createElement('div');separator.className = 'taskTagContextSeparator';menu.appendChild(separator);
+    addActionItem(translate('batch.edit'), onBulkEdit).dataset.bulkEdit = '';
+    addActionItem(translate('batch.delete', { count: selectionCount }), onBulkDelete, {danger:true}).dataset.bulkDelete = '';
+  }
+
+  menu.hidden = false;
+  menu.style.left = "0px";
+  menu.style.top = "0px";
+
+  const rect = menu.getBoundingClientRect();
+  const margin = 8;
+  const left = Math.max(margin, Math.min(clientX, window.innerWidth - rect.width - margin));
+  const top = Math.max(margin, Math.min(clientY, window.innerHeight - rect.height - margin));
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
 }

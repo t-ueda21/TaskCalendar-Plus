@@ -1,0 +1,90 @@
+{
+  "status": "passed-with-explicit-scope",
+  "verifier": "/root/refactor2_verify",
+  "decidedAt": "2026-10-07T18:45:55.642491+00:00",
+  "baseline": "C:\\Users\\doratatu\\Documents\\Repository\\TaskCalendar-Plus\\out\\refactor-20261008-pass2\\baseline-v2",
+  "requiredCases": 172,
+  "passedRequired": 172,
+  "failedRequired": 0,
+  "notRunRequired": 0,
+  "notRunTestCases": 1,
+  "additionalExcludedCapabilityScopes": 6,
+  "uiStates": 20,
+  "uiDifferentPixels": 0,
+  "performanceMetrics": 16,
+  "samplesPerMetric": 7,
+  "metricsWithinTolerance": 16,
+  "applicationFilesChanged": 3,
+  "sourceReduction": {
+    "files": 0,
+    "bytes": 1992,
+    "lines": 58,
+    "nonblankLines": 48
+  },
+  "guardsVerified": 307,
+  "rustTestSectionFilesVerified": 14,
+  "nodeExecutableSha256": "9a4eb5f1c29c6a2e93852ead46b999e284a6a5ca8bab4d4e241d587d025a52de",
+  "source": {
+    "verifier": "/root/refactor2_verify",
+    "checkedAt": "2026-10-07T18:45:55.642491+00:00",
+    "filesVerified": 208,
+    "currentMatchesTestedSnapshot": true,
+    "rendererSha256": "d9c67a9e08b1c38da62e9dbf5700f9f1476e4e072da09e422a3a33a5dbab7b5a",
+    "checksSourceSha256": "882a2067f0e923d38f1bef2a430d88e09ba5c2ea48e7cba8faf6c3c7b87decd9",
+    "applicationFingerprint": "f4bbc584da66178b0d7c1382305340b431df7335af89aec1695e79563da77de1"
+  },
+  "evidence": {
+    "comparison.json": "930e4cf8a717ef1738a674006181065ff7bd57716f643c0315e235adb4d3ae23",
+    "visual-review.json": "454cab6d0f2b5bf7bd724a15c7cdf70a3f4bd8f7f60fc9dbcab0583adb7a298b",
+    "code-review.json": "016d602f69fa34d2b23889e4761f1f867ed26e3da57b03787101a0a54c5f4a56",
+    "baseline-revision-review.json": "28c445b4c10d1747274aa5db4371351b9081351359ddd4e45b2921fdc2ae52a9",
+    "execution-record.json": "9ed1755458d1746b33f9e10591df31d220f1ccc341bd67121d361046bcf90407",
+    "source-stability.json": "3968945ee562038e5fa9f7a41bb68a78fa80d8f66a8287f995c8578211ea6aa8"
+  },
+  "limitations": [
+    {
+      "id": "NATIVE-APP",
+      "required": false,
+      "status": "not-run",
+      "reason": "Native app/WebView2 launch prohibited due reported account lockouts; renderer browser contract is not native E2E"
+    },
+    {
+      "id": "LIVE-OUTLOOK",
+      "required": false,
+      "status": "not-run",
+      "reason": "No real Outlook COM read or write; ignored Rust live test remains excluded"
+    },
+    {
+      "id": "LIVE-AI",
+      "required": false,
+      "status": "not-run",
+      "reason": "No live model/CLI requests; unit/API mock behavior only"
+    },
+    {
+      "id": "LIVE-UPDATER",
+      "required": false,
+      "status": "not-run",
+      "reason": "No update network, signing trust changes or installation"
+    },
+    {
+      "id": "LIVE-WINDOWS",
+      "required": false,
+      "status": "not-run",
+      "reason": "No autostart, tray, default browser or Windows settings changes"
+    },
+    {
+      "id": "NATIVE-PERFORMANCE",
+      "required": false,
+      "status": "not-run",
+      "reason": "Startup, CPU and memory of native app/WebView2 excluded; measured renderer/store operation latency only"
+    }
+  ],
+  "unverifiedIssues": [
+    2,
+    4,
+    5,
+    12
+  ],
+  "remoteCi": "not run by C; any coordinator check is a separate status",
+  "push": "not performed by C"
+}

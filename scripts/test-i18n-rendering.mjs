@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { setLocale,weekdayLabels } from '../src-tauri/renderer/src/i18n.js';
+globalThis.document={addEventListener(){}};
+const {renderTagBudgetRowsHtml}=await import('../src-tauri/renderer/src/ui-utils.js');
+const tags=[{id:'work',name:'User tag 日本語',color:'#182333',budgetMinMinutes:60,budgetMaxMinutes:180}];
+setLocale('en');
+const html=renderTagBudgetRowsHtml(tags,new Map([['work',120]]));
+assert.match(html,/Remaining 1 h 0 min/);assert.match(html,/User tag 日本語/);
+const weekdays=weekdayLabels();assert.equal(weekdays[0],'Sun');
+setLocale('ko');assert.equal(weekdays[0],'일');assert.match(renderTagBudgetRowsHtml(tags,new Map([['work',200]])),/초과/);
+setLocale('ja');
+console.log('PASS: translated budget caps/remaining/overruns preserve user tags; weekdays update live');

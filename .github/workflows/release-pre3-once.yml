@@ -1,0 +1,95 @@
+name: Publish v3.0.0-pre.3 once
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/release-pre3-once.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-v3.0.0-pre.3
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: v3.0.0-pre.3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install isolated renderer test browser
+        shell: pwsh
+        run: |
+          $testDependencies = Join-Path $env:RUNNER_TEMP 'tcplus-test-dependencies'
+          npm install --prefix $testDependencies --no-package-lock --no-save playwright@1.62.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $testModules = Join-Path $testDependencies 'node_modules'
+          "TCPLUS_TEST_NODE_MODULES=$testModules" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          node (Join-Path $testModules 'playwright/cli.js') install chromium
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Validate version
+        run: node scripts/release-manifest.mjs --check
+      - name: Test
+        shell: pwsh
+        run: |
+          cargo test --locked --manifest-path src-tauri/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem scripts/test-* -File | ForEach-Object {
+            node $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Test failed: $($_.Name)" }
+          }
+      - name: Build signed updater installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx --yes @tauri-apps/cli@2.11.5 build --ci --bundles nsis -- --locked
+      - name: Publish manual-download prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $repo = $env:GITHUB_REPOSITORY
+          $before = gh api "repos/$repo/releases/latest" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($before.tag_name -ne 'v0.2.1') { throw 'Stable release changed; review before publishing' }
+          $feedBefore = Invoke-WebRequest "https://github.com/$repo/releases/latest/download/latest.json"
+          $existing = gh release view $env:RELEASE_TAG --json isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            if (-not ($existing | ConvertFrom-Json).isDraft) { throw 'Refusing to overwrite a published release' }
+          } else {
+            gh release create $env:RELEASE_TAG --target $env:GITHUB_SHA --draft --prerelease --latest=false --title "TaskCalendar+ $env:RELEASE_TAG" --notes-file "docs/releases/$env:RELEASE_TAG.md"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          $assetJson = node scripts/release-manifest.mjs --assets
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $assets = @($assetJson | ConvertFrom-Json)
+          if ($assets.Count -ne 2 -or ($assets | Where-Object { $_ -match 'latest\.json$' })) { throw 'Prerelease must contain only installer and signature' }
+          $zip = Join-Path $env:RUNNER_TEMP 'TaskCalendar+_3.0.0-pre.3_x64-setup.zip'
+          Compress-Archive -LiteralPath $assets -DestinationPath $zip -Force
+          gh release upload $env:RELEASE_TAG @assets $zip --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit $env:RELEASE_TAG --draft=false --prerelease --latest=false
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $after = gh api "repos/$repo/releases/latest" | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $feedAfter = Invoke-WebRequest "https://github.com/$repo/releases/latest/download/latest.json"
+          if ($after.id -ne $before.id -or $feedAfter.Content -cne $feedBefore.Content) { throw 'Stable update feed changed' }
+          Write-Output 'Published prerelease; stable release and updater feed unchanged.'

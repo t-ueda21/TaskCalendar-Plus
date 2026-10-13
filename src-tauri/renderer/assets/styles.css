@@ -31,6 +31,7 @@
   --font-body: 13px;
   --font-section: 14px;
   --font-title: 16px;
+  --workspace-inset: 12px;
   --bg: #f3f4f9;
   --panel: #ffffff;
   --panel2: #f8f9fc;
@@ -227,11 +228,14 @@ body {
 a { color: inherit; text-decoration: none; }
 
 .container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   width: 100%;
   height: 100%;
   max-width: none;
   margin: 0;
-  padding: 6px 8px 0;
+  padding: var(--workspace-inset);
 }
 
 /* ── SPAシェル(app.html)のタブ切替 ──────────────
@@ -378,6 +382,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .toolbar {
+  min-width: 0;
   margin-top: 6px;
   display: flex;
   align-items: center;
@@ -409,6 +414,8 @@ a { color: inherit; text-decoration: none; }
   overflow-x: auto;
   scrollbar-width: thin;
 }
+
+.toolbar .left > * { flex-shrink: 0; white-space: nowrap; }
 
 .control {
   display: inline-flex;
@@ -520,7 +527,8 @@ a { color: inherit; text-decoration: none; }
   display: grid;
   grid-template-columns: 320px 1fr;
   gap: 6px 8px;
-  height: calc(100% - 146px);
+  height: auto;
+  min-height: 0;
   transition: grid-template-columns 0.25s ease;
 }
 
@@ -539,6 +547,8 @@ a { color: inherit; text-decoration: none; }
 }
 
 .layout > .panel {
+  min-width: 0;
+  min-height: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -569,7 +579,7 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 /* calendar panel uses fixed header areas + scrolling gridWrap */
-.panel[aria-label="カレンダー本体"] .panelBody {
+.panel[data-calendar-panel] .panelBody {
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -594,7 +604,8 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 .miniCalHeader {
-  display: flex;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
   align-items: center;
   gap: 6px;
   width: 100%;
@@ -602,6 +613,7 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 .miniCalHeader > h2 {
+  grid-column: 2;
   flex: 1;
   min-width: 0;
   padding: 0;
@@ -658,7 +670,7 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 .miniCalToggle {
-  width: 48px;
+  width: 32px;
   height: 28px;
   flex-shrink: 0;
   padding: 0;
@@ -683,7 +695,10 @@ aside .panelBody::-webkit-scrollbar {
 }
 
 .miniCalHeaderArrows {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-column: 1 / -1;
+  width: 100%;
   gap: 4px;
   flex-shrink: 0;
 }
@@ -779,21 +794,11 @@ aside .panelBody::-webkit-scrollbar {
   white-space: nowrap;
 }
 
+.weatherIcon { display: inline-block; width: 18px; height: 18px; flex: 0 0 18px; margin-right: 4px; vertical-align: -4px; }
+.weatherChip .weatherIcon { margin-right: 0; }
+
 .weatherChip.loading {
   color: var(--muted);
-}
-
-.weatherIcon {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-  margin-right: 4px;
-  vertical-align: -4px;
-}
-
-.weatherChip .weatherIcon {
-  margin-right: 0;
 }
 
 .panel .content {
@@ -1544,6 +1549,10 @@ aside .panelBody::-webkit-scrollbar {
   background: rgba(var(--accent-rgb), 0.15);
   font-weight: 700;
 }
+.miniCalHeaderArrows .btn { min-width: 0; width: 100%; white-space: normal; }
+.miniCalSticky .panelHeaderRow { height: auto; min-height: 76px; }
+.contextTagSwatch { display: inline-block; width: 12px; height: 12px; flex-shrink: 0; margin-right: 8px; border: 1px solid var(--border); border-radius: 3px; vertical-align: -1px; }
+.copySummaryBtn { display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; min-width: 28px; min-height: 28px; }
 
 .taskTagContextItem.danger {
   color: var(--danger);
@@ -1654,13 +1663,13 @@ dialog.settingsDialog[open] {
   overflow-x: auto;
 }
 
-.panel[aria-label="タスク一覧テーブル"] .content {
+.panel[data-tasks-panel] .content {
   flex: 1;
   min-height: 0;
   display: flex;
 }
 
-.panel[aria-label="タスク一覧テーブル"] .content > .tasksContentLayout {
+.panel[data-tasks-panel] .content > .tasksContentLayout {
   flex: 1;
   min-height: 0;
   width: 100%;
@@ -1957,12 +1966,12 @@ dialog.settingsDialog[open] {
 }
 
 /* 見出しを横書きで保ち、狭い画面ではtableWrap内で横スクロールする。 */
-.table[aria-label="タスク一覧"] th,
-.table[aria-label="タスク一覧"] td:nth-child(5) {
+.table[data-task-table] th,
+.table[data-task-table] td:nth-child(5) {
   white-space: nowrap;
 }
 
-.table[aria-label="タスク一覧"] th[data-sort="title"] {
+.table[data-task-table] th[data-sort="title"] {
   min-width: 10em;
 }
 
@@ -1974,8 +1983,8 @@ dialog.settingsDialog[open] {
   font-size: var(--font-body);
 }
 
-.panel[aria-label="タスク一覧テーブル"] .table th,
-.panel[aria-label="タスク一覧テーブル"] .table td {
+.panel[data-tasks-panel] .table th,
+.panel[data-tasks-panel] .table td {
   padding: 7px 8px;
   line-height: 1.35;
 }
@@ -2006,8 +2015,11 @@ dialog.settingsDialog[open] {
 }
 
 @media (max-width: 1080px) {
-  .layout { grid-template-columns: 1fr; }
-  .tasksContentLayout { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: 230px minmax(0, 1fr); }
+  .tasksContentLayout { display: flex; flex-direction: column; overflow-y: auto; }
+  .tasksMainColumn { height: auto; flex: 0 0 auto; grid-template-rows: auto auto auto; }
+  .tasksMainColumn .tableWrap { min-height: 140px; max-height: 300px; }
+  .tasksRightColumn { display: flex; flex-direction: column; overflow: visible; flex: 0 0 auto; }
 }
 
 @media (max-width: 1200px) {
@@ -2022,9 +2034,20 @@ dialog.settingsDialog[open] {
 
 @media (max-width: 760px) {
   .nav {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  .header { padding: 10px 12px; gap: 8px; }
+  .headerNavigation { flex: 1; }
+  .clock { width: 100%; justify-content: flex-start; }
+  .toolbar { height: auto; min-height: 62px; flex-wrap: wrap; }
+  .toolbar .left { width: 100%; }
+  .toolbar .right { margin-left: auto; }
 }
+
+.tableSortButton { appearance: none; border: 0; background: transparent; color: inherit; font: inherit; padding: 0; white-space: nowrap; cursor: pointer; }
+.tableSortButton:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.settingsTagDragHandle { border: 0; background: transparent; padding: 0; color: var(--muted); font: inherit; }
+.settingsTagDragHandle:focus-visible { outline: 2px solid var(--accent); }
 
 /* ── 本実装追加スタイル ── */
 
@@ -2039,6 +2062,8 @@ dialog.settingsDialog[open] {
 .taskTagBadge {
   display: inline-flex;
   align-items: center;
+  min-height: 24px;
+  vertical-align: middle;
   max-width: min(100%, 180px);
   min-width: 0;
   padding: 1px 10px;
@@ -2050,6 +2075,8 @@ dialog.settingsDialog[open] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.taskTagBadge.isUntagged { color: var(--muted); background: var(--panel2); border-color: var(--border-strong); }
 
 /* テーブル: タスクタイトルセル */
 .taskTitleCell {
@@ -2202,7 +2229,7 @@ th[data-sort]:hover { background: var(--accent-soft); }
 
 .aiLayout {
   margin-top: 6px;
-  height: calc(100% - 146px);
+  height: auto;
 }
 
 .aiModePanel {
@@ -2773,32 +2800,11 @@ label.uiToggle { position: relative; width: fit-content; }
 }
 
 /* タグタブのみ、タグリストが残り高さを最大限使えるようにする。
-   他タブ(詳細/Outlook等)は内容量に応じた高さのまま。 */
+   他のページは内容量に応じた高さのまま。 */
 .settingsTabPanel[data-settings-tab-panel="tags"].isActive {
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
-}
-
-/* 詳細タブはセクション数が多く、縦一列だと「起動設定」までスクロールしないと
-   見えない。一方、CSS columnsのカードウォールなどでは列間の高さが揃わず、
-   読み順も崩れる。そこで、可変長になりやすい「休憩時間」だけをDOM順で最後に
-   置いて全幅の下段に独立させ、内容量が近い残り4セクション(勤務時間/表示設定/
-   URL自動オープン/起動設定)を上段2×2グリッドに固定する。 */
-.settingsTabPanel[data-settings-tab-panel="advanced"].isActive {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.settingsTabPanel[data-settings-tab-panel="advanced"] > .settingsSection:last-child {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 720px) {
-  .settingsTabPanel[data-settings-tab-panel="advanced"].isActive {
-    grid-template-columns: 1fr;
-  }
 }
 
 .settingsSection {
@@ -3152,6 +3158,27 @@ label.uiToggle { position: relative; width: fit-content; }
   padding: 8px;
 }
 
+.sideWorkTotals { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 0; margin-bottom: 4px; font-size: var(--font-caption); }
+.sideWorkTotals > div { display: inline-flex; flex-wrap: wrap; gap: 2px 4px; align-items: baseline; }
+.sideWorkTotals > div > span { color: var(--muted); }
+.sideWorkTotals strong { font-variant-numeric: tabular-nums; }
+.mini button.d { font: inherit; color: inherit; cursor: pointer; padding: 0; }
+.mini button.d:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
+.transferWrite, .transferRead { padding: 12px 0; }
+.transferWrite { border-bottom: 1px solid var(--border); }
+.transferWrite [data-export-status] { white-space: pre-line; overflow-wrap: anywhere; }
+.transferWrite h3, .transferRead h3 { font-size: var(--font-body); margin: 0 0 8px; }
+.transferSteps { display: grid; gap: 10px; margin: 0; padding-left: 24px; }
+.transferSteps li > span { display: block; font-weight: 600; margin-bottom: 6px; }
+.transferSteps p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 4px 0; }
+.settingsFileImportName { overflow-wrap: anywhere; white-space: normal; }
+.outlookJobError { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; }
+.outlookJobError span { flex: 1; overflow-wrap: anywhere; }
+.outlookLinkBanner { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); max-width: min(700px, 90vw); background: var(--panel); color: var(--text); border: 1px solid #c2410c; border-radius: var(--radius-sm); padding: 10px 16px; box-shadow: var(--shadow-md); z-index: 100; }
+.aiPersonalization { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; margin: 12px 0; min-width: 0; }
+.aiPersonalization textarea { width: 100%; min-height: 72px; resize: vertical; }
+[data-ai-preview-status] { white-space: pre-wrap; overflow-wrap: anywhere; }
+
 /* タグ管理: タグ名/上限/下限を列として揃えたテーブル形式。
    列見出しは.settingsTagTableHead(app.html側に静的配置)で固定表示する。 */
 .settingsTagTableHead {
@@ -3418,6 +3445,46 @@ label.uiToggle { position: relative; width: fit-content; }
   opacity: 1;
 }
 
+.taskSelectionStatus { position:fixed; right:16px; bottom:16px; z-index:1400; max-width:min(420px,calc(100vw - 32px)); padding:10px 14px; border:1px solid var(--border); border-radius:8px; background:var(--panel); color:var(--text); box-shadow:0 4px 16px #0002; font-size:var(--font-caption); pointer-events:none; }
+.taskBlock.isTaskSelected, .allDayTask.isTaskSelected { outline:2px solid var(--accent); outline-offset:-2px; box-shadow:inset 0 0 0 3px var(--panel); }
+tr.isTaskSelected { background:var(--accent-soft); outline:2px solid var(--accent); outline-offset:-2px; }
+.bulkTaskDialog { width:min(600px,calc(100vw - 32px)); }
+.bulkTaskDialog header h2 { margin:0; font-size:var(--font-title); }
+.bulkTaskDialog header p { margin:5px 0 0; color:var(--muted); }
+.bulkTaskDialog form { display:grid; gap:18px; padding:20px 24px; }
+.bulkField { display:grid; gap:8px; }
+.bulkField > label { display:flex; align-items:center; gap:8px; font-weight:600; }
+.bulkField input[type=date], .bulkField select, .bulkField textarea { width:100%; min-width:0; min-height:38px; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--radius-sm); }
+.bulkField :disabled { opacity:0.55; }
+.bulkHint { color:var(--muted); font-size:var(--font-caption); margin:0; }
+.bulkError { color:var(--danger); margin:0; overflow-wrap:anywhere; }
+.bulkError:empty { display:none; }
+
+/* Task editing shares the spacing, controls and surfaces of the new dialogs. */
+[data-task-dialog] { width:min(640px,calc(100vw - 32px)); max-height:calc(100vh - 40px); border-radius:18px; }
+[data-task-dialog][open] { display:flex; flex-direction:column; }
+[data-task-dialog] > header { flex-shrink:0; padding:22px 24px; font-size:18px; font-weight:650; background:var(--panel); }
+[data-task-dialog] > form { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 20px; padding:22px 24px; overflow-y:auto; min-height:0; }
+[data-task-dialog] .formRow { display:flex; flex-direction:column; align-items:stretch; gap:8px; margin:0; min-width:0; }
+[data-task-dialog] .formRow > label:first-child { color:var(--muted); font-weight:600; }
+[data-task-dialog] .formRow:has([name=title]), [data-task-dialog] .formRow:has([name=tag]), [data-task-dialog] .formRow:has([name=repeat]), [data-task-dialog] .formRow:has([name=outlookEnabled]), [data-task-dialog] .formRow:has([name=memo]) { grid-column:1 / -1; }
+[data-task-dialog] .formRow:has([name=outlookEnabled]) { flex-direction:row; align-items:center; gap:20px; }
+[data-task-dialog] input:not([type=hidden]):not([type=checkbox]), [data-task-dialog] select, [data-task-dialog] textarea { width:100%; min-width:0; min-height:40px; padding:9px 12px; border:1px solid var(--border-strong); border-radius:9px; background:var(--panel); }
+[data-task-dialog] .timeStepperWrap { width:100%; }
+[data-task-dialog] .timeStepperWrap input { padding-right:34px; }
+[data-task-dialog] .timeStepperBtns { width:28px; right:3px; top:3px; bottom:3px; }
+[data-task-dialog] input:focus-visible, [data-task-dialog] textarea:focus-visible, [data-task-dialog] select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+[data-task-dialog] .btnGroup { gap:8px; }
+[data-task-dialog] .btnGroupItem { min-height:34px; }
+[data-task-dialog] > footer { flex-shrink:0; padding:16px 24px; background:var(--panel2); }
+[data-task-dialog] > footer .btn { min-height:38px; min-width:82px; }
+[data-task-dialog] .timePicker { border-radius:10px; padding:5px; box-shadow:var(--shadow-lg); }
+@media (max-width:520px) {
+  [data-task-dialog] > form { grid-template-columns:minmax(0,1fr); padding:18px; gap:16px; }
+  [data-task-dialog] .formRow { grid-column:1 / -1; }
+  [data-task-dialog] > header, [data-task-dialog] > footer { padding:16px 18px; }
+}
+
 @media (max-width: 700px) {
   .settingsTimeRange {
     grid-template-columns: 1fr;
@@ -3550,3 +3617,14 @@ button:focus-visible,
 .localAiProvider:not([hidden]) { display: grid; gap: 8px; }
 .localAiActions { display: flex; align-items: center; gap: 8px; }
 .localAiProvider .btn { white-space: nowrap; }
+
+/* Match model pickers while allowing long mailbox paths to shrink. */
+.outlookCalendarPicker { min-width:0; }
+.outlookCalendarPicker .settingsModelRow { grid-template-columns: 110px minmax(0,1fr) auto; }
+.outlookCalendarPicker select { min-width:0; width:100%; }
+.outlookCalendarPicker > input { width:100%; margin-top:8px; }
+.outlookCalendarPicker [data-calendar-status] { overflow-wrap:anywhere; }
+@media (max-width:620px) {
+  .outlookCalendarPicker .settingsModelRow { grid-template-columns:minmax(0,1fr) auto; }
+  .outlookCalendarPicker .settingsModelRow > label { grid-column:1 / -1; }
+}

@@ -1,0 +1,50 @@
+{
+  "verifier": "/root/settings_c",
+  "status": "passed",
+  "checkedAt": "2026-10-08T00:49:25.296934+00:00",
+  "casesPerSide": 4,
+  "totalExecutions": 8,
+  "originalFrozenRequiredCasesRemain": 178,
+  "scriptSha256": "cc446e159a746c594c7985f72c599b45c5329de6034e6d7a46114a3e66b6946f",
+  "cases": [
+    {
+      "id": "SUP-OUTLOOK-ENTRY",
+      "description": "Fetch toolbar opens Outlook settings from calendar, tasks and AI; cancel does not mutate saved values",
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "id": "SUP-TAG-ENTRY",
+      "description": "Monthly summary tag row opens Tags settings from all three views with current tag retained",
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "id": "SUP-UPDATE-ENTRY",
+      "description": "Update toolbar opens the update dialog, not a settings page; unsupported synthetic updater cannot install",
+      "required": true,
+      "status": "passed"
+    },
+    {
+      "id": "SUP-AI-GUIDANCE",
+      "description": "AI setup guidance is translated text in nine locales; Settings then AI reaches provider controls without inference",
+      "required": true,
+      "status": "passed"
+    }
+  ],
+  "beforeSource": "0e769b0f2becfba8ee4758571061d3d1432005af54917fee19966c36ae7e5241",
+  "afterSource": "79f1a9c5f04452747f1191b1574718a18f635309691686cfeff264721107ff53",
+  "sameExecutionConditions": true,
+  "summary": "追加4ケースをCが同一ハーネスで11ページ基準と最終ソースの双方に実行し、両側4/4成功。3画面のOutlook入口→Outlook、月次タグ行→タグ管理、更新ボタン→専用更新ダイアログ、9言語AI説明と設定→AI到達を確認した。AI案内自体はリンクではなくテキスト。更新確認/インストールは合成unsupported応答で無効、実サービス呼び出しなし。",
+  "evidence": [
+    "supplemental-before/cases.json",
+    "supplemental-before/harness-environment.json",
+    "supplemental-after/cases.json",
+    "supplemental-after/harness-environment.json"
+  ],
+  "limitations": [
+    "Separate supplementary 4 cases; not merged into frozen 178.",
+    "Native updater is synthetic installSupported=false; no live check/install, Outlook fetch or AI inference.",
+    "Same harness is intended for both eleven-page before and after roots."
+  ]
+}

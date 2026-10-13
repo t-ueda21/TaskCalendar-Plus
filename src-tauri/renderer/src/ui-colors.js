@@ -1,13 +1,14 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 // UI配色の計算。予定のタグ色や休日・警告の意味を持つ色は変更しない。
 export const DEFAULT_UI_COLOR = '#0072bc';
 export const UI_COLOR_PRESETS = [
-  { name: '青（既定）', color: DEFAULT_UI_COLOR },
-  { name: '紫', color: '#7c3aed' },
-  { name: 'オレンジ', color: '#f97316' },
-  { name: 'ピンク', color: '#ec4899' },
-  { name: '水色', color: '#38bdf8' },
-  { name: '緑', color: '#22c55e' },
-  { name: '黄色', color: '#facc15' },
+  { get name() { return translate('ui.7e49c12df4'); }, color: DEFAULT_UI_COLOR },
+  { get name() { return translate('ui.3d0158cb7c'); }, color: '#7c3aed' },
+  { get name() { return translate('ui.0349fe3db6'); }, color: '#f97316' },
+  { get name() { return translate('ui.903a26de81'); }, color: '#ec4899' },
+  { get name() { return translate('ui.68fd7ad3b0'); }, color: '#38bdf8' },
+  { get name() { return translate('ui.005c047dbb'); }, color: '#22c55e' },
+  { get name() { return translate('ui.d451c07d73'); }, color: '#facc15' },
 ];
 
 export function normalizeUiColor(value) {

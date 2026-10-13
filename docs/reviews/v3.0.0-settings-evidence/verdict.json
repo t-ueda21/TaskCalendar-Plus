@@ -1,0 +1,134 @@
+{
+  "status": "passed-with-explicit-scope",
+  "verifier": "/root/settings_c",
+  "requiredCases": 178,
+  "passedRequired": 178,
+  "failedRequired": 0,
+  "notRunRequired": 0,
+  "ignoredLiveRustCases": 1,
+  "excludedScopes": [
+    {
+      "id": "NATIVE-APP",
+      "required": false,
+      "status": "not-run",
+      "reason": "Native app/WebView2 launch prohibited due reported account lockouts; renderer browser contract is not native E2E"
+    },
+    {
+      "id": "LIVE-OUTLOOK",
+      "required": false,
+      "status": "not-run",
+      "reason": "No real Outlook COM read or write; ignored Rust live test remains excluded"
+    },
+    {
+      "id": "LIVE-AI",
+      "required": false,
+      "status": "not-run",
+      "reason": "No live model/CLI requests; unit/API mock behavior only"
+    },
+    {
+      "id": "LIVE-UPDATER",
+      "required": false,
+      "status": "not-run",
+      "reason": "No update network, signing trust changes or installation"
+    },
+    {
+      "id": "LIVE-WINDOWS",
+      "required": false,
+      "status": "not-run",
+      "reason": "No autostart, tray, default browser or Windows settings changes"
+    },
+    {
+      "id": "NATIVE-PERFORMANCE",
+      "required": false,
+      "status": "not-run",
+      "reason": "Startup, CPU and memory of native app/WebView2 excluded; measured renderer/store operation latency only"
+    }
+  ],
+  "uiStates": 45,
+  "differentPixels": 0,
+  "pixels": 54900000,
+  "performanceMetrics": 16,
+  "samplesPerMetric": 7,
+  "withinTolerance": 16,
+  "pureSourceReduction": {
+    "files": 1,
+    "bytes": 47,
+    "lines": 102,
+    "nonblankLines": 97
+  },
+  "featureComparisons": 11,
+  "supplemental": {
+    "verifier": "/root/settings_c",
+    "status": "passed",
+    "checkedAt": "2026-10-08T00:49:25.296934+00:00",
+    "casesPerSide": 4,
+    "totalExecutions": 8,
+    "originalFrozenRequiredCasesRemain": 178,
+    "scriptSha256": "cc446e159a746c594c7985f72c599b45c5329de6034e6d7a46114a3e66b6946f",
+    "cases": [
+      {
+        "id": "SUP-OUTLOOK-ENTRY",
+        "description": "Fetch toolbar opens Outlook settings from calendar, tasks and AI; cancel does not mutate saved values",
+        "required": true,
+        "status": "passed"
+      },
+      {
+        "id": "SUP-TAG-ENTRY",
+        "description": "Monthly summary tag row opens Tags settings from all three views with current tag retained",
+        "required": true,
+        "status": "passed"
+      },
+      {
+        "id": "SUP-UPDATE-ENTRY",
+        "description": "Update toolbar opens the update dialog, not a settings page; unsupported synthetic updater cannot install",
+        "required": true,
+        "status": "passed"
+      },
+      {
+        "id": "SUP-AI-GUIDANCE",
+        "description": "AI setup guidance is translated text in nine locales; Settings then AI reaches provider controls without inference",
+        "required": true,
+        "status": "passed"
+      }
+    ],
+    "beforeSource": "0e769b0f2becfba8ee4758571061d3d1432005af54917fee19966c36ae7e5241",
+    "afterSource": "79f1a9c5f04452747f1191b1574718a18f635309691686cfeff264721107ff53",
+    "sameExecutionConditions": true,
+    "summary": "追加4ケースをCが同一ハーネスで11ページ基準と最終ソースの双方に実行し、両側4/4成功。3画面のOutlook入口→Outlook、月次タグ行→タグ管理、更新ボタン→専用更新ダイアログ、9言語AI説明と設定→AI到達を確認した。AI案内自体はリンクではなくテキスト。更新確認/インストールは合成unsupported応答で無効、実サービス呼び出しなし。",
+    "evidence": [
+      "supplemental-before/cases.json",
+      "supplemental-before/harness-environment.json",
+      "supplemental-after/cases.json",
+      "supplemental-after/harness-environment.json"
+    ],
+    "limitations": [
+      "Separate supplementary 4 cases; not merged into frozen 178.",
+      "Native updater is synthetic installSupported=false; no live check/install, Outlook fetch or AI inference.",
+      "Same harness is intended for both eleven-page before and after roots."
+    ]
+  },
+  "guardFiles": 352,
+  "rustTestSectionFiles": 14,
+  "source": {
+    "verifier": "/root/settings_c",
+    "checkedAt": "2026-10-08T00:49:26.097807+00:00",
+    "currentMatchesTestedSnapshot": true,
+    "filesVerified": 228,
+    "guardSha256": "ec4466eec636a26886b0755f53f32f933e4d252db11049081d073aed3d5d81e1",
+    "rendererSha256": "79f1a9c5f04452747f1191b1574718a18f635309691686cfeff264721107ff53",
+    "checksSourceSha256": "de114d0aa69f8f8fac729a3797ba2a97f7e9c88bfb59a4ddd737045415103499",
+    "applicationFingerprint": "c29a83ed8b8113307d2720a1029843565e605b5b0bdd7f721d812f7a73c51d90",
+    "scope": "Snapshot source only; subsequent parent documentation delivery changes and commit/push must be reported separately."
+  },
+  "evidence": {
+    "comparison.json": "3581a0c1ea0e494222266da2cebcfe3e79b3eab8e7d166fe7e82c0d0cbe80b76",
+    "visual-review.json": "656c86bc1fa6d6cff99bc7b240afce734db707e13a1214b02515d6831f7b9ef5",
+    "code-review.json": "497891ff653071d86f6cf86d9cab1863a1f3972b27d2899916668a36afcf2f96",
+    "naming-audit.json": "c97e3541c25eb99c0414d3fa68b9a5651eefba5eb1ac651aa1b1dcc291647639",
+    "baseline-revision-review.json": "7ebbb0f4a8b63fc3f6f009c6a6c83e0f81289cedd555f46609dc6cc222e757cb",
+    "execution-record.json": "a681f0bfbc3e5974e8ef962abb8625371ab3af4bdd478824a2bb94e63639cfd7",
+    "supplemental-review.json": "2e8b25119045ce8eb865a10c3def9be30c354bd27420f47a733a1ff2529a06b2",
+    "source-stability.json": "a5e4c950c96d7b2f6f4aebc5c49cfe653b45e9d2804f5c758a469233e4553b6c"
+  },
+  "deliveryRemaining": "Parent-owned current documentation update, commit/push/remote checks; C did not perform these."
+}

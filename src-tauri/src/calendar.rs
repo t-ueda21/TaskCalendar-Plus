@@ -4,7 +4,7 @@
 //! 祝日の算出方式・所要時間の考え方は画面側(`renderer/src/holidays.js`、`store.js` の
 //! `taskDurationMinutes`)と同じにしている。
 
-use chrono::{Datelike, Duration, NaiveDate, Weekday};
+use chrono::{Datelike, Duration, NaiveDate, Timelike, Weekday};
 use serde_json::Value;
 use std::collections::BTreeMap;
 
@@ -81,15 +81,15 @@ pub fn parse_date(value: &str) -> Option<NaiveDate> {
     NaiveDate::parse_from_str(value.trim(), "%Y-%m-%d").ok()
 }
 
-/// "HH:MM"(24:00 も可)を分に変換する。
+/// Clock precision is retained internally; the legacy minutes API truncates only its result.
+pub fn time_to_seconds(value: &str) -> Option<i64> {
+    let value = value.trim();
+    if value == "24:00" || value == "24:00:00" { return Some(86400); }
+    crate::event_data::clock(value).ok().map(|time| i64::from(time.num_seconds_from_midnight()))
+}
+
 pub fn time_to_minutes(value: &str) -> Option<i64> {
-    let (h, m) = value.trim().split_once(':')?;
-    let (h, m): (i64, i64) = (h.parse().ok()?, m.parse().ok()?);
-    if (0..=24).contains(&h) && (0..60).contains(&m) && h * 60 + m <= 24 * 60 {
-        Some(h * 60 + m)
-    } else {
-        None
-    }
+    time_to_seconds(value).map(|seconds| seconds / 60)
 }
 
 pub fn weekday_jp(day: NaiveDate) -> &'static str {
@@ -101,7 +101,7 @@ pub fn weekday_jp(day: NaiveDate) -> &'static str {
 pub struct WorkSettings {
     pub work_start: String,
     pub work_end: String,
-    /// 工数から除外する休憩(countAsWork=false)。分単位の [開始, 終了)。
+    /// 工数から除外する休憩(countAsWork=false)。秒単位の [開始, 終了)。
     excluded_breaks: Vec<(i64, i64)>,
     work_week_days: Vec<Weekday>,
     /// 会社休日: "YYYY-MM-DD"(特定日) または "--MM-DD"(毎年)。
@@ -129,14 +129,13 @@ impl WorkSettings {
         };
         // 画面側の既定値と同じ(休憩は 12:00-13:00 を工数から除外)。
         let breaks = settings.get("breaks").and_then(|v| v.as_array()).cloned()
-            .filter(|b| !b.is_empty())
             .unwrap_or_else(|| vec![serde_json::json!({ "start": "12:00", "end": "13:00", "countAsWork": false })]);
         let excluded_breaks = breaks
             .iter()
             .filter(|b| b.get("countAsWork").and_then(|v| v.as_bool()) != Some(true))
             .filter_map(|b| {
-                let s = time_to_minutes(b.get("start")?.as_str()?)?;
-                let e = time_to_minutes(b.get("end")?.as_str()?)?;
+                let s = time_to_seconds(b.get("start")?.as_str()?)?;
+                let e = time_to_seconds(b.get("end")?.as_str()?)?;
                 (e > s).then_some((s, e))
             })
             .collect();
@@ -160,19 +159,51 @@ impl WorkSettings {
         }
     }
 
-    /// 休憩(工数に含めないもの)との重なりを除いた所要時間(分)。終日・時刻なしは 0。
+    fn work_seconds(&self, start: i64, end: i64) -> i64 {
+        if end <= start { return 0; }
+        let mut breaks: Vec<_> = self.excluded_breaks.iter()
+            .map(|(s,e)| (start.max(*s),end.min(*e))).filter(|(s,e)| e > s).collect();
+        breaks.sort_unstable();
+        let mut overlap = 0;
+        let mut merged: Option<(i64,i64)> = None;
+        for (s,e) in breaks {
+            match merged {
+                Some((ms,me)) if s <= me => merged = Some((ms,me.max(e))),
+                Some((ms,me)) => { overlap += me-ms; merged = Some((s,e)); },
+                None => merged = Some((s,e)),
+            }
+        }
+        if let Some((s,e)) = merged { overlap += e-s; }
+        (end-start-overlap).max(0)
+    }
+
+    /// Break-aware integer seconds; overlapping breaks are excluded once.
+    pub fn duration_seconds(&self, start: Option<&str>, end: Option<&str>, all_day: bool) -> i64 {
+        if all_day { return 0; }
+        let (Some(s),Some(e)) = (start.and_then(time_to_seconds),end.and_then(time_to_seconds)) else { return 0; };
+        self.work_seconds(s,e)
+    }
+
     pub fn duration_minutes(&self, start: Option<&str>, end: Option<&str>, all_day: bool) -> i64 {
-        if all_day {
-            return 0;
+        self.duration_seconds(start,end,all_day) / 60
+    }
+
+    /// Each overlapping calendar date, including zero-work all-day events.
+    /// Timed midnight ends are exclusive; all-day end dates are inclusive.
+    pub fn event_work_segments(&self, date: &str, end_date: Option<&str>, start: Option<&str>, end: Option<&str>, all_day: bool) -> Vec<(NaiveDate,i64)> {
+        let Ok((start,end)) = crate::event_data::range(date,end_date,all_day,start,end) else { return Vec::new(); };
+        let mut result = Vec::new();
+        let mut day = start.date();
+        loop {
+            let midnight = day.and_hms_opt(0,0,0).expect("midnight");
+            if midnight >= end { break; }
+            let Some(next) = day.succ_opt() else { break; };
+            let next_midnight = next.and_hms_opt(0,0,0).expect("midnight");
+            let seconds = if all_day { 0 } else { self.work_seconds((start.max(midnight)-midnight).num_seconds(),(end.min(next_midnight)-midnight).num_seconds()) };
+            result.push((day,seconds));
+            day = next;
         }
-        let (Some(s), Some(e)) = (start.and_then(time_to_minutes), end.and_then(time_to_minutes)) else {
-            return 0;
-        };
-        if e <= s {
-            return 0;
-        }
-        let overlap: i64 = self.excluded_breaks.iter().map(|(bs, be)| (e.min(*be) - s.max(*bs)).max(0)).sum();
-        (e - s - overlap).max(0)
+        result
     }
 
     pub fn daily_work_minutes(&self) -> i64 {
@@ -229,6 +260,19 @@ mod tests {
         assert_eq!(w.daily_work_minutes(), 480);
         let counted = WorkSettings::from_settings(&json!({ "breaks": [{ "start": "12:00", "end": "13:00", "countAsWork": true }] }));
         assert_eq!(counted.duration_minutes(Some("11:00"), Some("15:00"), false), 240);
+    }
+
+    #[test]
+    fn full_event_seconds_and_break_union() {
+        let w = WorkSettings::from_settings(&json!({}));
+        assert_eq!(time_to_minutes("09:00:45"), Some(540));
+        assert_eq!(w.duration_minutes(Some("09:00:45"), Some("10:00:15"), false), 59);
+        let overlapping = WorkSettings::from_settings(&json!({"breaks":[
+            {"start":"12:00","end":"13:00"},{"start":"12:30","end":"13:30"}
+        ]}));
+        assert_eq!(overlapping.duration_minutes(Some("11:00"), Some("15:00"), false), 150);
+        let no_break = WorkSettings::from_settings(&json!({"breaks":[]}));
+        assert_eq!(no_break.duration_minutes(Some("11:00"), Some("15:00"), false), 240);
     }
 
     #[test]

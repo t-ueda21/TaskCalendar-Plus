@@ -1,0 +1,26 @@
+{
+  "version": "3.0.0",
+  "viewport": "1680x1100 CSS pixels, scale 1",
+  "clock": "2026-10-07 14:00 JST (fixed for screenshots)",
+  "weather": "explicit shooting placeholder",
+  "data": "synthetic Japanese task and tag records in isolated profile",
+  "liveOutlook": false,
+  "liveAi": false,
+  "captures": [
+    "calendar-week",
+    "calendar-day",
+    "task-create",
+    "mini-month",
+    "mini-year",
+    "tag-menu",
+    "tasks",
+    "outlook-range",
+    "language-settings",
+    "ai-personality",
+    "transfer",
+    "appearance-dark",
+    "calendar-en",
+    "calendar-ko"
+  ],
+  "runtimeErrors": []
+}

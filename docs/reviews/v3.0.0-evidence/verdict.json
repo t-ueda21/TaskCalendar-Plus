@@ -1,0 +1,53 @@
+{
+  "status": "passed-with-explicit-scope",
+  "verifier": "/root/verification_c",
+  "baseline": "baseline-v3",
+  "decidedAt": "2026-10-07T17:38:35.814855+00:00",
+  "requiredCases": 156,
+  "passedRequired": 156,
+  "failedRequired": 0,
+  "notRunRequired": 0,
+  "notRunTestCases": 1,
+  "additionalExcludedCapabilityScopes": 6,
+  "uiStates": 18,
+  "uiDifferentPixels": 0,
+  "performanceMetrics": 16,
+  "samplesPerMetric": 7,
+  "metricsWithinTolerance": 16,
+  "applicationFilesChanged": 2,
+  "savedBytes": 19570,
+  "savedPhysicalLines": 83,
+  "savedNonblankLines": 84,
+  "guardsVerified": 254,
+  "rustTestSectionFilesVerified": 14,
+  "nodeExecutableSha256": "9a4eb5f1c29c6a2e93852ead46b999e284a6a5ca8bab4d4e241d587d025a52de",
+  "source": {
+    "verifier": "/root/verification_c",
+    "checkedAt": "2026-10-07T17:38:35.814855+00:00",
+    "filesVerified": 128,
+    "groups": [
+      "application",
+      "tests-and-harnesses",
+      "assets",
+      "configuration"
+    ],
+    "rendererSha256": "a7189d09f0d8edd27adacacce10e5be03ba705b5572a5c64181820dd5f574d72",
+    "checksSourceSha256": "78422b3544dba830f033009ff20cd45cb95cf243d68a4bfb18ccfe12f8d5ffbe",
+    "applicationFingerprint": "6f336029d3d9dd4663eeeecc72816e4edd08be1b6a3aec13765a21111a1b9c10",
+    "currentMatchesTestedSnapshot": true
+  },
+  "evidence": {
+    "comparison.json": "fcff1b518f4f324ae8c8a4525cc25f33a8465748138ab6c2d021f1cc050b24a0",
+    "catalog-equality.json": "440916531895ce24d02d87c5d5f705a60100cca50d713a870feb89cbba63cf7e",
+    "visual-review.json": "36b364c74128fceb3f9d05f026c8a921c350a7696a9fc779cec7c3415a3ed0ff",
+    "source-stability.json": "27941316c37287ac110bbc72029e48187d002898c736a580d1d5caacd1ec18c6"
+  },
+  "limitations": [
+    "Synthetic renderer HTTP/native/weather boundary, not native application E2E",
+    "No live Outlook or live AI",
+    "No installer/updater execution or Windows settings changes",
+    "No native startup/CPU/memory measurements",
+    "Remote CI not run",
+    "Only the fixed listed cases and UI states were verified"
+  ]
+}

@@ -1,3 +1,4 @@
+import { t as translate, th as translateHtml } from './i18n.js';
 /**
  * settings-transfer.js
  *
@@ -83,13 +84,13 @@ export function parseSettingsImport(text, { allowedSettingKeys = [] } = {}) {
   try {
     data = JSON.parse(String(text ?? ""));
   } catch {
-    throw new Error("JSONとして読み込めませんでした。");
+    throw new Error(translate('ui.94aa648024'));
   }
   if (!data || typeof data !== "object" || data.format !== SETTINGS_EXPORT_FORMAT) {
-    throw new Error("TaskCalendar+ の設定ファイルではありません。");
+    throw new Error(translate('ui.40f36f22ff'));
   }
   if (Number(data.version) !== SETTINGS_EXPORT_VERSION) {
-    throw new Error(`対応していない設定ファイルのバージョンです(version=${data.version})。`);
+    throw new Error(translate('ui.61d25d51a2', { p0: (data.version) }));
   }
 
   const allowed = new Set(allowedSettingKeys);
