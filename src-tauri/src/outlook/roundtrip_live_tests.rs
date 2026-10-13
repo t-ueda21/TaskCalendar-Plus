@@ -86,7 +86,7 @@ async fn live_bidirectional_matrix_in_temporary_calendar() {
     let calendar = calendars::identify(&folder).unwrap();
     let c = rusqlite::Connection::open_in_memory().unwrap();
     crate::db::migrate(&c, "2026-10").unwrap();
-    crate::repositories::settings_set(&c, &json!({"outlookWriteCalendarName":calendar})).unwrap();
+    crate::repositories::settings_set(&c, &json!({"outlookWriteCalendarName":calendar,"outlookWriteEnabled":true,"outlookWriteDefault":true})).unwrap();
     let state = crate::api::AppState {
         os_locale: "ja-JP".into(),
         conn: Arc::new(Mutex::new(c)),
@@ -99,15 +99,20 @@ async fn live_bidirectional_matrix_in_temporary_calendar() {
     let day = chrono::Local::now().date_naive().succ_opt().unwrap();
     let date = date_key(day);
     let range = OutlookSyncRange::dates(&date, &date).unwrap();
-    // OFF before the first upsert is a no-op delete, not a restorable remote item.
+    // OFF before the first upsert pauses it without creating or deleting either record.
     create_local(&state, "never-written", &date, false);
     {
         let c = state.conn.lock().unwrap();
         crate::outlook_jobs::disable(&c, "never-written").unwrap();
     }
-    flush(&state).await;
+    assert!(!crate::outlook_jobs::process_one(&state).await.unwrap());
+    let initial_items = automation::object_get(&folder, "Items").unwrap();
+    assert_eq!(automation::integer(&initial_items, "Count").unwrap(), 0);
     {
         let c = state.conn.lock().unwrap();
+        let task = crate::repositories::tasks_get(&c, "never-written").unwrap().unwrap();
+        assert!(!task.outlook_enabled);
+        assert_eq!(crate::outlook_jobs::list(&c).unwrap()[0]["status"], "paused");
         let deleted: bool = c
             .query_row(
                 "SELECT deleted_by_app FROM outlook_links WHERE task_id='never-written'",
@@ -119,8 +124,11 @@ async fn live_bidirectional_matrix_in_temporary_calendar() {
         crate::outlook_jobs::enable(&c, "never-written").unwrap();
     }
     flush(&state).await;
+    assert_eq!(automation::integer(&initial_items, "Count").unwrap(), 1);
     crate::repositories::tasks_remove(&state.conn.lock().unwrap(), "never-written").unwrap();
     flush(&state).await;
+    assert_eq!(automation::integer(&initial_items, "Count").unwrap(), 0);
+    drop(initial_items);
     create_local(&state, "app-created", &date, false);
     flush(&state).await;
     // A migrated link without a baseline must not overwrite unverified remote state.
@@ -266,32 +274,36 @@ async fn live_bidirectional_matrix_in_temporary_calendar() {
     assert_eq!(automation::text(&imported, "EntryID").unwrap(), original_id);
     assert_eq!(automation::integer(&items, "Count").unwrap(), 1);
     drop(imported);
-    // A later no-op OFF must not erase the earlier confirmed deletion needed
-    // to restore the original when ON is selected again.
+    // OFF retains the imported original and its local row. Repeated ON/OFF
+    // before a worker claim must stay paused, never turn selection into deletion.
     crate::outlook_jobs::disable(&state.conn.lock().unwrap(), &imported_id).unwrap();
-    flush(&state).await;
+    assert!(!crate::outlook_jobs::process_one(&state).await.unwrap());
+    assert_eq!(automation::integer(&items, "Count").unwrap(), 1);
     {
         let c = state.conn.lock().unwrap();
+        let task = crate::repositories::tasks_get(&c, &imported_id).unwrap().unwrap();
+        assert!(!task.outlook_enabled);
         crate::outlook_jobs::enable(&c, &imported_id).unwrap();
         crate::outlook_jobs::disable(&c, &imported_id).unwrap();
     }
-    flush(&state).await;
-    assert!(
-        state
-            .conn
-            .lock()
-            .unwrap()
-            .query_row(
-                "SELECT deleted_by_app FROM outlook_links WHERE task_id=?1",
-                [&imported_id],
-                |r| r.get::<_, bool>(0)
-            )
-            .unwrap(),
-        "a no-op delete must retain the earlier confirmed deletion"
-    );
-    crate::outlook_jobs::enable(&state.conn.lock().unwrap(), &imported_id).unwrap();
+    edit_local(&state, &imported_id, "Edit queued while OFF");
+    assert!(!crate::outlook_jobs::process_one(&state).await.unwrap());
+    let retained = linked_item(&state, &ns, &imported_id);
+    assert_eq!(automation::text(&retained, "EntryID").unwrap(), original_id);
+    assert_eq!(automation::text(&retained, "Subject").unwrap(), "Edited imported original");
+    assert_eq!(automation::integer(&items, "Count").unwrap(), 1);
+    {
+        let c = state.conn.lock().unwrap();
+        assert!(!c.query_row("SELECT deleted_by_app FROM outlook_links WHERE task_id=?1", [&imported_id], |row| row.get::<_,bool>(0)).unwrap());
+        assert_eq!(crate::repositories::tasks_get(&c, &imported_id).unwrap().unwrap().title, "Edit queued while OFF");
+        assert_eq!(crate::outlook_jobs::list(&c).unwrap().iter().find(|job| job["taskId"] == imported_id).unwrap()["status"], "paused");
+        crate::outlook_jobs::enable(&c, &imported_id).unwrap();
+    }
     flush(&state).await;
     assert_eq!(automation::integer(&items, "Count").unwrap(), 1);
+    assert_eq!(automation::text(&retained, "EntryID").unwrap(), original_id);
+    assert_eq!(automation::text(&retained, "Subject").unwrap(), "Edit queued while OFF");
+    drop(retained);
     let imported_snapshot = crate::repositories::tasks_list(&state.conn.lock().unwrap())
         .unwrap()
         .into_iter()
@@ -523,42 +535,42 @@ async fn live_bidirectional_matrix_in_temporary_calendar() {
         automation::text(&conflicting, "Subject").unwrap(),
         "Local concurrent"
     );
-    // Force retry may resolve a version conflict, never an unsupported shape.
+    // Multi-day ranges are supported. A remote range edit still conflicts
+    // with a stale local payload; explicit retry applies the complete resolved range.
     let later = date_key(day.succ_opt().unwrap());
     automation::put(&conflicting, "End", outlook_date(&later, "15:00").unwrap()).unwrap();
     automation::method(&conflicting, "Save", &[]).unwrap();
-    edit_local(&state, "conflict", "Must not shorten multi-day");
-    crate::outlook_jobs::process_one(&state).await.unwrap();
+    edit_local(&state, "conflict", "Resolved multi-day edit");
+    assert!(crate::outlook_jobs::process_one(&state).await.unwrap());
     {
         let c = state.conn.lock().unwrap();
-        c.execute(
-            "UPDATE outlook_jobs SET status='pending',force_write=1 WHERE task_id='conflict'",
-            [],
-        )
-        .unwrap();
-    }
-    crate::outlook_jobs::process_one(&state).await.unwrap();
-    {
-        let c = state.conn.lock().unwrap();
-        let status: String = c
-            .query_row(
-                "SELECT status FROM outlook_jobs WHERE task_id='conflict'",
-                [],
-                |r| r.get(0),
-            )
-            .unwrap();
+        let (status,error): (String,String) = c.query_row(
+            "SELECT status,last_error FROM outlook_jobs WHERE task_id='conflict'", [],
+            |row| Ok((row.get(0)?,row.get(1)?)),
+        ).unwrap();
         assert_eq!(status, "failed");
+        assert!(error.starts_with("競合:"), "{error}");
+        let task = crate::repositories::tasks_get(&c, "conflict").unwrap().unwrap();
+        let mut value = serde_json::to_value(task).unwrap();
+        value["endDate"] = json!(later);
+        value["endTime"] = json!("15:00");
+        crate::repositories::tasks_update(&c,"conflict",serde_json::from_value(value).unwrap()).unwrap();
+        crate::outlook_jobs::retry(&c,"conflict").unwrap();
     }
-    assert_eq!(
-        reconcile::date_property(&conflicting, "End")
-            .unwrap()
-            .date(),
-        day.succ_opt().unwrap()
-    );
+    assert_eq!(reconcile::date_property(&conflicting, "End").unwrap().date(),day.succ_opt().unwrap(),"conflict detection does not truncate the remote range");
+    flush(&state).await;
+    assert_eq!(reconcile::date_property(&conflicting, "End").unwrap().date(),day.succ_opt().unwrap());
+    assert_eq!(reconcile::date_property(&conflicting, "End").unwrap().format("%H:%M").to_string(),"15:00");
+    assert_eq!(automation::text(&conflicting,"Subject").unwrap(),"Resolved multi-day edit");
+    let synced = synchronize(&state,&calendar,OutlookSyncRange::dates(&date,&later).unwrap()).await;
+    assert_eq!(synced["conflicts"],0,"resolved multi-day appointment must reconcile: {synced}");
+    let local = crate::repositories::tasks_get(&state.conn.lock().unwrap(),"conflict").unwrap().unwrap();
+    assert_eq!(local.end_date.as_deref(),Some(later.as_str()));
+    assert_eq!(local.end_time.as_deref(),Some("15:00"));
     let removed = guard.0.take().unwrap();
     automation::method(&removed, "Delete", &[]).unwrap();
     eprintln!(
-        "PASS live matrix: app/Outlook origin CRUD, cancellation, past all-day deletion, no echo/duplicates, explicit conflict retry; temporary calendar removed"
+        "PASS live matrix: app/Outlook origin CRUD, OFF retains both records, queued edits resume on same original, Undo, cancellation, past all-day deletion, no echo/duplicates, explicit conflict retry with supported multi-day range; temporary calendar removed"
     );
 }
 #[tokio::test]
@@ -614,4 +626,93 @@ async fn live_reconcile_named_profile_database() {
         std::fs::write(report, serde_json::to_string_pretty(&result).unwrap()).unwrap();
     }
     eprintln!("PROFILE SYNC: {}", result);
+}
+
+#[tokio::test]
+#[ignore = "temporary Outlook calendar only; expanded fields and outgoing gate; never Send"]
+async fn live_complete_event_fields_and_gate(){
+    let _com=w::CoInitializeEx(co::COINIT::APARTMENTTHREADED).unwrap();
+    let ns=automation::object_method(&connect_outlook().unwrap(),"GetNamespace",&[AutomationValue::from("MAPI")]).unwrap();
+    let base=default_calendar_folder(&ns).unwrap();let folders=automation::object_get(&base,"Folders").unwrap();
+    let name=format!("TaskCalendar-fields-{}",chrono::Utc::now().timestamp_millis());
+    let folder=automation::object_method(&folders,"Add",&[AutomationValue::from(name.as_str()),AutomationValue::from(9)]).unwrap();let _guard=CalendarGuard(Some(folder.clone()));
+    let calendar=calendars::identify(&folder).unwrap();let items=automation::object_get(&folder,"Items").unwrap();
+    let c=rusqlite::Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    crate::repositories::settings_set(&c,&json!({"outlookWriteCalendarName":calendar,"outlookWriteEnabled":false})).unwrap();
+    let state=crate::api::AppState{os_locale:"ja-JP".into(),conn:Arc::new(Mutex::new(c)),static_root:Default::default(),proposals:Default::default(),claude_command:None,codex_command:None,api_token:"isolated".into()};
+    let day=chrono::Local::now().date_naive().succ_opt().unwrap();let date=date_key(day);let last=date_key(day+chrono::Duration::days(2));
+    let range=OutlookSyncRange::dates(&date,&last).unwrap();
+    {
+        let c=state.conn.lock().unwrap();
+        crate::repositories::tasks_insert(&c,serde_json::from_value(json!({"id":"span","title":"Multi day","date":date,"endDate":last,"startTime":"22:00:12","endTime":"08:30:45","outlookEnabled":true,"outlookDetails":{"location":"Room A","busyStatus":3,"sensitivity":2,"importance":2,"categories":"TaskCalendarTest","reminderSet":true,"reminderMinutesBeforeStart":30}})).unwrap()).unwrap();
+    }
+    assert!(!crate::outlook_jobs::process_one(&state).await.unwrap());assert_eq!(automation::integer(&items,"Count").unwrap(),0);
+    {
+        let c=state.conn.lock().unwrap();crate::outlook_jobs::disable(&c,"span").unwrap();
+        crate::repositories::settings_set(&c,&json!({"outlookWriteCalendarName":calendar,"outlookWriteEnabled":true})).unwrap();
+    }
+    assert!(!crate::outlook_jobs::process_one(&state).await.unwrap());assert_eq!(automation::integer(&items,"Count").unwrap(),0);
+    crate::outlook_jobs::enable(&state.conn.lock().unwrap(),"span").unwrap();
+    assert!(crate::outlook_jobs::process_one(&state).await.unwrap());
+    {let c=state.conn.lock().unwrap();assert_eq!(crate::outlook_jobs::counts(&c).unwrap()["failed"],1);assert_eq!(automation::integer(&items,"Count").unwrap(),0);let task=crate::repositories::tasks_get(&c,"span").unwrap().unwrap();assert_eq!(task.start_time.as_deref(),Some("22:00:12"));
+    let mut value=serde_json::to_value(task).unwrap();value["startTime"]=json!("22:00");value["endTime"]=json!("08:30");crate::repositories::tasks_update(&c,"span",serde_json::from_value(value).unwrap()).unwrap();}
+    flush(&state).await;
+    {
+        let item=linked_item(&state,&ns,"span");let(e,active)=reconcile::read_item(&item,None,Some(&folder)).unwrap();assert!(active);assert_eq!(e.end_date.as_deref(),Some(last.as_str()));assert_eq!(e.start_time.as_deref(),Some("22:00"));assert_eq!(e.end_time.as_deref(),Some("08:30"));assert_eq!(e.outlook_details["location"],"Room A");assert_eq!(e.outlook_details["sensitivity"],2);assert_eq!(e.outlook_details["reminderMinutesBeforeStart"],30);
+    }
+    // Range overlap includes an event that started before the selected middle day.
+    let middle=date_key(day+chrono::Duration::days(1));let snapshot=fetch_events_in_range(calendar.clone(),OutlookSyncRange::dates(&middle,&middle).unwrap()).await.unwrap();assert_eq!(snapshot.events.len(),1);
+    synchronize(&state,&calendar,range).await;
+    crate::outlook_jobs::disable(&state.conn.lock().unwrap(),"span").unwrap();assert!(!crate::outlook_jobs::process_one(&state).await.unwrap());assert_eq!(automation::integer(&items,"Count").unwrap(),1);
+    let item=linked_item(&state,&ns,"span");put_outlook_text(&item,"Subject","Remote while task OFF").unwrap();automation::method(&item,"Save",&[]).unwrap();drop(item);
+    synchronize(&state,&calendar,range).await;
+    let t=crate::repositories::tasks_get(&state.conn.lock().unwrap(),"span").unwrap().unwrap();assert_eq!(t.title,"Remote while task OFF");assert!(!t.outlook_enabled);
+    edit_local(&state,"span","Unsent edit");let item=linked_item(&state,&ns,"span");automation::method(&item,"Delete",&[]).unwrap();drop(item);
+    assert_eq!(synchronize(&state,&calendar,range).await["conflicts"],1);assert_eq!(crate::repositories::tasks_get(&state.conn.lock().unwrap(),"span").unwrap().unwrap().title,"Unsent edit");
+    eprintln!("PASS full event fields: two-switch gate, no delete on OFF, multi-day overlap, unsupported-second writes held without alteration, metadata, incoming while OFF, unsent edit protection");
+}
+
+#[tokio::test]
+#[ignore = "own temporary Outlook calendar: native group must create one master, never Send"]
+async fn live_native_group_outbox_creates_one_master(){
+    let _com=w::CoInitializeEx(co::COINIT::APARTMENTTHREADED).unwrap();let ns=automation::object_method(&connect_outlook().unwrap(),"GetNamespace",&[AutomationValue::from("MAPI")]).unwrap();
+    let folders=automation::object_get(&default_calendar_folder(&ns).unwrap(),"Folders").unwrap();let name=format!("TaskCalendar-native-queue-{}",chrono::Utc::now().timestamp_millis());
+    let folder=automation::object_method(&folders,"Add",&[AutomationValue::from(name.as_str()),AutomationValue::from(9)]).unwrap();let _guard=CalendarGuard(Some(folder.clone()));
+    let calendar=calendars::identify(&folder).unwrap();let items=automation::object_get(&folder,"Items").unwrap();let c=rusqlite::Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    crate::repositories::settings_set(&c,&json!({"outlookWriteCalendarName":calendar,"outlookWriteEnabled":true})).unwrap();
+    let day=chrono::Local::now().date_naive()+chrono::Duration::days(7);let date=date_key(day);let end=date_key(day+chrono::Duration::days(2));
+    let rule=json!({"recurrenceType":0,"interval":1,"dayOfWeekMask":0,"dayOfMonth":0,"monthOfYear":0,"instance":0,"patternStartDate":date,"patternEndDate":null,"occurrences":3,"noEndDate":false});
+    let template=json!({"title":"Native template","date":date,"endDate":date,"isAllDay":false,"startTime":"09:00","endTime":"10:00","memo":"Body","outlookDetails":{}});
+    for (id,offset,enabled) in [("native-a",0,true),("native-b",1,false)]{
+        let scheduled=date_key(day+chrono::Duration::days(offset));
+        let input=json!({"id":id,"title":"Native template","date":scheduled,"endDate":scheduled,"startTime":"09:00","endTime":"10:00","memo":"Body","outlookEnabled":enabled,"recurrence":{"type":"native","native":rule,"groupId":"test-group","occurrenceDate":scheduled,"template":template}});
+        crate::repositories::tasks_insert(&c,serde_json::from_value(input).unwrap()).unwrap();
+    }
+    let state=crate::api::AppState{os_locale:"ja-JP".into(),conn:Arc::new(Mutex::new(c)),static_root:Default::default(),proposals:Default::default(),claude_command:None,codex_command:None,api_token:"isolated".into()};
+    flush(&state).await;assert_eq!(automation::integer(&items,"Count").unwrap(),1);
+    let result=synchronize(&state,&calendar,OutlookSyncRange::dates(&date,&end).unwrap()).await;assert_eq!(result["added"],1,"only third untracked occurrence imports: {result}");
+    {let c=state.conn.lock().unwrap();let all=crate::repositories::tasks_list(&c).unwrap();assert_eq!(all.len(),3);assert!(all.iter().any(|t|t.id=="native-b"&&!t.outlook_enabled));crate::outlook_jobs::enable(&c,"native-b").unwrap();}
+    flush(&state).await;assert_eq!(automation::integer(&items,"Count").unwrap(),1,"enabling sibling must reuse master");
+    edit_local(&state,"native-b","Only this occurrence");flush(&state).await;
+    assert_eq!(automation::text(&linked_item(&state,&ns,"native-a"),"Subject").unwrap(),"Native template");
+    assert_eq!(automation::text(&linked_item(&state,&ns,"native-b"),"Subject").unwrap(),"Only this occurrence");
+    // Exercise local-series transaction -> persistent coordinator -> real COM -> identity rebinding.
+    {
+        let c=state.conn.lock().unwrap();let target=crate::repositories::tasks_get(&c,"native-a").unwrap().unwrap();
+        let mut rule=target.recurrence["native"].clone();rule["occurrences"]=json!(5);rule["patternEndDate"]=Value::Null;
+        let payload=serde_json::to_value(&target).unwrap();
+        series_store::enqueue(&c,&target.id,json!({"scope":"all","rule":rule,"payload":payload,"expectedUpdatedAt":target.updated_at})).unwrap();
+    }
+    for _ in 0..15{if !crate::outlook_jobs::process_one(&state).await.unwrap(){break;}}
+    {let c=state.conn.lock().unwrap();assert_eq!(crate::outlook_jobs::counts(&c).unwrap()["failed"],0,"{:?}",crate::outlook_jobs::list(&c).unwrap());assert_eq!(crate::repositories::tasks_list(&c).unwrap().len(),5);}
+    assert_eq!(automation::integer(&items,"Count").unwrap(),1);
+    assert_eq!(automation::text(&linked_item(&state,&ns,"native-b"),"Subject").unwrap(),"Only this occurrence");
+    {
+        let c=state.conn.lock().unwrap();let target=crate::repositories::tasks_get(&c,"native-b").unwrap().unwrap();
+        series_store::enqueue(&c,&target.id,json!({"scope":"future","rule":target.recurrence["native"],"payload":serde_json::to_value(&target).unwrap(),"expectedUpdatedAt":target.updated_at})).unwrap();
+    }
+    for _ in 0..15{if !crate::outlook_jobs::process_one(&state).await.unwrap(){break;}}
+    {let c=state.conn.lock().unwrap();assert_eq!(crate::outlook_jobs::counts(&c).unwrap()["failed"],0,"{:?}",crate::outlook_jobs::list(&c).unwrap());let a=crate::repositories::tasks_get(&c,"native-a").unwrap().unwrap();let b=crate::repositories::tasks_get(&c,"native-b").unwrap().unwrap();assert_ne!(a.recurrence["groupId"],b.recurrence["groupId"]);assert_eq!(b.title,"Only this occurrence");}
+    assert_eq!(automation::integer(&items,"Count").unwrap(),2,"future split creates exactly one new master");
+    eprintln!("PASS native outbox: one master, disabled sibling identity, no duplicate import, exact occurrence edit, all-series growth and future split through queued API");
 }

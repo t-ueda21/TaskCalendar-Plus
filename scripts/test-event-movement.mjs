@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import * as E from '../src-tauri/renderer/src/event-fields.js';
+assert.equal(typeof E.moveEventRange,'function','event move must retain cross-day duration');
+const task={date:'2026-10-08',endDate:'2026-10-10',startTime:'23:30:15',endTime:'01:00:45'};
+assert.deepEqual(E.moveEventRange(task,'2026-10-09','2026-10-12',60),{date:'2026-10-12',endDate:'2026-10-13',startTime:'00:30:15',endTime:'02:00:45'});
+assert.deepEqual(E.resizeEventRange(task,'2026-10-08','start',1380),{startTime:'23:00'});
+assert.deepEqual(E.resizeEventRange(task,'2026-10-10','end',120),{endDate:'2026-10-10',endTime:'02:00'});
+assert.deepEqual(E.resizeEventRange({...task,endTime:'00:00'},'2026-10-09','end',1410),{endDate:'2026-10-09',endTime:'23:30'});
+assert.equal(E.resizeEventRange(task,'2026-10-09','start',60),null,'middle day has no start handle');
+console.log('PASS: move whole range from continuation day; resize only true endpoints');

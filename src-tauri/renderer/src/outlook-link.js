@@ -12,17 +12,19 @@ export function wireOutlookLinks(Store) {
       if (!response.ok) throw new Error(translate('outlook.statusFailed'));
       const data = await response.json();
       const jobs = Array.isArray(data.jobs) ? data.jobs : [];
-      const pendingCount = data.counts ? Number(data.counts.pending)+Number(data.counts.working) : jobs.filter(job => ['pending','working'].includes(job.status)).length;
-      const failedCount = data.counts ? Number(data.counts.failed) : jobs.filter(job => job.status === 'failed').length;
+      const pendingCount = data.counts ? Number(data.counts.pending ?? 0)+Number(data.counts.working ?? 0) : jobs.filter(job => ['pending','working'].includes(job.status)).length;
+      const failedCount = data.counts ? Number(data.counts.failed ?? 0) : jobs.filter(job => job.status === 'failed').length;
+      const pausedCount = data.counts ? Number(data.counts.paused ?? 0) : jobs.filter(job => job.status === 'paused').length;
+      const outboundEnabled = data.outboundWritesEnabled ?? (Store.getSettings().outlookWriteEnabled === true);
       for (const container of document.querySelectorAll('[data-outlook-jobs]')) {
         container.replaceChildren();
         const summary = document.createElement('p');
-        summary.textContent = translate('outlook.jobCounts', { pending: pendingCount, failed: failedCount });
+        summary.textContent = translate('outlook.jobCounts', { pending: pendingCount, failed: failedCount, paused: pausedCount }) + (outboundEnabled ? '' : ' ' + translate('outlook.writePaused'));
         container.appendChild(summary);
         for (const job of jobs.filter(job => job.status === 'failed')) {
           const row = document.createElement('div'); row.className = 'outlookJobError';
           const message = document.createElement('span'); message.textContent = `${job.title ?? ''}: ${job.error}`;
-          const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn'; retry.textContent = translate('common.retry');
+          const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn'; retry.textContent = translate('common.retry'); retry.disabled = !outboundEnabled;
           retry.addEventListener('click', async () => {
             retry.disabled = true;
             try { const res = await fetch(`/api/outlook/jobs/${encodeURIComponent(job.taskId)}/retry`, {method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); if (!res.ok) throw new Error(translate('outlook.failed')); await refresh(); }
@@ -40,5 +42,6 @@ export function wireOutlookLinks(Store) {
     finally { polling = false; }
   }
   void refresh(); setInterval(() => { void refresh(); },4000);
+  Store.subscribe('settings', () => { void refresh(); });
   Store.subscribe('tasks', () => { void refresh(); });
 }

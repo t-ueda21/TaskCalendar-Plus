@@ -8,7 +8,7 @@ export const settingsFieldPages = {
   workStart:'work', workEnd:'work', companyHolidaysText:'work',
   aiCliEnabled:'ai', aiProvider:'ai', aiClaudeModel:'ai', aiClaudeEffort:'ai', aiCodexModel:'ai', aiCodexEffort:'ai',
   aiOllamaEndpoint:'ai', aiOllamaModel:'ai', aiLmStudioEndpoint:'ai', aiLmStudioModel:'ai',
-  outlookCalendarName:'outlook', outlookDays:'outlook', outlookTagId:'outlook', outlookWriteDefault:'outlook',
+  outlookCalendarName:'outlook', outlookDays:'outlook', outlookTagId:'outlook', outlookWriteDefault:'outlook', outlookWriteEnabled:'outlook',
   outlookWriteCalendarName:'outlook', outlookAutoSync:'outlook', outlookAutoSyncIntervalMin:'outlook',
   quickLinksText:'links', urlAutoOpenEnabled:'links', urlAutoOpenUrl:'links', urlAutoOpenTimesText:'links',
   launchAtLogin:'startup', trayEnabled:'startup', startMinimizedToTray:'startup', checkUpdatesOnStartup:'updates',

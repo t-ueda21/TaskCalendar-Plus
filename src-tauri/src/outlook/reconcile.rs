@@ -29,6 +29,7 @@ pub struct Tracked {
     pub remote: Option<RemoteIdentity>,
     pub enabled: bool,
     pub subscribed: bool,
+    pub incoming_enabled:bool,
     pub source_key: Option<String>,
 }
 #[derive(Debug, Clone)]
@@ -55,6 +56,7 @@ pub fn migrate(conn: &Connection) -> rusqlite::Result<()> {
     for (table, column, kind) in [
         ("outlook_links", "remote_meta", "TEXT"),
         ("outlook_links", "last_task", "TEXT"),
+        ("outlook_links", "deleted_task", "TEXT"),
         (
             "outlook_links",
             "deleted_by_app",
@@ -66,6 +68,7 @@ pub fn migrate(conn: &Connection) -> rusqlite::Result<()> {
             "INTEGER NOT NULL DEFAULT 1",
         ),
         ("outlook_links", "source_key", "TEXT"),
+        ("outlook_links","incoming_enabled","INTEGER NOT NULL DEFAULT 1"),
         ("outlook_jobs", "force_write", "INTEGER NOT NULL DEFAULT 0"),
         ("tasks", "outlook_calendar_ref", "TEXT"),
     ] {
@@ -79,20 +82,32 @@ pub fn migrate(conn: &Connection) -> rusqlite::Result<()> {
                 &format!("ALTER TABLE {table} ADD COLUMN {column} {kind}"),
                 [],
             )?;
+            // Legacy tombstones stored the deletion snapshot in last_task; its sync
+            // provenance is unknown. Preserve restoration data without trusting it as a baseline.
+            if column=="deleted_task"{conn.execute("UPDATE outlook_links SET deleted_task=last_task,last_task=NULL WHERE NOT EXISTS(SELECT 1 FROM tasks WHERE id=outlook_links.task_id)",[])?;}
+            if column=="incoming_enabled"{conn.execute("UPDATE outlook_links SET incoming_enabled=0 WHERE sync_enabled=0 AND NOT EXISTS(SELECT 1 FROM tasks WHERE id=outlook_links.task_id)",[])?;}
             if column == "sync_enabled" {
                 conn.execute("UPDATE outlook_links SET sync_enabled=COALESCE((SELECT outlook_enabled FROM tasks WHERE id=outlook_links.task_id),0)",[])?;
             }
         }
     }
-    conn.execute("UPDATE outlook_links SET source_key=COALESCE((SELECT outlook_occurrence_key FROM tasks WHERE id=outlook_links.task_id),json_extract(last_task,'$.outlookOccurrenceKey'),CASE WHEN COALESCE(json_extract(remote_meta,'$.imported'),0)=0 THEN 'tcplus:'||external_key END) WHERE source_key IS NULL",[])?;
-    conn.execute_batch("CREATE TRIGGER IF NOT EXISTS outlook_keep_deleted_snapshot BEFORE DELETE ON tasks WHEN EXISTS(SELECT 1 FROM outlook_links WHERE task_id=OLD.id) BEGIN
-        UPDATE outlook_links SET last_task=json_object('id',OLD.id,'title',OLD.title,'date',OLD.date,'startTime',OLD.start_time,'endTime',OLD.end_time,'isAllDay',json(CASE WHEN OLD.is_all_day THEN 'true' ELSE 'false' END),'tagId',OLD.tag_id,'memo',OLD.memo,'recurrence',json(CASE WHEN json_valid(OLD.recurrence) THEN OLD.recurrence ELSE '{}' END),'outlookOccurrenceKey',OLD.outlook_occurrence_key,'createdAt',OLD.created_at,'updatedAt',OLD.updated_at) WHERE task_id=OLD.id;
+    conn.execute("UPDATE outlook_links SET source_key=COALESCE((SELECT outlook_occurrence_key FROM tasks WHERE id=outlook_links.task_id),json_extract(COALESCE(deleted_task,last_task),'$.outlookOccurrenceKey'),CASE WHEN COALESCE(json_extract(remote_meta,'$.imported'),0)=0 THEN 'tcplus:'||external_key END) WHERE source_key IS NULL",[])?;
+    conn.execute_batch("DROP TRIGGER IF EXISTS outlook_keep_deleted_snapshot; CREATE TRIGGER outlook_keep_deleted_snapshot BEFORE DELETE ON tasks WHEN EXISTS(SELECT 1 FROM outlook_links WHERE task_id=OLD.id) BEGIN
+        UPDATE outlook_links SET deleted_task=json_object('id',OLD.id,'title',OLD.title,'date',OLD.date,'startTime',OLD.start_time,'endTime',OLD.end_time,'isAllDay',json(CASE WHEN OLD.is_all_day THEN 'true' ELSE 'false' END),'tagId',OLD.tag_id,'memo',OLD.memo,'recurrence',json(CASE WHEN json_valid(OLD.recurrence) THEN OLD.recurrence ELSE '{}' END),'outlookOccurrenceKey',OLD.outlook_occurrence_key,'outlookSeriesId',OLD.outlook_series_id,'meetingUrl',OLD.meeting_url,'outlookEnabled',json(CASE WHEN OLD.outlook_enabled THEN 'true' ELSE 'false' END),'createdAt',OLD.created_at,'updatedAt',OLD.updated_at,'endDate',OLD.end_date,'outlookDetails',json(OLD.outlook_details)) WHERE task_id=OLD.id;
+        UPDATE outlook_links SET incoming_enabled=0 WHERE task_id=OLD.id AND OLD.outlook_enabled=0;
       END;")?;
     Ok(())
 }
 pub fn capture(conn: &Connection) -> rusqlite::Result<Vec<Tracked>> {
-    conn.prepare("SELECT l.task_id,t.updated_at,COALESCE(j.revision,0),COALESCE(j.status,'done'),COALESCE(j.operation,'upsert'),l.external_key,l.calendar_name,l.entry_id,l.store_id,l.remote_meta,COALESCE(t.outlook_enabled,0),COALESCE(t.outlook_occurrence_key,l.source_key,json_extract(l.last_task,'$.outlookOccurrenceKey')),l.sync_enabled FROM outlook_links l LEFT JOIN tasks t ON t.id=l.task_id LEFT JOIN outlook_jobs j ON j.task_id=l.task_id")?
-      .query_map([],|r| {let raw:Option<String>=r.get(9)?;Ok(Tracked{id:r.get(0)?,task_revision:r.get(1)?,job_revision:r.get(2)?,job_status:r.get(3)?,operation:r.get(4)?,external_key:r.get(5)?,calendar:r.get(6)?,entry_id:r.get(7)?,store_id:r.get(8)?,remote:raw.and_then(|v|serde_json::from_str(&v).ok()),enabled:r.get::<_,i64>(10)?!=0,source_key:r.get(11)?,subscribed:r.get(12)?})})?.collect()
+    conn.prepare("SELECT l.task_id,t.updated_at,COALESCE(j.revision,0),COALESCE(j.status,'done'),COALESCE(j.operation,'upsert'),l.external_key,l.calendar_name,l.entry_id,l.store_id,l.remote_meta,COALESCE(t.outlook_enabled,0),COALESCE(t.outlook_occurrence_key,l.source_key,json_extract(COALESCE(l.deleted_task,l.last_task),'$.outlookOccurrenceKey')),l.sync_enabled,l.incoming_enabled FROM outlook_links l LEFT JOIN tasks t ON t.id=l.task_id LEFT JOIN outlook_jobs j ON j.task_id=l.task_id WHERE NOT(t.id IS NULL AND COALESCE(j.operation,'')='series')")?
+      .query_map([],|r| {let raw:Option<String>=r.get(9)?;Ok(Tracked{id:r.get(0)?,task_revision:r.get(1)?,job_revision:r.get(2)?,job_status:r.get(3)?,operation:r.get(4)?,external_key:r.get(5)?,calendar:r.get(6)?,entry_id:r.get(7)?,store_id:r.get(8)?,remote:raw.and_then(|v|serde_json::from_str(&v).ok()),enabled:r.get::<_,i64>(10)?!=0,source_key:r.get(11)?,subscribed:r.get(12)?,incoming_enabled:r.get(13)?})})?.collect()
+}
+fn local_differs_from_baseline(conn:&Connection,id:&str)->rusqlite::Result<bool>{
+    let raw:Option<String>=conn.query_row("SELECT last_task FROM outlook_links WHERE task_id=?1",[id],|r|r.get(0)).optional()?.flatten();
+    let Some(base)=raw.and_then(|s|serde_json::from_str::<Value>(&s).ok()) else{return Ok(true)};
+    let Some(task)=crate::repositories::tasks_get(conn,id)? else{return Ok(false)};
+    let now=serde_json::to_value(task).unwrap();
+    Ok(["title","date","endDate","isAllDay","startTime","endTime","memo","recurrence","outlookDetails"].iter().any(|key|now.get(*key)!=base.get(*key)))
 }
 pub fn apply(conn: &Connection, observations: &[Observation]) -> rusqlite::Result<ReconcileResult> {
     let transaction = if conn.is_autocommit() {
@@ -117,17 +132,16 @@ pub fn apply(conn: &Connection, observations: &[Observation]) -> rusqlite::Resul
             result.conflicts += 1;
             continue;
         }
-        if !current.subscribed {
+        if !current.incoming_enabled {
             continue;
         }
         if let RemoteState::Unknown(error) = &observation.state {
             result.warnings.push(error.clone());
             continue;
         }
-        if current.task_revision.is_some() && !current.enabled {
-            continue;
-        }
-        if current.job_status != "done" {
+
+        if !current.enabled && current.task_revision.is_some() && local_differs_from_baseline(tx,&track.id)? {result.conflicts+=1;continue;}
+        if current.job_status != "done" && !(current.job_status=="paused" && !local_differs_from_baseline(tx,&track.id)?) {
             result.conflicts += 1;
             continue;
         }
@@ -136,7 +150,7 @@ pub fn apply(conn: &Connection, observations: &[Observation]) -> rusqlite::Resul
             RemoteState::Removed => {
                 if let Some(task) = task {
                     tx.execute(
-                        "UPDATE outlook_links SET last_task=?2 WHERE task_id=?1",
+                        "UPDATE outlook_links SET last_task=COALESCE(last_task,?2) WHERE task_id=?1",
                         params![track.id, serde_json::to_string(&task).unwrap()],
                     )?;
                     tx.execute(
@@ -144,6 +158,7 @@ pub fn apply(conn: &Connection, observations: &[Observation]) -> rusqlite::Resul
                         params![track.id],
                     )?;
                     tx.execute("DELETE FROM tasks WHERE id=?1", params![track.id])?;
+                    tx.execute("UPDATE outlook_links SET incoming_enabled=1 WHERE task_id=?1",params![track.id])?;
                     tx.execute("UPDATE outlook_jobs SET operation='remote_removed',status='done',last_error='',revision=revision+1 WHERE task_id=?1",params![track.id])?;
                     result.deleted += 1;
                 } else if track.operation == "delete" {
@@ -167,13 +182,14 @@ pub fn apply(conn: &Connection, observations: &[Observation]) -> rusqlite::Resul
                 }
                 let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Nanos, true);
                 let mut rec = event.recurrence.clone();
-                if !identity.imported
-                    && let Some(task) = &task
-                {
-                    rec = task.recurrence.clone();
+                if let Some(task)=&task {
+                    if !identity.imported&&!rec.get("native").is_some_and(Value::is_object){rec=task.recurrence.clone();}
+                    else{for key in ["groupId","template","occurrenceDate"]{if (key=="groupId"||rec.get(key).is_none())&&let Some(value)=task.recurrence.get(key){rec[key]=value.clone();}}}
                 }
                 if let Some(task) = &task {
-                    if task.title != event.title
+                    if task.end_date != event.end_date
+                        || task.outlook_details != event.outlook_details
+                        || task.title != event.title
                         || task.date != event.date
                         || task.start_time != event.start_time
                         || task.end_time != event.end_time
@@ -188,12 +204,12 @@ pub fn apply(conn: &Connection, observations: &[Observation]) -> rusqlite::Resul
                             "UPDATE tasks SET outlook_enabled=0 WHERE id=?1",
                             params![track.id],
                         )?;
-                        tx.execute("UPDATE tasks SET title=?2,date=?3,is_all_day=?4,start_time=?5,end_time=?6,memo=?7,recurrence=?8,meeting_url=?9,updated_at=?10 WHERE id=?1",params![track.id,event.title,event.date,event.is_all_day as i64,event.start_time,event.end_time,event.location,rec.to_string(),event.meeting_url,now])?;
+                        tx.execute("UPDATE tasks SET title=?2,date=?3,is_all_day=?4,start_time=?5,end_time=?6,memo=?7,recurrence=?8,meeting_url=?9,updated_at=?10,end_date=?11,outlook_details=?12 WHERE id=?1",params![track.id,event.title,event.date,event.is_all_day as i64,event.start_time,event.end_time,event.location,rec.to_string(),event.meeting_url,now,event.end_date,event.outlook_details.to_string()])?;
                         result.updated += 1;
                     }
                 } else {
                     let saved: Option<String> = tx.query_row(
-                        "SELECT last_task FROM outlook_links WHERE task_id=?1",
+                        "SELECT COALESCE(deleted_task,last_task) FROM outlook_links WHERE task_id=?1",
                         params![track.id],
                         |r| r.get(0),
                     )?;
@@ -203,7 +219,7 @@ pub fn apply(conn: &Connection, observations: &[Observation]) -> rusqlite::Resul
                     if !identity.imported {
                         rec = saved.get("recurrence").cloned().unwrap_or(rec);
                     }
-                    let input=serde_json::from_value(json!({"id":track.id,"createdAt":saved.get("createdAt"),"title":event.title,"date":event.date,"isAllDay":event.is_all_day,"startTime":event.start_time,"endTime":event.end_time,"memo":event.location,"recurrence":rec,"tagId":saved.get("tagId").and_then(Value::as_str).unwrap_or("")})).map_err(|e|rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+                    let input=serde_json::from_value(json!({"id":track.id,"createdAt":saved.get("createdAt"),"title":event.title,"date":event.date,"endDate":event.end_date,"outlookDetails":event.outlook_details,"isAllDay":event.is_all_day,"startTime":event.start_time,"endTime":event.end_time,"memo":event.location,"recurrence":rec,"tagId":saved.get("tagId").and_then(Value::as_str).unwrap_or("")})).map_err(|e|rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
                     crate::repositories::tasks_insert(tx, input)?;
                     result.restored += 1;
                 }
@@ -213,8 +229,9 @@ pub fn apply(conn: &Connection, observations: &[Observation]) -> rusqlite::Resul
                         params![track.id, now],
                     )?;
                 }
-                tx.execute("UPDATE tasks SET outlook_enabled=1,outlook_occurrence_key=?2,outlook_series_id=?3,outlook_calendar_ref=?4,meeting_url=?5 WHERE id=?1",params![track.id,event.outlook_occurrence_key,event.outlook_series_id,identity.calendar,event.meeting_url])?;
+                tx.execute("UPDATE tasks SET outlook_enabled=?6,outlook_occurrence_key=?2,outlook_series_id=?3,outlook_calendar_ref=?4,meeting_url=?5 WHERE id=?1",params![track.id,event.outlook_occurrence_key,event.outlook_series_id,identity.calendar,event.meeting_url,if current.task_revision.is_some(){current.enabled as i64}else{current.subscribed as i64}])?;
                 tx.execute("UPDATE outlook_links SET calendar_name=?2,entry_id=?3,store_id=?4,remote_meta=?5,source_key=?6,deleted_by_app=0 WHERE task_id=?1",params![track.id,identity.calendar,identity.entry_id,identity.store_id,serde_json::to_string(identity).unwrap(),event.outlook_occurrence_key])?;
+                if let Some(saved)=crate::repositories::tasks_get(tx,&track.id)?{tx.execute("UPDATE outlook_links SET last_task=?2 WHERE task_id=?1",params![track.id,serde_json::to_string(&saved).unwrap()])?;}
                 tx.execute("UPDATE outlook_jobs SET operation='upsert',status='done',last_error='',force_write=0 WHERE task_id=?1",params![track.id])?;
             }
             RemoteState::Unknown(_) => unreachable!(),
@@ -244,7 +261,7 @@ mod tests {
         (conn, track)
     }
     fn changed(track: Tracked) -> Observation {
-        let event = OutlookEvent {
+        let event = OutlookEvent { end_date:None,outlook_details:json!({}),
             title: "Remote edit".into(),
             date: "2026-10-10".into(),
             start_time: Some("11:00".into()),
@@ -379,6 +396,7 @@ mod tests {
             params![serde_json::to_string(&meta).unwrap()],
         )
         .unwrap();
+        conn.execute("UPDATE outlook_jobs SET status='done'",[]).unwrap(); // This fixture represents an already-synced local recurrence.
         let track = capture(&conn).unwrap().remove(0);
         apply(
             &conn,
@@ -445,7 +463,7 @@ pub(super) fn date_property(
     variant_to_naive_datetime(&w::Variant::Date(time))
         .ok_or_else(|| format!("Outlook {name}: invalid date"))
 }
-fn optional_string(item: &w::IDispatch, name: &str) -> Result<String, String> {
+pub(super) fn optional_string(item: &w::IDispatch, name: &str) -> Result<String, String> {
     let value = automation::get(item, name)?;
     windows::core::BSTR::try_from(&value)
         .map(|s| s.to_string())
@@ -456,7 +474,6 @@ pub(super) fn read_item(
     original_start: Option<&str>,
     folder_hint: Option<&w::IDispatch>,
 ) -> Result<(OutlookEvent, bool), String> {
-    use chrono::Timelike;
     let start = date_property(item, "Start")?;
     let end = date_property(item, "End")?;
     let all_day =
@@ -466,6 +483,7 @@ pub(super) fn read_item(
     let recurrence_state = automation::integer(item, "RecurrenceState")?;
     let body = optional_string(item, "Body")?;
     let title = optional_string(item, "Subject")?;
+    let details=fields::read(item)?;
     let mut active = meeting_active(item)?;
     let entry_id = automation::text(item, "EntryID")?;
     let series = automation::text(item, "GlobalAppointmentID").unwrap_or_else(|_| entry_id.clone());
@@ -474,13 +492,6 @@ pub(super) fn read_item(
         date_key(start.date())
     } else {
         format!("{}T{}", date_key(start.date()), time_key(start))
-    };
-    let next_day = start.date().succ_opt();
-    let representable = if all_day {
-        Some(end.date()) == next_day
-    } else {
-        start.date() == end.date()
-            || (Some(end.date()) == next_day && end.time() == chrono::NaiveTime::MIN)
     };
     let exception = if recurring && recurrence_state == 3 {
         exception_details(item, start, end, &title).ok().flatten()
@@ -500,11 +511,7 @@ pub(super) fn read_item(
                 .then(|| start.format("%Y-%m-%dT%H:%M:%S").to_string())
         })
         .or_else(|| exception.map(|(original, _)| original));
-    let read_only = if start.second() != 0 || end.second() != 0 {
-        Some("秒単位の予定はOutlookで編集してください".into())
-    } else if !representable {
-        Some("複数日にまたがる予定はOutlookで編集してください".into())
-    } else if recurring && recurrence_state == 3 && !exception_verified {
+    let read_only = if recurring && recurrence_state == 3 && !exception_verified {
         Some("繰り返し例外の状態を一意に確認できません。Outlookで編集してください".into())
     } else if recurring && occurrence_start.is_none() {
         Some("繰り返し例外の元の日時を確認できません。Outlookで編集してください".into())
@@ -523,6 +530,20 @@ pub(super) fn read_item(
     } else {
         return Err("予定の所属カレンダーを確認できません".into());
     };
+    let mut rec=if recurring{recurrence::read(item)?}else{json!({"type":"none"})};
+    if recurring {
+        let ns=automation::object_method(&automation::object_get(item,"Application")?,"GetNamespace",&[AutomationValue::from("MAPI")])?;
+        let store=automation::text(&folder,"StoreID")?;
+        let master=automation::object_method(&ns,"GetItemFromID",&[AutomationValue::from(entry_id.as_str()),AutomationValue::from(store.as_str())])?;
+        let master=if automation::integer(&master,"RecurrenceState")?==1{master}else{automation::object_get(&automation::object_method(&master,"GetRecurrencePattern",&[])?,"Parent")?};
+        let ms=date_property(&master,"Start")?;let me=date_property(&master,"End")?;
+        let ma=bool::try_from(&automation::get(&master,"AllDayEvent")?).map_err(|e|e.to_string())?;
+        let md=date_key(if ma||me.time()==chrono::NaiveTime::MIN{me.date().pred_opt().ok_or("Invalid master end")?}else{me.date()});
+        rec["template"]=json!({"title":optional_string(&master,"Subject")?,"date":date_key(ms.date()),"endDate":md,"isAllDay":ma,"startTime":(!ma).then(||time_key(ms)),"endTime":(!ma).then(||if me.time()==chrono::NaiveTime::MIN&&me.date()>ms.date(){"24:00".into()}else{time_key(me)}),"memo":optional_string(&master,"Body")?,"outlookDetails":fields::read(&master)?});
+        rec["groupId"]=json!(format!("native:{}:{}",automation::text(&folder,"EntryID")?,series));
+        if let Some(original)=&occurrence_start{rec["occurrenceDate"]=json!(original.get(..10).ok_or("Invalid original start")?);}
+        if recurrence_state==3{rec["exception"]=json!(true);}
+    }
     let version = json!([
         title,
         body,
@@ -531,6 +552,7 @@ pub(super) fn read_item(
         all_day,
         recurring,
         recurrence_state,
+        details,
         date_property(item, "LastModificationTime")?.to_string()
     ])
     .to_string();
@@ -542,12 +564,13 @@ pub(super) fn read_item(
         entry_id,
         store_id: automation::text(&folder, "StoreID")?,
         series_id: series.clone(),
-        occurrence_start,
+        occurrence_start:occurrence_start.clone(),
         recurring,
         read_only,
         version,
     };
     let event = OutlookEvent {
+        end_date:Some(date_key(if all_day||end.time()==chrono::NaiveTime::MIN {end.date().pred_opt().ok_or("Invalid end date")?}else{end.date()})),outlook_details:details,
         title: if title.is_empty() {
             "(タイトルなし)".into()
         } else {
@@ -566,10 +589,10 @@ pub(super) fn read_item(
         is_all_day: all_day,
         outlook_series_id: series.clone(),
         outlook_occurrence_key: key
-            .map(|key| format!("tcplus:{key}"))
+            .map(|key| if recurring {format!("tcplus:{key}|{}",occurrence_start.as_deref().unwrap_or(&stamp))}else{format!("tcplus:{key}")})
             .unwrap_or_else(|| format!("{series}|{stamp}")),
         is_recurring: recurring,
-        recurrence: extract_recurrence(item, start, 365, start),
+        recurrence: rec,
         meeting_url: extract_teams_meeting_url(&body),
         remote: Some(remote),
     };
@@ -578,16 +601,21 @@ pub(super) fn read_item(
 fn missing(error: &str) -> bool {
     error.to_ascii_lowercase().contains("0x8004010f")
 }
+#[path="reconcile_identity.rs"]
+mod identity_lookup;
+#[cfg(test)]
+#[path="reconcile_identity_live_tests.rs"]
+mod identity_live_tests;
 pub(super) fn find_item(
     namespace: &w::IDispatch,
     track: &Tracked,
 ) -> Result<Option<w::IDispatch>, String> {
+    find_item_cached(namespace,track,&mut identity_lookup::LookupCache::default())
+}
+fn find_item_cached(namespace:&w::IDispatch,track:&Tracked,cache:&mut identity_lookup::LookupCache)->Result<Option<w::IDispatch>,String>{
     // Prove the linked calendar is accessible before treating a missing item as deletion.
-    let folder = if let Some(folder) = calendars::resolve(namespace, &track.calendar)? {
-        folder
-    } else {
-        find_calendar_folder(namespace, &track.calendar)?
-    };
+    let folder=cache.folder(namespace,&track.calendar)?;
+    let imported = track.remote.as_ref().is_some_and(|meta| meta.imported);
     let known = match (&track.entry_id, &track.store_id) {
         (Some(entry), Some(store)) => match invoke_optional_dispatch(
             namespace,
@@ -598,12 +626,17 @@ pub(super) fn find_item(
             ],
         ) {
             Ok(value) => value,
-            Err(e) if missing(&e) => None,
+            Err(e) if missing(&e)||(imported&&e.to_ascii_lowercase().contains("0x80040107")) => None,
             Err(e) => return Err(e),
         },
         _ => None,
     };
-    let imported = track.remote.as_ref().is_some_and(|meta| meta.imported);
+    // A still-resolvable EntryID in Deleted Items is not an active calendar
+    // appointment. Look for the original stable identity in its saved calendar.
+    let known=match known{
+        Some(item) if automation::integer(&automation::object_get(&item,"Parent")?,"DefaultItemType")?==1=>Some(item),
+        _=>None,
+    };
     let item = if let Some(item) = known {
         Some(item)
     } else if !imported {
@@ -633,7 +666,7 @@ pub(super) fn find_item(
             _ => return Err("同じ連携キーのOutlook予定が複数あります".into()),
         }
     } else {
-        None
+        cache.imported(&folder,&track.remote.as_ref().ok_or("Imported appointment identity is missing")?.series_id)?
     };
     let Some(mut item) = item else {
         return Ok(None);
@@ -642,36 +675,15 @@ pub(super) fn find_item(
         return Ok(None);
     }
     if imported {
-        let meta = track.remote.as_ref().unwrap();
-        if automation::text(&item, "GlobalAppointmentID")? != meta.series_id {
-            return Err("Outlookの予定識別情報が一致しません".into());
-        }
-        if meta.recurring && automation::integer(&item, "RecurrenceState")? == 1 {
-            let original = meta
-                .occurrence_start
-                .as_deref()
-                .ok_or("繰り返し例外の元の日時を確認できないため保持しました")?;
-            let time = chrono::NaiveDateTime::parse_from_str(original, "%Y-%m-%dT%H:%M:%S")
-                .map_err(|e| e.to_string())?;
-            let pattern = automation::object_method(&item, "GetRecurrencePattern", &[])?;
-            item = match automation::optional_method(
-                &pattern,
-                "GetOccurrence",
-                &[outlook_date(&date_key(time.date()), &time_key(time))?],
-            ) {
-                Ok(Some(item)) => item,
-                Ok(None) => return Ok(None),
-                Err(error) if missing(&error) => return Ok(None),
-                Err(error) => {
-                    if occurrence_deleted(&pattern, time)? {
-                        return Ok(None);
-                    }
-                    return Err(error);
-                }
-            };
-        }
-    } else if task_property(&item)?.as_deref() != Some(track.external_key.as_str()) {
-        return Err("Outlookの連携キーが一致しません".into());
+        if automation::text(&item,"GlobalAppointmentID")?!=track.remote.as_ref().unwrap().series_id{return Err("Outlookの予定識別情報が一致しません".into());}
+    }else if task_property(&item)?.as_deref()!=Some(track.external_key.as_str()){return Err("Outlookの連携キーが一致しません".into());}
+    if let Some(meta)=track.remote.as_ref().filter(|m|m.recurring)&&automation::integer(&item,"RecurrenceState")?==1 {
+        let original=meta.occurrence_start.as_deref().ok_or("繰り返し予定の元の日時が不明です")?;
+        let time=chrono::NaiveDateTime::parse_from_str(original,"%Y-%m-%dT%H:%M:%S").map_err(|e|e.to_string())?;
+        let pattern=automation::object_method(&item,"GetRecurrencePattern",&[])?;
+        item=match automation::optional_method(&pattern,"GetOccurrence",&[outlook_date(&date_key(time.date()),&time_key(time))?]){
+            Ok(Some(item))=>item,Ok(None)=>return Ok(None),Err(e)if missing(&e)=>return Ok(None),Err(e)=>{if occurrence_deleted(&pattern,time)?{return Ok(None);}return Err(e);}
+        };
     }
     Ok(Some(item))
 }
@@ -685,6 +697,7 @@ fn matches_event(track: &Tracked, event: &OutlookEvent) -> bool {
     let (Some(old), Some(new)) = (&track.remote, &event.remote) else {
         return false;
     };
+    if old.recurring&&new.recurring&&old.series_id==new.series_id&&old.occurrence_start.is_some()&&old.occurrence_start==new.occurrence_start&&same_calendar(&old.calendar,&new.calendar){return true;}
     if !old.imported || !same_calendar(&old.calendar, &new.calendar) {
         return false;
     }
@@ -712,7 +725,8 @@ pub(super) fn observe(
     let namespace = connect_outlook().and_then(|outlook| {
         automation::object_method(&outlook, "GetNamespace", &[AutomationValue::from("MAPI")])
     });
-    tracks.into_iter().filter(|track|track.subscribed).map(|track|{
+    let mut identity_cache=identity_lookup::LookupCache::default();
+    tracks.into_iter().filter(|track|track.incoming_enabled).map(|track|{
         let state=(||->Result<RemoteState,String>{
             let candidates:Vec<_>=events.iter().filter(|event|matches_event(&track,event)).collect();
             if candidates.len()>1{return Err("同じ予定の候補が複数あるため反映を保留しました".into());}
@@ -723,8 +737,8 @@ pub(super) fn observe(
             }
             if cancelled.iter().any(|event|matches_event(&track,event)){return Ok(RemoteState::Removed);}
             let namespace=namespace.as_ref().map_err(Clone::clone)?;
-            let Some(item)=find_item(namespace,&track)? else{return Ok(RemoteState::Removed)};
-            let calendar=if let Some(folder)=calendars::resolve(namespace,&track.calendar)?{folder}else{find_calendar_folder(namespace,&track.calendar)?};
+            let Some(item)=find_item_cached(namespace,&track,&mut identity_cache)? else{return Ok(RemoteState::Removed)};
+            let calendar=identity_cache.folder(namespace,&track.calendar)?;
             let (event,active)=read_item(&item,track.remote.as_ref().and_then(|meta|meta.occurrence_start.as_deref()),Some(&calendar))?;
             if !active{return Ok(RemoteState::Removed);}
             let mut identity=event.remote.clone().expect("read_item identity");
@@ -757,12 +771,23 @@ pub fn synchronize(
     };
     if import_is_current {
         let tracked = capture(&tx)?;
-        let untracked: Vec<_> = snapshot
+        let mut untracked: Vec<_> = snapshot
             .events
             .iter()
             .filter(|event| !tracked.iter().any(|track| matches_event(track, event)))
             .cloned()
             .collect();
+        for event in &mut untracked {
+            if let Some(meta)=event.remote.as_ref().filter(|m|m.recurring) {
+                for track in &tracked {
+                    if track.remote.as_ref().is_some_and(|old|old.recurring&&old.series_id==meta.series_id&&same_calendar(&old.calendar,&meta.calendar))
+                        &&let Some(task)=crate::repositories::tasks_get(&tx,&track.id)?
+                        &&let Some(group)=task.recurrence.get("groupId") {
+                        event.recurrence["groupId"]=group.clone();break;
+                    }
+                }
+            }
+        }
         imported = crate::repositories::outlook_sync_in_scope(
             &tx,
             &untracked,
@@ -777,16 +802,15 @@ pub fn synchronize(
             let id:Option<String>=tx.query_row("SELECT id FROM tasks WHERE outlook_occurrence_key=?1 AND NOT EXISTS(SELECT 1 FROM outlook_links WHERE task_id=tasks.id)",params![event.outlook_occurrence_key],|r|r.get(0)).optional()?;
             let Some(id) = id else { continue };
             tx.execute("INSERT INTO outlook_links(task_id,calendar_name,entry_id,store_id,external_key,remote_meta,source_key) VALUES(?1,?2,?3,?4,?5,?6,?7)",params![id,meta.calendar,meta.entry_id,meta.store_id,format!("import:{id}"),serde_json::to_string(&meta).unwrap(),event.outlook_occurrence_key])?;
-            tx.execute(
-                "UPDATE tasks SET outlook_enabled=1,outlook_calendar_ref=?2 WHERE id=?1",
-                params![id, meta.calendar],
-            )?;
+            let enabled=crate::repositories::settings_get(&tx)?.and_then(|v|v.get("outlookWriteDefault").and_then(Value::as_bool)).unwrap_or(false);
+            tx.execute("UPDATE tasks SET outlook_enabled=?3,outlook_calendar_ref=?2 WHERE id=?1",params![id,meta.calendar,enabled as i64])?;
+            tx.execute("UPDATE outlook_links SET sync_enabled=?2 WHERE task_id=?1",params![id,enabled as i64])?;
             let task = crate::repositories::tasks_get(&tx, &id)?.expect("imported task");
             tx.execute(
                 "UPDATE outlook_links SET last_task=?2 WHERE task_id=?1",
                 params![id, serde_json::to_string(&task).unwrap()],
             )?;
-            let payload = crate::outlook_jobs::WritePayload {
+            let payload = crate::outlook_jobs::WritePayload { recurrence:task.recurrence.clone(),end_date:task.end_date.clone(),outlook_details:task.outlook_details.clone(),
                 task_id: id.clone(),
                 title: task.title,
                 date: task.date,
@@ -829,7 +853,7 @@ mod matrix_tests {
         c
     }
     fn event(key: &str, calendar: &str) -> OutlookEvent {
-        OutlookEvent {
+        OutlookEvent { end_date:None,outlook_details:json!({}),
             title: "Same title".into(),
             date: "2026-10-09".into(),
             start_time: Some("09:00".into()),
@@ -868,6 +892,7 @@ mod matrix_tests {
     #[test]
     fn outlook_import_binds_original_and_local_edits_and_delete_queue_that_identity() {
         let c = db();
+        crate::repositories::settings_set(&c,&json!({"outlookWriteDefault":true})).unwrap();
         sync(&c, &snapshot(vec![event("e1", "A")], "A"));
         let t = crate::repositories::tasks_list(&c).unwrap().remove(0);
         assert!(t.outlook_enabled);
@@ -991,6 +1016,7 @@ mod matrix_tests {
     #[test]
     fn local_delete_waits_for_absence_or_new_identity_before_remote_restore() {
         let c = db();
+        crate::repositories::settings_set(&c,&json!({"outlookWriteDefault":true})).unwrap();
         let e = event("e1", "A");
         sync(&c, &snapshot(vec![e.clone()], "A"));
         let id = crate::repositories::tasks_list(&c).unwrap().remove(0).id;
@@ -1039,10 +1065,10 @@ mod matrix_tests {
         assert!(crate::repositories::tasks_list(&c).unwrap().is_empty());
     }
     #[test]
-    fn unsupported_multiday_edit_is_blocked_before_local_data_changes() {
+    fn ambiguous_remote_occurrence_edit_is_blocked_before_local_data_changes() {
         let c = db();
         let mut e = event("multi", "A");
-        e.remote.as_mut().unwrap().read_only = Some("複数日".into());
+        e.remote.as_mut().unwrap().read_only = Some("繰り返し例外の状態を一意に確認できません".into());
         sync(&c, &snapshot(vec![e], "A"));
         let t = crate::repositories::tasks_list(&c).unwrap().remove(0);
         let mut patch = serde_json::to_value(&t).unwrap();
@@ -1074,7 +1100,7 @@ pub fn validate_edit(
     let Some(meta) = raw.and_then(|raw| serde_json::from_str::<RemoteIdentity>(&raw).ok()) else {
         return Ok(());
     };
-    if content_changed && let Some(reason) = meta.read_only {
+    if content_changed && let Some(reason) = meta.read_only.filter(|r|!r.starts_with("複数日にまたがる予定")&&!r.starts_with("秒単位の予定")) {
         return Err(rusqlite::Error::InvalidParameterName(reason));
     }
     if meta.imported
@@ -1340,11 +1366,72 @@ pub(super) fn payload_matches_event(
     payload: &crate::outlook_jobs::WritePayload,
     event: &OutlookEvent,
 ) -> bool {
-    payload.title == event.title
+    payload.end_date.as_deref().unwrap_or(&payload.date)==event.end_date.as_deref().unwrap_or(&event.date)
+        && fields::matches(&payload.outlook_details,&event.outlook_details)
+        && payload.title == event.title
         && payload.date == event.date
         && payload.is_all_day == event.is_all_day
         && (payload.is_all_day
             || payload.start_time == event.start_time && payload.end_time == event.end_time)
         && payload.memo.replace("\r\n", "\n").trim_end()
             == event.location.replace("\r\n", "\n").trim_end()
+}
+
+
+#[cfg(test)]
+mod deletion_undo_tests {
+    use super::*;
+    use crate::repositories as repo;
+    fn fixture()->Connection {
+        let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+        repo::tasks_insert(&c,serde_json::from_value(json!({"id":"undo","title":"Synced title","date":"2026-10-09","endDate":"2026-10-10","startTime":"09:00","endTime":"10:00","memo":"Synced memo","tagId":"custom","outlookEnabled":true,"outlookDetails":{"location":"Original room","attachments":[{"name":"proof.txt"}]}})).unwrap()).unwrap();
+        let meta=RemoteIdentity{imported:true,calendar:"Calendar".into(),entry_id:"remote".into(),store_id:"store".into(),series_id:"series".into(),version:"v1".into(),..Default::default()};
+        c.execute("UPDATE tasks SET outlook_occurrence_key='source',outlook_series_id='series',meeting_url='https://example.test/meeting' WHERE id='undo'",[]).unwrap();
+        c.execute("UPDATE outlook_links SET remote_meta=?1,source_key='source',entry_id='remote',store_id='store'",params![serde_json::to_string(&meta).unwrap()]).unwrap();
+        c.execute("UPDATE outlook_jobs SET status='done'",[]).unwrap();
+        crate::outlook_jobs::disable(&c,"undo").unwrap();
+        let baseline=repo::tasks_get(&c,"undo").unwrap().unwrap();c.execute("UPDATE outlook_links SET last_task=?1",params![serde_json::to_string(&baseline).unwrap()]).unwrap();
+        c
+    }
+    fn undo(c:&Connection,saved:&Value,batch:bool){
+        if batch {assert!(repo::tasks_batch(c,serde_json::from_value(json!({"upserts":[saved],"deleteIds":[],"expected":[]})).unwrap()).is_ok(),"Undo batch must succeed");}
+        else {repo::tasks_insert(c,serde_json::from_value(saved.clone()).unwrap()).unwrap();}
+    }
+    fn incoming_edit(c:&Connection)->ReconcileResult {
+        let track=capture(c).unwrap().into_iter().find(|t|t.id=="undo").unwrap();
+        let mut identity=track.remote.clone().unwrap();identity.version="v2".into();
+        let event=OutlookEvent{title:"Outlook changed".into(),date:"2026-10-09".into(),end_date:Some("2026-10-10".into()),start_time:Some("09:00".into()),end_time:Some("10:00".into()),location:"Remote memo".into(),is_all_day:false,outlook_series_id:"series".into(),outlook_occurrence_key:"source".into(),is_recurring:false,recurrence:json!({"type":"none"}),outlook_details:json!({"location":"Remote room","attachments":[{"name":"proof.txt"}]}),remote:Some(identity.clone()),meeting_url:Some("https://example.test/meeting".into())};
+        apply(c,&[Observation{track,state:RemoteState::Present(Box::new(event),identity)}]).unwrap()
+    }
+    #[test]
+    fn off_clean_delete_undo_reenables_incoming_without_enabling_outgoing() {
+        for batch in [false,true] {
+            let c=fixture();let saved=serde_json::to_value(repo::tasks_get(&c,"undo").unwrap().unwrap()).unwrap();repo::tasks_remove(&c,"undo").unwrap();
+            assert!(!capture(&c).unwrap()[0].incoming_enabled);undo(&c,&saved,batch);
+            assert!(capture(&c).unwrap()[0].incoming_enabled,"restoration must resume incoming synchronization");
+            let result=incoming_edit(&c);assert_eq!(result.updated,1);assert_eq!(result.conflicts,0);
+            let task=repo::tasks_get(&c,"undo").unwrap().unwrap();assert!(!task.outlook_enabled);assert_eq!(task.title,"Outlook changed");assert_eq!(task.tag_id,"custom");
+            assert_eq!(c.query_row("SELECT status FROM outlook_jobs WHERE task_id='undo'",[],|r|r.get::<_,String>(0)).unwrap(),"done");
+        }
+    }
+    #[test]
+    fn remote_restoration_uses_deletion_snapshot_for_latest_local_tag() {
+        let c=fixture();c.execute("UPDATE tasks SET tag_id='latest-local-tag' WHERE id='undo'",[]).unwrap();
+        let track=capture(&c).unwrap().remove(0);let removed=apply(&c,&[Observation{track,state:RemoteState::Removed}]).unwrap();assert_eq!(removed.deleted,1);
+        let result=incoming_edit(&c);assert_eq!(result.restored,1);
+        let restored=repo::tasks_get(&c,"undo").unwrap().unwrap();assert_eq!(restored.tag_id,"latest-local-tag");assert!(!restored.outlook_enabled);
+    }
+    #[test]
+    fn off_unsent_edit_delete_undo_retains_confirmed_baseline_and_local_changes() {
+        for batch in [false,true] {
+            let c=fixture();let mut edited=serde_json::to_value(repo::tasks_get(&c,"undo").unwrap().unwrap()).unwrap();edited["title"]=json!("Unsent local title");repo::tasks_update(&c,"undo",serde_json::from_value(edited).unwrap()).unwrap();
+            let saved=serde_json::to_value(repo::tasks_get(&c,"undo").unwrap().unwrap()).unwrap();repo::tasks_remove(&c,"undo").unwrap();
+            let baseline:String=c.query_row("SELECT last_task FROM outlook_links WHERE task_id='undo'",[],|r|r.get(0)).unwrap();assert_eq!(serde_json::from_str::<Value>(&baseline).unwrap()["title"],"Synced title","deletion is not a successful sync");
+            let deleted:String=c.query_row("SELECT deleted_task FROM outlook_links WHERE task_id='undo'",[],|r|r.get(0)).unwrap();let deleted:Value=serde_json::from_str(&deleted).unwrap();
+            assert_eq!(deleted["title"],"Unsent local title");assert_eq!(deleted["endDate"],"2026-10-10");assert_eq!(deleted["outlookDetails"]["attachments"][0]["name"],"proof.txt");assert_eq!(deleted["outlookSeriesId"],"series");assert_eq!(deleted["meetingUrl"],"https://example.test/meeting");assert_eq!(deleted["outlookEnabled"],false);
+            undo(&c,&saved,batch);assert!(capture(&c).unwrap()[0].incoming_enabled);
+            let result=incoming_edit(&c);assert_eq!(result.updated,0);assert_eq!(result.conflicts,1);
+            let task=repo::tasks_get(&c,"undo").unwrap().unwrap();assert!(!task.outlook_enabled);assert_eq!(task.title,"Unsent local title");
+        }
+    }
 }

@@ -1,3 +1,5 @@
+import { expandNativeDates } from "./native-recurrence-dates.js";
+import { normalizeNativeRule } from "./native-recurrence.js";
 /**
  * store.js — TaskCalendar+ データ層
  *
@@ -13,6 +15,7 @@ import { normalizeQuickLinks } from "./settings-transfer.js";
 import { DEFAULT_UI_COLOR, normalizeUiColor } from "./ui-colors.js";
 import { normalizeLocale, t as translate, th as translateHtml } from './i18n.js';
 import { personalization } from "./ai-personalization.js";
+import { eventDateKeys, eventDaySegment, validateEventRange, shiftEventDate } from "./event-fields.js";
 import { summarizeWork } from "./work-time.js";
 import {
   normalizeBreaks, normalizeUrlAutoOpenTimes, _isDateKey, _normalizeDateKey, timeToMinutes, minutesToTime,
@@ -90,6 +93,7 @@ const DEFAULT_SETTINGS = {
   outlookSyncCalendarName: "Calendar",
   outlookSyncTagId: "",
   outlookSyncDaysAhead: 90,
+  outlookWriteEnabled: false,
   outlookWriteDefault: false,
   outlookWriteCalendarName: "Calendar",
   trayEnabled: true, // 「✕」でタスクトレイへ格納するか(Rust側main.rsが起動時に読む)
@@ -104,7 +108,7 @@ function genId() {
 }
 
 // ── バリデーション ─────────────────────────────────────
-const RE_HHMM = /^([01]\d|2[0-3]):[0-5]\d$|^24:00$/;
+const RE_HHMM = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$|^24:00(?::00)?$/;
 
 function _normalizeAutoOpenEnabled(value) {
   if (typeof value === "boolean") return value;
@@ -166,6 +170,7 @@ function _normalizeSettings(settingsLike) {
   merged.uiAccentColor = normalizeUiColor(merged.uiAccentColor);
   merged.uiLanguage = merged.uiLanguage === "auto" ? "auto" : normalizeLocale(merged.uiLanguage);
   merged.aiPersonalization = personalization(merged);
+  merged.outlookWriteEnabled = merged.outlookWriteEnabled === true;
   merged.outlookWriteDefault = merged.outlookWriteDefault === true;
   for (const key of ['outlookWriteCalendarName','outlookSyncCalendarName']) {
     const value = String(merged[key] ?? 'Calendar').trim();
@@ -203,23 +208,8 @@ function _normalizeTaskTimeRange(taskLike) {
     return { startTime: startRaw, endTime: endRaw };
   }
 
-  // 手入力時は分単位をそのまま保持し、境界と前後関係のみ補正する。
-  let startMins = Math.max(0, Math.min(1439, timeToMinutes(startRaw)));
-  let endMins = Math.max(0, Math.min(1440, timeToMinutes(endRaw)));
-
-  // 終了が開始以下のときは最小1分だけ伸ばす。
-  if (endMins <= startMins) {
-    endMins = Math.min(1440, startMins + 1);
-    if (endMins <= startMins) {
-      startMins = 1439;
-      endMins = 1440;
-    }
-  }
-
-  return {
-    startTime: minutesToTime(startMins),
-    endTime: minutesToTime(endMins),
-  };
+  // Preserve the user's range, including cross-day clocks and imported seconds.
+  return { startTime: startRaw, endTime: endRaw };
 }
 
 // patchがisAllDay/startTime/endTimeのいずれかを含む場合のみ、updatedの時刻を
@@ -245,6 +235,7 @@ function validateTask(t) {
     if (!RE_HHMM.test(t.startTime)) return false;
     if (!RE_HHMM.test(t.endTime))   return false;
   }
+  if (validateEventRange(t)) return false;
   if (typeof t.tagId !== "string") return false;
   return true;
 }
@@ -409,6 +400,10 @@ function _advanceRecurrenceDate(date, type, originDay) {
 }
 
 function _normalizeRecurrence(raw, baseDateKey) {
+  if (raw?.native) return {
+    ...structuredClone(raw), type: "native", native: normalizeNativeRule(raw.native),
+    groupId: String(raw.groupId || genId()), originDate: raw.originDate || raw.native.patternStartDate || baseDateKey,
+  };
   const typeRaw = String(raw?.type ?? "none");
   const type = ["none", "daily", "weekly", "monthly"].includes(typeRaw) ? typeRaw : "none";
   if (type === "none") return { type: "none" };
@@ -421,6 +416,7 @@ function _normalizeRecurrence(raw, baseDateKey) {
 }
 
 function _expandRecurrenceDateKeys(startDateKey, recurrence) {
+  if (recurrence?.native) return expandNativeDates(recurrence.native, {from:startDateKey});
   if (!_isDateKey(startDateKey)) return [];
   if (!recurrence || recurrence.type === "none") return [startDateKey];
 
@@ -556,11 +552,16 @@ function _ensureTaskIndex() {
   _tasksByDate = new Map();
   _tasksByMonth = new Map();
   for (const task of _tasks) {
-    const date = task.date, month = date.slice(0, 7);
-    if (!_tasksByDate.has(date)) _tasksByDate.set(date, []);
-    if (!_tasksByMonth.has(month)) _tasksByMonth.set(month, []);
-    _tasksByDate.get(date).push(task);
-    _tasksByMonth.get(month).push(task);
+    const months = new Set();
+    for (const date of eventDateKeys(task)) {
+      if (!_tasksByDate.has(date)) _tasksByDate.set(date, []);
+      _tasksByDate.get(date).push(task);
+      months.add(date.slice(0, 7));
+    }
+    for (const month of months) {
+      if (!_tasksByMonth.has(month)) _tasksByMonth.set(month, []);
+      _tasksByMonth.get(month).push(task);
+    }
   }
 }
 const _copySummary = summary => ({ total: summary.total, overtime: summary.overtime ?? 0, byTag: new Map(summary.byTag) });
@@ -830,6 +831,7 @@ function _makeTaskEntity(data, dateKey, recurrence, nowIso) {
   const isAllDay = Boolean(data.isAllDay);
   const normalizedClock = _normalizeTaskTimeRange({
     isAllDay,
+    date: dateKey || data.date, endDate: data.endDate,
     startTime: data.startTime,
     endTime: data.endTime,
   });
@@ -838,6 +840,8 @@ function _makeTaskEntity(data, dateKey, recurrence, nowIso) {
     id:        String(data.id ?? genId()),
     title:     String(data.title  ?? "").trim() || translate('ui.6ada6dbdde'),
     date:      String(dateKey ?? data.date ?? ""),
+    ...(data.endDate ? { endDate: shiftEventDate(data.endDate, (Date.parse(dateKey) - Date.parse(data.date)) / 86400000) } : {}),
+    ...(data.outlookDetails ? { outlookDetails: structuredClone(data.outlookDetails) } : {}),
     isAllDay,
     startTime: normalizedClock.startTime,
     endTime:   normalizedClock.endTime,
@@ -855,11 +859,15 @@ async function createTask(data) {
   const now = new Date().toISOString();
   const baseDateKey = _normalizeDateKey(data.date);
   const recurrence = _normalizeRecurrence(data.recurrence, baseDateKey);
+  if (recurrence.native) {
+    recurrence.template = Object.fromEntries(["title","date","endDate","isAllDay","startTime","endTime","memo","outlookDetails"]
+      .filter(key => data[key] !== undefined).map(key => [key,structuredClone(data[key])]));
+  }
   const dateKeys = _expandRecurrenceDateKeys(baseDateKey, recurrence);
   const nextTasks = dateKeys.map((dateKey) => _makeTaskEntity(
     data,
     dateKey,
-    recurrence.type === "none" ? { type: "none" } : { ...recurrence },
+    recurrence.type === "none" ? { type: "none" } : { ...recurrence, ...(recurrence.native ? {occurrenceDate:dateKey} : {}) },
     now,
   ));
 
@@ -977,7 +985,7 @@ async function updateTask(id, patch, { expectedUpdatedAt } = {}) {
     const scheduledDate = _tasks[idx].recurrence?.occurrenceDate ?? _tasks[idx].date;
     updated.recurrence = { ...updated.recurrence };
     if (updated.date === scheduledDate) {
-      delete updated.recurrence.occurrenceDate;
+      if (!updated.recurrence.native) delete updated.recurrence.occurrenceDate;
       delete updated.recurrence.exception;
     } else {
       updated.recurrence.occurrenceDate = scheduledDate;
@@ -997,7 +1005,7 @@ async function updateTask(id, patch, { expectedUpdatedAt } = {}) {
     const recurrenceChanged = previousRecurrence.type !== updated.recurrence?.type
       || previousRecurrence.until !== updated.recurrence?.until
       || _tasks[idx].date !== updated.date;
-    if (patch.recurrence !== undefined && updated.recurrence?.type !== "none"
+    if (patch.recurrence !== undefined && !updated.recurrence?.native && updated.recurrence?.type !== "none"
       && recurrenceChanged && getTaskSeriesCount(_tasks[idx]) === 1) {
       updated.recurrence = { ...updated.recurrence, originDate: updated.date };
       const dates = _expandRecurrenceDateKeys(updated.date, updated.recurrence);
@@ -1077,6 +1085,30 @@ function getTaskSeriesCount(task) {
 async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
   const target = _tasks.find((t) => t.id === id);
   if (!target) return null;
+
+  if (target.recurrence?.native || patch.recurrence?.native) {
+    const rule = patch.recurrence === undefined ? target.recurrence?.native : patch.recurrence?.native;
+    const previousRule = target.recurrence?.native;
+    const ruleKeys = new Set([...Object.keys(rule || {}),...Object.keys(previousRule || {})]);
+    const changed = Boolean(rule) !== Boolean(previousRule) || [...ruleKeys].some(key => rule?.[key] !== previousRule?.[key]);
+    if (changed && mode !== "series" && mode !== "future") {
+      throw new Error(translate("event.ruleScopeRequired"));
+    }
+    if (mode === "series" || mode === "future") {
+      const native = rule ? normalizeNativeRule(rule) : null;
+      const payload = {...target,...patch,id:target.id,recurrence:native ? {...target.recurrence,...patch.recurrence,type:"native",native} : {type:"none"}};
+      if (!validateTask(payload)) throw new Error(translate('errors.generic'));
+      const generation = _tasksGeneration;
+      const saved = await _api.post(`/outlook/series/${encodeURIComponent(id)}`, {
+        scope:mode === "future" ? "future" : "all", rule:native, payload,
+        expectedUpdatedAt:options.expectedUpdatedAt ?? target.updatedAt,
+      });
+      if (!Array.isArray(saved) || !saved.every(validateTask)) throw new Error("API returned invalid tasks");
+      await _commitTaskMutation(generation, () => { _tasks = _backfillRecurrenceGroupIds(saved); });
+      await refreshTasks();
+      return _tasks.find(task => task.id === id) || (Array.isArray(saved) ? saved[0] : null);
+    }
+  }
 
   const isMultiMode = mode === "series" || mode === "future";
   let indexes = isMultiMode ? _collectSeriesTaskIndexes(target) : [];
@@ -1175,6 +1207,8 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
       delete updated.outlookSeriesId;
       delete updated.meetingUrl;
     }
+    if (sharedPatch.endDate) updated.endDate = shiftEventDate(sharedPatch.endDate, (Date.parse(updated.date) - Date.parse(patch.date || target.date)) / 86400000);
+    else if (!current && template.endDate) updated.endDate = shiftEventDate(template.endDate, (Date.parse(updated.date) - Date.parse(template.date)) / 86400000);
     _maybeNormalizeClock(sharedPatch, updated);
     if (!validateTask(updated)) return null;
     upserts.push(updated);
@@ -1191,6 +1225,7 @@ async function updateTaskWithMode(id, patch, mode = "single", options = {}) {
       },
       id: current.id, date: current.date, updatedAt: nowIso,
     };
+    if (sharedPatch.endDate) updated.endDate = shiftEventDate(sharedPatch.endDate, (Date.parse(updated.date) - Date.parse(patch.date || target.date)) / 86400000);
     _maybeNormalizeClock(sharedPatch, updated);
     if (!validateTask(updated)) return null;
     upserts.push(updated);
@@ -1417,7 +1452,9 @@ function _breakOverlapMinutes(startMin, endMin) {
 }
 
 // 休憩時間との重なりを除いた実質の工数(分)。タスク一覧の「工数」列・タグ別集計に使用する
-function taskDurationMinutes(task) {
+function taskDurationMinutes(task, dateKey = null) {
+  if (dateKey) return taskDurationMinutes(eventDaySegment(task, dateKey) || {isAllDay:true});
+  if (task.endDate && task.endDate !== task.date) return eventDateKeys(task).reduce((sum, date) => sum + taskDurationMinutes(task, date), 0);
   if (task.isAllDay || !task.startTime || !task.endTime) return 0;
   const startMin = timeToMinutes(task.startTime);
   const endMin = timeToMinutes(task.endTime);
@@ -1476,7 +1513,7 @@ function _sumTaskMinutesByTag(tasks) {
  */
 function calcDaySummary(dateKey) {
   if (_daySummaryCache.has(dateKey)) return _copySummary(_daySummaryCache.get(dateKey));
-  const tasks = _tasksWithKnownTags(getTasksByDate(dateKey));
+  const tasks = _tasksWithKnownTags(getTasksByDate(dateKey)).map(task => eventDaySegment(task, dateKey)).filter(Boolean);
   const result = { ...summarizeWork(tasks, _settings), byTag: _sumTaskMinutesByTag(tasks) };
   _daySummaryCache.set(dateKey, result);
   return _copySummary(result);
@@ -1488,15 +1525,15 @@ function calcDaySummary(dateKey) {
  */
 function calcMonthSummary(yearMonth) {
   if (_monthSummaryCache.has(yearMonth)) return _copySummary(_monthSummaryCache.get(yearMonth));
-  const tasks = _tasksWithKnownTags(getTasksByMonth(yearMonth));
-  const byTag = _sumTaskMinutesByTag(tasks);
-  const workByDate = new Map();
-  for (const task of tasks) {
-    if (!workByDate.has(task.date)) workByDate.set(task.date, []);
-    workByDate.get(task.date).push(task);
+  const byTag = new Map();
+  let total = 0, overtime = 0;
+  const days = new Date(Number(yearMonth.slice(0,4)), Number(yearMonth.slice(5,7)), 0).getDate();
+  for (let day = 1; day <= days; day++) {
+    const summary = calcDaySummary(`${yearMonth}-${String(day).padStart(2,'0')}`);
+    total += summary.total; overtime += summary.overtime;
+    for (const [tag, mins] of summary.byTag) byTag.set(tag, (byTag.get(tag) || 0) + mins);
   }
-  const sums = [...workByDate.values()].map(day => summarizeWork(day, _settings));
-  const result = { total: sums.reduce((sum, row) => sum + row.total, 0), overtime: sums.reduce((sum, row) => sum + row.overtime, 0), byTag };
+  const result = {total, overtime, byTag};
   _monthSummaryCache.set(yearMonth, result);
   return _copySummary(result);
 }

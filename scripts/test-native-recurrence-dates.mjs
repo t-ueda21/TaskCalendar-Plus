@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const moduleUrl=new URL('../src-tauri/renderer/src/native-recurrence-dates.js',import.meta.url);
+assert.ok(fs.existsSync(moduleUrl),'native recurrence must generate calendar occurrences');
+const {expandNativeDates}=await import(moduleUrl);
+const base={recurrenceType:0,interval:2,dayOfWeekMask:0,dayOfMonth:0,monthOfYear:0,instance:0,patternStartDate:'2026-01-01',patternEndDate:null,occurrences:3,noEndDate:false};
+assert.deepEqual(expandNativeDates(base),['2026-01-01','2026-01-03','2026-01-05']);
+assert.deepEqual(expandNativeDates({...base,recurrenceType:1,dayOfWeekMask:10,patternStartDate:'2026-10-05',occurrences:4}),['2026-10-05','2026-10-07','2026-10-19','2026-10-21']);
+assert.deepEqual(expandNativeDates({...base,recurrenceType:2,interval:1,dayOfMonth:31}),['2026-01-31','2026-02-28','2026-03-31']);
+assert.deepEqual(expandNativeDates({...base,recurrenceType:3,interval:1,dayOfWeekMask:62,instance:5}),['2026-01-30','2026-02-27','2026-03-31']);
+assert.deepEqual(expandNativeDates({...base,recurrenceType:5,interval:12,monthOfYear:2,dayOfMonth:14}),['2026-02-14']);
+assert.deepEqual(expandNativeDates({...base,recurrenceType:6,interval:12,monthOfYear:11,dayOfWeekMask:16,instance:4}),['2026-11-26']);
+assert.deepEqual(expandNativeDates({...base,occurrences:null,patternEndDate:'2026-01-04'}),['2026-01-01','2026-01-03']);
+assert.equal(expandNativeDates({...base,interval:1,occurrences:null,noEndDate:true}).length,366,'no-end preview is bounded by inclusive one-year horizon');
+assert.deepEqual(expandNativeDates(base,{from:'2026-01-03'}),['2026-01-03','2026-01-05'],'occurrence count includes earlier dates');
+assert.deepEqual(expandNativeDates({...base,recurrenceType:5,interval:24,monthOfYear:2,dayOfMonth:14},{from:'2027-03-01'}),['2028-02-14'],'native yearly interval uses months');
+console.log('PASS all six native recurrence patterns, masks, last weekday, count, end and bounded no-end');
+// Literal boundaries observed using native Outlook GetOccurrence in a test calendar.
+assert.deepEqual(expandNativeDates({...base,recurrenceType:2,interval:1,dayOfMonth:31,patternStartDate:'2027-01-01'}),['2027-01-31','2027-02-28','2027-03-31']);
+const leap={...base,recurrenceType:5,interval:12,monthOfYear:2,dayOfMonth:29,patternStartDate:'2028-02-29',occurrences:4};
+assert.deepEqual(expandNativeDates(leap,{from:'2029-01-01'}),['2029-02-28']);
+assert.deepEqual(expandNativeDates(leap,{from:'2030-01-01'}),['2030-02-28']);
+for(const [mask,first] of [[62,'2027-01-04'],[65,'2027-01-03'],[127,'2027-01-02']])assert.equal(expandNativeDates({...base,recurrenceType:3,interval:1,dayOfWeekMask:mask,instance:2,patternStartDate:'2027-01-01'})[0],first);

@@ -1,3 +1,4 @@
+import { validateEventForm, eventDaySegment, shiftEventDate, moveEventRange, resizeEventRange, eventDateKeys } from "./event-fields.js";
 import { t as translate, th as translateHtml } from './i18n.js';
 import { wireTaskBatch } from './task-batch-ui.js';
 import { showAppAlert, showAppConfirm, chooseRecurrenceScope } from './app-dialogs.js';
@@ -734,19 +735,20 @@ function _renderTimeGrids() {
 }
 
 // ── タスクブロック描画 ────────────────────────────────
-function _makeTaskBlock(task, tags) {
+function _makeTaskBlock(task, tags, dateKey = task.date) {
+  const segment = eventDaySegment(task, dateKey) || task;
   const allTags = Store.getAllTags();
   const tag = tags.find((t) => t.id === task.tagId) || allTags.find((t) => t.id === task.tagId);
   const isRecurring = task?.recurrence?.type && task.recurrence.type !== "none";
-  const durationMins = Math.max(0, timeToMinutes(task.endTime) - timeToMinutes(task.startTime));
+  const durationMins = Math.max(0, timeToMinutes(segment.endTime) - timeToMinutes(segment.startTime));
   const isCompact = durationMins <= Math.max(_granularity, 30);
   const el = document.createElement("div");
   el.className = `taskBlock${isCompact ? " compact" : ""}`;
   _applyTagColorStyle(el, tag?.color || DEFAULT_TASK_COLOR);
   el.draggable = true;
   el.setAttribute("data-task-id", task.id);
-  el.setAttribute("data-start", task.startTime);
-  el.setAttribute("data-end",   task.endTime);
+  el.setAttribute("data-start", segment.startTime);
+  el.setAttribute("data-end",   segment.endTime);
   if (isRecurring) el.setAttribute("data-recurring", "1");
 
   const titleText = escHtml(task.title || translate('ui.6ada6dbdde'));
@@ -754,7 +756,7 @@ function _makeTaskBlock(task, tags) {
   const startStr  = escHtml(task.startTime ?? "");
   const endStr    = escHtml(task.endTime   ?? "");
   const durationH = durationMins > 0 ? `(${(durationMins / 60).toFixed(durationMins % 60 === 0 ? 0 : 1)}h)` : "";
-  const timeRange = startStr && endStr ? `${startStr}〜${endStr} ${durationH}` : "";
+  const timeRange = startStr && endStr ? `${task.endDate && task.endDate !== task.date ? `${task.date} ${startStr}〜${task.endDate} ${endStr}` : `${startStr}〜${endStr}`} ${durationH}` : "";
   const subLine   = [timeRange, tagName].filter(Boolean).join(" / ");
   const teamsBtn  = task.meetingUrl
     ? `<button type="button" class="taskTeamsJoinBtn" title="Teams${translateHtml('ui.2bb89d4102')}">📹</button>`
@@ -771,7 +773,7 @@ function _makeTaskBlock(task, tags) {
     });
   }
 
-  positionTaskBlock(el, task.startTime, task.endTime, _granularity);
+  positionTaskBlock(el, segment.startTime, segment.endTime, _granularity);
 
   // ダブルクリックで編集
   el.addEventListener("dblclick", (e) => {
@@ -790,10 +792,10 @@ function _makeTaskBlock(task, tags) {
   });
 
   // DnD: 移動 (F-TASK-003)
-  _wireDragMove(el, task);
+  _wireDragMove(el, task, dateKey);
 
   // リサイズ (F-TASK-004)
-  _wireResize(el, task);
+  _wireResize(el, task, dateKey);
 
   return el;
 }
@@ -908,11 +910,11 @@ function _renderDayTasks() {
   const timedTasks = tasks.filter((t) => !t.isAllDay);
   const blocksById = new Map();
   timedTasks.forEach((t) => {
-    const block = _makeTaskBlock(t, tags);
+    const block = _makeTaskBlock(t, tags, dateKey);
     blocksById.set(t.id, block);
     $daycol.appendChild(block);
   });
-  _applyOverlapLayout(timedTasks, blocksById);
+  _applyOverlapLayout(timedTasks.map(t => eventDaySegment(t, dateKey)).filter(Boolean), blocksById);
 }
 
 function _renderWeekTasks() {
@@ -928,11 +930,11 @@ function _renderWeekTasks() {
     const tasks   = Store.getTasksByDate(dateKey).filter((t) => !t.isAllDay);
     const blocksById = new Map();
     tasks.forEach((t) => {
-      const block = _makeTaskBlock(t, tags);
+      const block = _makeTaskBlock(t, tags, dateKey);
       blocksById.set(t.id, block);
       col.appendChild(block);
     });
-    _applyOverlapLayout(tasks, blocksById);
+    _applyOverlapLayout(tasks.map(t => eventDaySegment(t, dateKey)).filter(Boolean), blocksById);
   });
 
   _renderAllDayLane();
@@ -1051,7 +1053,10 @@ function _wireDialog() {
   let _saving = false;
   const saveTask = async () => {
     if (_saving) return;
-    const form = readDialogForm($dialog);
+    let form;
+    try { form = readDialogForm($dialog); }
+    catch (error) { await showAppAlert(String(error.message || error), {tone:"error"}); return; }
+    if (!validateEventForm($dialog, form)) return;
     if (!form.title) { await showAppAlert(translate('ui.f611575d37'), {tone:'error'}); return; }
     const { editScope, ...taskPatch } = form;
     const mode = editScope || "single";
@@ -1288,11 +1293,13 @@ function _wireSelectionColumn(colEl, slotsEl, getDateKey) {
 }
 
 // ── DnD 移動 (F-TASK-003) ─────────────────────────────
-function _wireDragMove(el, task) {
+let _dragSourceDate = null;
+function _wireDragMove(el, task, dateKey = task.date) {
   el.addEventListener("dragstart", (e) => {
     e.dataTransfer.setData("text/plain", task.id);
     e.dataTransfer.effectAllowed = "copyMove";
     _draggingTaskId = task.id;
+    _dragSourceDate = dateKey;
     _dragCopyMode = Boolean(e.ctrlKey || e.metaKey || _ctrlOrMetaPressed);
     // ブロック内でのクリック位置（px）→ 分に変換して記録
     const rect = el.getBoundingClientRect();
@@ -1328,12 +1335,9 @@ function _wireDrop(colEl, getDateKey) {
     const rect = slots.getBoundingClientRect();
     const y = Math.max(0, Math.min(rect.height, clientY - rect.top));
     const rawMins = y * (_granularity / ROW_HEIGHT) - _dragOffsetMins;
-    const duration = _normalizeTaskDurationMinutes(
-      timeToMinutes(task.endTime) - timeToMinutes(task.startTime),
-    );
-    const startMins = Math.max(0, Math.min(1440 - duration, _snapTaskMinutes(rawMins, "start")));
-    const endMins = Math.min(1440, _snapTaskMinutes(startMins + duration, "end"));
-    return { startMins, endMins };
+    const startMins = Math.max(0, Math.min(1439, _snapTaskMinutes(rawMins, "start")));
+    const patch = moveEventRange(task, _dragSourceDate || task.date, getDateKey(), startMins);
+    return patch ? {startMins, endMins:timeToMinutes(patch.endTime), patch} : null;
   };
 
   colEl.addEventListener("dragover", (e) => {
@@ -1374,9 +1378,7 @@ function _wireDrop(colEl, getDateKey) {
     const draft = resolveDraft(e.clientY, task);
     if (!draft) return;
 
-    const date = getDateKey();
-    const startTime = minutesToTime(draft.startMins);
-    const endTime = minutesToTime(draft.endMins);
+    const {date,endDate,startTime,endTime} = draft.patch;
     const copyMode = Boolean(e.ctrlKey || e.metaKey || _ctrlOrMetaPressed || _dragCopyMode);
 
     if (copyMode) {
@@ -1385,6 +1387,7 @@ function _wireDrop(colEl, getDateKey) {
         id: undefined,
         outlookEnabled: Store.getSettings().outlookWriteDefault,
         date,
+        endDate,
         startTime,
         endTime,
         recurrence: { type: "none" },
@@ -1394,11 +1397,12 @@ function _wireDrop(colEl, getDateKey) {
       _recordAction({
         type: "update",
         taskId,
-        before: { date: task.date, startTime: task.startTime, endTime: task.endTime },
-        after: { date, startTime, endTime },
+        before: { date: task.date, endDate: task.endDate, startTime: task.startTime, endTime: task.endTime },
+        after: { date, endDate, startTime, endTime },
       });
       await Store.updateTask(taskId, {
         date,
+        endDate,
         startTime,
         endTime,
       });
@@ -1408,131 +1412,52 @@ function _wireDrop(colEl, getDateKey) {
 }
 
 // ── リサイズ (F-TASK-004) ─────────────────────────────
-function _wireResize(el, task) {
-  // 上端ハンドル（開始時刻変更）
-  const topHandle = document.createElement("div");
-  topHandle.className = "resizeHandle";
-  topHandle.style.cssText = "position:absolute;top:0;left:0;right:0;height:8px;cursor:ns-resize;z-index:2;";
-  topHandle.setAttribute("aria-hidden", "true");
-  el.prepend(topHandle);
-
-  let topStartY = 0, origStartMins = 0;
-  topHandle.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    topStartY     = e.clientY;
-    origStartMins = _snapTaskMinutes(timeToMinutes(task.startTime), "start");
-    const fixedEndMins = _snapTaskMinutes(timeToMinutes(task.endTime), "end");
-    topHandle.setPointerCapture(e.pointerId);
-    function onMove(ev) {
-      const deltaMins = (ev.clientY - topStartY) * (_granularity / ROW_HEIGHT);
-      const newStart  = _snapTaskMinutes(origStartMins + deltaMins, "start");
-      const clamped   = Math.max(0, Math.min(fixedEndMins - _minTaskDurationMinutes(), newStart));
-      positionTaskBlock(el, minutesToTime(clamped), minutesToTime(fixedEndMins), _granularity);
-      _showTaskTimePreview(
-        `${minutesToTime(clamped)} - ${minutesToTime(fixedEndMins)}`,
-        ev.clientX,
-        ev.clientY,
-      );
-    }
-    function onUp(ev) {
-      const deltaMins = (ev.clientY - topStartY) * (_granularity / ROW_HEIGHT);
-      const newStart  = _snapTaskMinutes(origStartMins + deltaMins, "start");
-      const clamped   = Math.max(0, Math.min(fixedEndMins - _minTaskDurationMinutes(), newStart));
-      _hideTaskTimePreview();
-      // 確定直前に対象が消えていないか（自動更新等での再描画と競合）を確認
-      if (Store.getAllTasks().some((t) => t.id === task.id)) {
-        _recordAction({
-          type: "update",
-          taskId: task.id,
-          before: { startTime: task.startTime, endTime: task.endTime },
-          after: { startTime: minutesToTime(clamped), endTime: minutesToTime(fixedEndMins) },
-        });
-        Store.updateTask(task.id, {
-          startTime: minutesToTime(clamped),
-          endTime: minutesToTime(fixedEndMins),
-        });
-      }
-      topHandle.removeEventListener("pointermove", onMove);
-      topHandle.removeEventListener("pointerup",   onUp);
-      topHandle.removeEventListener("pointercancel", onCancel);
-    }
-    function onCancel() {
-      _hideTaskTimePreview();
-      topHandle.removeEventListener("pointermove", onMove);
-      topHandle.removeEventListener("pointerup",   onUp);
-      topHandle.removeEventListener("pointercancel", onCancel);
-    }
-    topHandle.addEventListener("pointermove", onMove);
-    topHandle.addEventListener("pointerup",   onUp);
-    topHandle.addEventListener("pointercancel", onCancel);
-  });
-
-  // 下端ハンドル（終了時刻変更）
-  const handle = document.createElement("div");
-  handle.className = "resizeHandle";
-  handle.style.cssText = "position:absolute;bottom:0;left:0;right:0;height:8px;cursor:ns-resize;";
-  handle.setAttribute("aria-hidden", "true");
-  el.appendChild(handle);
-
-  let startY = 0, origEndMins = 0;
-
-  handle.addEventListener("pointerdown", (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-    startY       = e.clientY;
-    origEndMins  = _snapTaskMinutes(timeToMinutes(task.endTime), "end");
-    const fixedStartMins = _snapTaskMinutes(timeToMinutes(task.startTime), "start");
-    handle.setPointerCapture(e.pointerId);
-
-    function onMove(ev) {
-      const deltaY    = ev.clientY - startY;
-      const deltaMins = deltaY * (_granularity / ROW_HEIGHT);
-      const newEnd    = _snapTaskMinutes(origEndMins + deltaMins, "end");
-      const clampedEnd = Math.min(1440, Math.max(fixedStartMins + _minTaskDurationMinutes(), newEnd));
-      positionTaskBlock(el, minutesToTime(fixedStartMins), minutesToTime(clampedEnd), _granularity);
-      _showTaskTimePreview(
-        `${minutesToTime(fixedStartMins)} - ${minutesToTime(clampedEnd)}`,
-        ev.clientX,
-        ev.clientY,
-      );
-    }
-
-    function onUp(ev) {
-      const deltaY    = ev.clientY - startY;
-      const deltaMins = deltaY * (_granularity / ROW_HEIGHT);
-      const newEnd    = _snapTaskMinutes(origEndMins + deltaMins, "end");
-      const clampedEnd = Math.min(1440, Math.max(fixedStartMins + _minTaskDurationMinutes(), newEnd));
-      _hideTaskTimePreview();
-      // 確定直前に対象が消えていないか（自動更新等での再描画と競合）を確認
-      if (Store.getAllTasks().some((t) => t.id === task.id)) {
-        _recordAction({
-          type: "update",
-          taskId: task.id,
-          before: { startTime: task.startTime, endTime: task.endTime },
-          after: { startTime: minutesToTime(fixedStartMins), endTime: minutesToTime(clampedEnd) },
-        });
-        Store.updateTask(task.id, {
-          startTime: minutesToTime(fixedStartMins),
-          endTime: minutesToTime(clampedEnd),
-        });
-      }
-      handle.removeEventListener("pointermove", onMove);
-      handle.removeEventListener("pointerup", onUp);
-      handle.removeEventListener("pointercancel", onCancel);
-    }
-
-    function onCancel() {
-      _hideTaskTimePreview();
-      handle.removeEventListener("pointermove", onMove);
-      handle.removeEventListener("pointerup", onUp);
-      handle.removeEventListener("pointercancel", onCancel);
-    }
-
-    handle.addEventListener("pointermove", onMove);
-    handle.addEventListener("pointerup",   onUp);
-    handle.addEventListener("pointercancel", onCancel);
-  });
+function _wireResize(el, task, dateKey = task.date) {
+  const dates = eventDateKeys(task);
+  const segment = eventDaySegment(task, dateKey);
+  if (!segment) return;
+  for (const edge of ['start','end']) {
+    if (edge === 'start' && dateKey !== dates[0] || edge === 'end' && dateKey !== dates.at(-1)) continue;
+    const handle = document.createElement('div');
+    handle.className = 'resizeHandle';
+    handle.dataset.resizeEdge = edge;
+    handle.style.cssText = `position:absolute;${edge === 'start' ? 'top' : 'bottom'}:0;left:0;right:0;height:8px;cursor:ns-resize;z-index:2;`;
+    handle.setAttribute('aria-hidden','true');
+    el.appendChild(handle);
+    handle.addEventListener('pointerdown', event => {
+      event.stopPropagation(); event.preventDefault();
+      const originY = event.clientY;
+      const originMinutes = timeToMinutes(edge === 'start' ? segment.startTime : segment.endTime);
+      handle.setPointerCapture(event.pointerId);
+      const patchFor = ev => resizeEventRange(task,dateKey,edge,Math.max(0,Math.min(1440,_snapTaskMinutes(originMinutes + (ev.clientY-originY)*(_granularity/ROW_HEIGHT),edge))));
+      const onMove = ev => {
+        const patch = patchFor(ev);
+        if (!patch) return;
+        const next = eventDaySegment({...task,...patch},dateKey);
+        if (next) positionTaskBlock(el,next.startTime,next.endTime,_granularity);
+        _showTaskTimePreview(`${patch.startTime || task.startTime} - ${patch.endTime || task.endTime}`,ev.clientX,ev.clientY);
+      };
+      const cleanup = () => {
+        _hideTaskTimePreview();
+        handle.removeEventListener('pointermove',onMove);
+        handle.removeEventListener('pointerup',onUp);
+        handle.removeEventListener('pointercancel',onCancel);
+      };
+      const onCancel = () => { positionTaskBlock(el,segment.startTime,segment.endTime,_granularity); cleanup(); };
+      const onUp = ev => {
+        const patch = patchFor(ev);
+        if (patch && Store.getAllTasks().some(t => t.id === task.id)) {
+          const before = Object.fromEntries(Object.keys(patch).map(key => [key,task[key]]));
+          _recordAction({type:'update',taskId:task.id,before,after:patch});
+          void Store.updateTask(task.id,patch);
+        } else positionTaskBlock(el,segment.startTime,segment.endTime,_granularity);
+        cleanup();
+      };
+      handle.addEventListener('pointermove',onMove);
+      handle.addEventListener('pointerup',onUp);
+      handle.addEventListener('pointercancel',onCancel);
+    });
+  }
 }
 // ── コピー＆ペースト (F-TASK-005) ────────────────────
 function _wireCopyPaste() {
@@ -1575,6 +1500,7 @@ function _wireCopyPaste() {
           id: undefined,
           outlookEnabled: Store.getSettings().outlookWriteDefault,
           date: formatDateKey(_viewDate),
+          endDate: _clipboard.endDate ? shiftEventDate(_clipboard.endDate, (Date.parse(formatDateKey(_viewDate)) - Date.parse(_clipboard.date))/86400000) : undefined,
           recurrence: { type: "none" },
         });
         if (created) _recordAction({ type: "create", taskId: created.id, task: created });
