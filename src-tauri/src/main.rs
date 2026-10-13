@@ -155,7 +155,9 @@ fn ensure_tray(app: &tauri::AppHandle, static_root: &std::path::Path) -> Result<
                     let _ = window.reload();
                 }
             }
-            TRAY_MENU_RESTART => app.restart(),
+            // Deliver RunEvent::Exit so the single-instance plugin releases its lock
+            // before Tauri spawns the replacement process.
+            TRAY_MENU_RESTART => single_instance::restart(app),
             TRAY_MENU_QUIT => app.exit(0),
             _ => {}
         })
@@ -256,11 +258,9 @@ async fn outlook_auto_sync_loop(base_url: String, api_token: String) {
 fn main() {
     let mut context = tauri::generate_context!();
     if let Some(directory) = std::env::var_os("TCPLUS_DATA_DIR") {
-        use std::hash::{Hash,Hasher};
-        let mut hasher = std::collections::hash_map::DefaultHasher::new();
-        let path = std::fs::canonicalize(&directory).unwrap_or_else(|_| std::path::PathBuf::from(directory));
-        path.to_string_lossy().to_lowercase().hash(&mut hasher);
-        context.config_mut().identifier = format!("{}.test{:x}",context.config().identifier,hasher.finish());
+        context.config_mut().identifier = single_instance::profile_identifier(
+            &context.config().identifier, &std::path::PathBuf::from(directory),
+        ).expect("resolve application profile identity");
     }
     let startup_guard = single_instance::startup_guard(&context.config().identifier).expect("acquire startup lock");
     tauri::Builder::default()
