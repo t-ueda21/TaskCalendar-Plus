@@ -1,5 +1,5 @@
 use super::*;
-use windows::Win32::System::Com::{DISPATCH_FLAGS, DISPATCH_METHOD, DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT, DISPPARAMS, IDispatch};
+use windows::Win32::System::Com::{DISPATCH_FLAGS, DISPATCH_METHOD, DISPATCH_PROPERTYGET, DISPATCH_PROPERTYPUT, DISPATCH_PROPERTYPUTREF, DISPPARAMS, IDispatch};
 use windows::Win32::System::Variant::{VT_DISPATCH, VT_EMPTY, VT_NULL};
 use windows::core::{BSTR, GUID, HSTRING, Interface, PCWSTR};
 
@@ -14,7 +14,7 @@ pub(super) fn invoke(item: &w::IDispatch, name: &str, flags: DISPATCH_FLAGS, par
         .map_err(|error|format!("Outlook {name} (GetIDsOfNames): {error}"))?;
     let mut arguments:Vec<_>=params.iter().rev().cloned().collect();
     let mut named=-3; // DISPID_PROPERTYPUT
-    let put=flags==DISPATCH_PROPERTYPUT;
+    let put=flags==DISPATCH_PROPERTYPUT||flags==DISPATCH_PROPERTYPUTREF;
     let args=DISPPARAMS {rgvarg:arguments.as_mut_ptr(),cArgs:arguments.len() as u32,
         rgdispidNamedArgs:if put {&mut named} else {std::ptr::null_mut()},cNamedArgs:if put {1}else{0}};
     let mut value=AutomationValue::default();
@@ -29,6 +29,7 @@ pub(super) fn invoke(item: &w::IDispatch, name: &str, flags: DISPATCH_FLAGS, par
 pub(super) fn method(item:&w::IDispatch,name:&str,args:&[AutomationValue])->Result<AutomationValue,String>{invoke(item,name,DISPATCH_METHOD,args)}
 pub(super) fn get(item:&w::IDispatch,name:&str)->Result<AutomationValue,String>{invoke(item,name,DISPATCH_PROPERTYGET,&[])}
 pub(super) fn put(item:&w::IDispatch,name:&str,value:AutomationValue)->Result<(),String>{invoke(item,name,DISPATCH_PROPERTYPUT,&[value]).map(|_|())}
+pub(super) fn put_ref(item:&w::IDispatch,name:&str,value:AutomationValue)->Result<(),String>{invoke(item,name,DISPATCH_PROPERTYPUTREF,&[value]).map(|_|())}
 
 fn dispatch_value(value:AutomationValue,name:&str)->Result<Option<w::IDispatch>,String>{
     // Find/GetFirst/GetNext may return a null dispatch; cloning a null COM pointer

@@ -1,3 +1,4 @@
+import { validateEventForm, eventDaySegment, shiftEventDate } from "./event-fields.js";
 import { t as translate, th as translateHtml, getLocale } from './i18n.js';
 import { copyIconHtml, checkIconHtml, errorIconHtml, editIconHtml, deleteIconHtml } from './ui-icons.js';
 import { wireTaskBatch } from './task-batch-ui.js';
@@ -236,15 +237,13 @@ function _resolveInitialDate() {
   const candidateKey = formatDateKey(candidate);
 
   // 候補日に表示できる予定があればそのまま使う
-  const candidateTasks = Store.getTasksByDate(candidateKey)
-    .filter((t) => Store.taskDurationMinutes(t) > 0);
+  const candidateTasks = Store.getTasksByDate(candidateKey);
   if (candidateTasks.length > 0) return candidate;
 
   // 候補日に予定がない場合、全予定から最近の日付を探す
   const allVisibleDates = Array.from(
     new Set(
       Store.getAllTasks()
-        .filter((t) => Store.taskDurationMinutes(t) > 0)
         .map((t) => String(t.date ?? ""))
         .filter(Boolean)
     )
@@ -607,7 +606,7 @@ function _render() {
         const bv = b[key] ? timeToMinutes(b[key]) : Number.MAX_SAFE_INTEGER;
         cmp = av - bv;
       } else if (key === "duration") {
-        cmp = Store.taskDurationMinutes(a) - Store.taskDurationMinutes(b);
+        cmp = Store.taskDurationMinutes(a, dateKey) - Store.taskDurationMinutes(b);
       } else if (key === "tag") {
         cmp = _tagName(a).localeCompare(_tagName(b), getLocale());
       } else if (key === "title") {
@@ -630,20 +629,20 @@ function _render() {
     });
   }
 
-  // 一覧では工数0分のタスク（終日含む）を表示しない
-  tasks = tasks.filter((t) => Store.taskDurationMinutes(t) > 0);
+  // All-day and break-only appointments remain editable from the list.
   _renderEmptyState(dateKey, tasks);
 
   $tbody.innerHTML = "";
   tasks.forEach((task) => {
     const tag     = tags.find((t) => t.id === task.tagId) || allTags.find((t) => t.id === task.tagId);
-    const minutes = Store.taskDurationMinutes(task);
+    const minutes = Store.taskDurationMinutes(task, dateKey);
+    const segment = eventDaySegment(task, dateKey) || task;
     const isRecurring = task?.recurrence?.type && task.recurrence.type !== "none";
     const tr      = document.createElement("tr");
     tr.setAttribute("data-task-id", task.id);
     tr.innerHTML = `
-      <td>${escHtml(task.startTime ?? "──")}</td>
-      <td>${escHtml(task.endTime   ?? "──")}</td>
+      <td>${escHtml(segment.startTime ?? "──")}</td>
+      <td>${escHtml(segment.endTime   ?? "──")}</td>
       <td class="taskTitleCell"${isRecurring ? " data-recurring=\"1\"" : ""}>${escHtml(task.title || translate('ui.6ada6dbdde'))}</td>
       <td><span class="taskTagBadge${tag ? '' : ' isUntagged'}"${tag ? ` style="background:${escHtml(tag.color)}22;border-color:${escHtml(tag.color)}66"` : ''}>${escHtml(tag?.name || translate('ui.af1cc864e3'))}</span></td>
       <td>${formatDurationHtml(minutes)}</td>
@@ -699,7 +698,7 @@ function _renderDayTotals(dateKey, tags) {
   const tagById = new Map(allTags.map((t) => [String(t.id ?? ""), t]));
 
   Store.getTasksByDate(dateKey)
-    .filter((task) => Store.taskDurationMinutes(task) > 0)
+    .filter((task) => Store.taskDurationMinutes(task, dateKey) > 0)
     .slice()
     .sort((a, b) => {
       const aStart = a.startTime ? timeToMinutes(a.startTime) : Number.MAX_SAFE_INTEGER;
@@ -806,7 +805,10 @@ function _wireDialog() {
   let _saving = false;
   const saveTask = async () => {
     if (_saving) return;
-    const form = readDialogForm($dialog);
+    let form;
+    try { form = readDialogForm($dialog); }
+    catch (error) { await showAppAlert(String(error.message || error), {tone:"error"}); return; }
+    if (!validateEventForm($dialog, form)) return;
     if (!form.title) { await showAppAlert(translate('ui.f611575d37'), {tone:'error'}); return; }
     const { editScope, ...taskPatch } = form;
 

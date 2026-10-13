@@ -1,3 +1,5 @@
+import { showAppConfirm } from "./app-dialogs.js";
+import { populateNativeRecurrence, readNativeRecurrence } from "./native-recurrence.js";
 /**
  * ui-utils.js — 画面共通のユーティリティ
  *
@@ -12,6 +14,7 @@
  * Store自体はimportしない(必要な関数は呼び出し側から引数として渡す)。
  */
 
+import { populateEventFields, readEventFields, clockMinutes } from "./event-fields.js";
 import { setupPicker } from "./mini-calendar-picker.js";
 import { getHolidaysInMonth } from "./holidays.js";
 import { getCompanyHolidaysInMonthMap } from "./company-holidays.js";
@@ -160,8 +163,7 @@ function formatRemaining(minutes) {
 export function timeToMinutes(hhmm) {
   if (!hhmm) return 0;
   if (hhmm === "24:00") return 1440;
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
+  return clockMinutes(hhmm);
 }
 
 export function minutesToTime(minutes) {
@@ -644,6 +646,7 @@ function _wireRecurrenceControls(dialog) {
 
   recContainer.querySelectorAll(".btnGroupItem").forEach((btn) => {
     btn.addEventListener("click", () => {
+      dialog._recurrenceChanged = true;
       _setRecurrenceBtn(dialog, btn.dataset.value);
       _syncRecurrenceControls(dialog);
       _syncApplySeriesControl(dialog, {
@@ -653,6 +656,7 @@ function _wireRecurrenceControls(dialog) {
     });
   });
 
+  dialog.querySelector("[name='repeatUntil']")?.addEventListener("change", () => { dialog._recurrenceChanged = true; });
   const dateEl = dialog.querySelector("[name='date']");
   if (dateEl && dateEl.dataset.boundRecurrenceDate !== "1") {
     dateEl.dataset.boundRecurrenceDate = "1";
@@ -693,6 +697,13 @@ function _syncRecurrenceControls(dialog) {
 // calendar.js/tasks.jsで共用する。getFallbackDateは
 // dateKeyが空のときの基準日を返すコールバック(calendar=_viewDate、tasks=_selectedDate)。
 export async function updateTaskByChoice(Store, taskId, patch, mode = "single") {
+  const target = Store.getAllTasks().find(task => task.id === taskId);
+  if (target?.recurrence?.native && patch.recurrence !== undefined && !patch.recurrence?.native && ["series","future"].includes(mode)) {
+    const group = target.recurrence.groupId;
+    const count = Store.getAllTasks().filter(task => (group ? task.recurrence?.groupId === group : task.outlookSeriesId === target.outlookSeriesId)
+      && (mode !== "future" || task.date >= target.date)).length;
+    if (!await showAppConfirm(translate("event.removeRecurrenceConfirm", {count}), {title:translate("event.removeRecurrence"),confirmLabel:translate("event.removeRecurrence"),danger:true})) return false;
+  }
   const updated = await Store.updateTaskWithMode(taskId, patch, mode);
   return Boolean(updated);
 }
@@ -737,11 +748,15 @@ export function openCreateDialog(dialog, opts = {}) {
   const untilEl = dialog.querySelector("[name='repeatUntil']");
   if (untilEl) untilEl.value = opts.repeatUntil ?? (opts.date ?? formatDateKey(new Date()));
 
+  dialog._originalRecurrence = null;
+  populateEventFields(dialog, opts);
   dialog.removeAttribute("data-edit-id");
   _wireRecurrenceControls(dialog);
   _syncRecurrenceControls(dialog);
   _syncApplySeriesControl(dialog, { isEdit: false, recurrenceType: "none" });
 
+  populateNativeRecurrence(dialog, dialog._eventOriginal || {});
+  dialog._recurrenceChanged = false;
   dialog.showModal();
   if (opts.focusTitle) {
     dialog.querySelector("[name='title']")?.focus({ preventScroll: true });
@@ -771,6 +786,8 @@ export function openEditDialog(dialog, task, tags) {
   if (tagContainer) {
     populateTagOptions(tagContainer, tags ?? [], task.tagId);
   }
+  dialog._originalRecurrence = structuredClone(task.recurrence || {type:"none"});
+  populateEventFields(dialog, task);
   _setRecurrenceBtn(dialog, task.recurrence?.type ?? "none");
   const untilEl = dialog.querySelector("[name='repeatUntil']");
   if (untilEl) untilEl.value = task.recurrence?.until ?? task.date ?? formatDateKey(new Date());
@@ -783,6 +800,8 @@ export function openEditDialog(dialog, task, tags) {
   });
 
   dialog.setAttribute("data-edit-id", task.id);
+  populateNativeRecurrence(dialog, dialog._eventOriginal || {});
+  dialog._recurrenceChanged = false;
   dialog.showModal();
   dialog.querySelector("[name='title']")?.focus({ preventScroll: true });
 }
@@ -811,7 +830,8 @@ export function readDialogForm(dialog) {
     endTime:   dialog.querySelector("[name='endTime']")?.value   ?? "10:00",
     isAllDay:  dialog.querySelector("[name='allDay']")?.checked  ?? false,
     tagId:     dialog.querySelector("[name='tag']")?.value       ?? "",
-    recurrence,
+    recurrence: readNativeRecurrence(dialog) || (dialog._originalRecurrence?.native && dialog._nativeRecurrenceChanged ? {type:"none"} : dialog._originalRecurrence && !dialog._recurrenceChanged ? structuredClone(dialog._originalRecurrence) : recurrence),
+    ...readEventFields(dialog),
     // 編集範囲(この予定のみ/今日以降すべて/繰り返し予定すべて)。
     editScope: dialog.querySelector("[name='editScope']")?.value || "single",
     memo:      (dialog.querySelector("[name='memo']")?.value     ?? "").trim(),

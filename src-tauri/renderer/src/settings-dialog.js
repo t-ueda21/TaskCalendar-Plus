@@ -583,6 +583,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
       ...readAiProviderSettings(settingsDialog),
       weatherLocationKey: settingsDialog.querySelector("[name='weatherLocationKey']")?.value || current.weatherLocationKey || "tokyo",
       outlookAutoSync: Boolean(settingsDialog.querySelector("[name='outlookAutoSync']")?.checked),
+      outlookWriteEnabled: Boolean(settingsDialog.querySelector('[name="outlookWriteEnabled"]')?.checked),
       outlookWriteDefault: Boolean(settingsDialog.querySelector('[name="outlookWriteDefault"]')?.checked),
       outlookSyncCalendarName: settingsDialog.querySelector('[name="outlookCalendarName"]')?.value.trim() || 'Calendar',
       outlookWriteCalendarName: settingsDialog.querySelector('[name="outlookWriteCalendarName"]')?.value || 'Calendar',
@@ -636,6 +637,7 @@ function _wireSettingsDialogCore(settingsDialog, Store) {
     if (businessOnlyEl) businessOnlyEl.checked = Boolean(s.showBusinessDaysOnly);
     const autoSyncEl = settingsDialog.querySelector("[name='outlookAutoSync']");
     if (autoSyncEl) autoSyncEl.checked = Boolean(s.outlookAutoSync);
+    settingsDialog.querySelector('[name="outlookWriteEnabled"]').checked = s.outlookWriteEnabled === true;
     settingsDialog.querySelector('[name="outlookWriteDefault"]').checked = s.outlookWriteDefault === true;
     settingsDialog.querySelector('[name="outlookWriteCalendarName"]').value = s.outlookWriteCalendarName || 'Calendar';
     const intervalEl = settingsDialog.querySelector("[name='outlookAutoSyncIntervalMin']");

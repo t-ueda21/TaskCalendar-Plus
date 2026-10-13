@@ -147,6 +147,7 @@ pub fn build_router(state: AppState) -> Router {
         .route("/api/outlook/jobs", get(outlook_job_list))
         .route("/api/outlook/calendars", get(outlook_calendars))
         .route("/api/outlook/jobs/{id}/retry", axum::routing::post(outlook_job_retry))
+        .route("/api/outlook/series/{id}", axum::routing::post(outlook_series_edit))
         .route("/api/ai/preview", axum::routing::post(ai_preview))
         .route("/api/ai/local/models", axum::routing::post(ai_local_models))
         .route("/api/ai/local/test", axum::routing::post(ai_local_test))
@@ -578,7 +579,7 @@ async fn outlook_job_list(State(state): State<AppState>) -> Response {
         Ok(mut jobs) => {
             let locale = REQUEST_LOCALE.try_with(Clone::clone).unwrap_or_else(|_| "ja".into());
             for job in &mut jobs { if let Some(error) = job["error"].as_str().filter(|s|!s.is_empty()) { let details=error.to_string(); job["error"]=json!(crate::locale::error_text(&details,&locale,"outlook.failed"));job["details"]=json!(details); } }
-            json_ok(json!({"jobs":jobs,"counts":counts}))
+            json_ok(json!({"jobs":jobs,"counts":counts,"outboundWritesEnabled":crate::outlook_jobs::write_enabled(&conn).unwrap_or(false)}))
         }, Err(error) => json_err(StatusCode::INTERNAL_SERVER_ERROR,error.to_string()),
     }
 }
@@ -588,6 +589,13 @@ async fn outlook_job_retry(State(state): State<AppState>, Path(id): Path<String>
         Ok(0) => json_err(StatusCode::CONFLICT,"Outlook operation is not in a failed state"),
         Ok(_) => json_ok(json!({"queued":true})),
         Err(error) => json_err(StatusCode::INTERNAL_SERVER_ERROR,error.to_string()),
+    }
+}
+
+async fn outlook_series_edit(State(state):State<AppState>,Path(id):Path<String>,axum::Json(body):axum::Json<Value>)->Response{
+    match crate::outlook::series_store::enqueue(&lock_conn(&state),&id,body){
+        Ok(rows)=>json_ok(json!(rows)),
+        Err(error)=>json_err(StatusCode::CONFLICT,error),
     }
 }
 

@@ -1,7 +1,5 @@
-function minutes(value) {
-  if (!/^([01]\d|2[0-3]):[0-5]\d$|^24:00$/.test(String(value))) return null;
-  const [h, m] = value.split(':').map(Number); return h * 60 + m;
-}
+import { clockMinutes } from "./event-fields.js";
+const minutes = value => Number.isFinite(clockMinutes(value)) ? clockMinutes(value) : null;
 export function mergeIntervals(intervals) {
   const sorted = intervals.filter(([s, e]) => Number.isFinite(s) && Number.isFinite(e) && e > s).map(pair => [...pair]).sort((a, b) => a[0] - b[0]);
   const result = [];

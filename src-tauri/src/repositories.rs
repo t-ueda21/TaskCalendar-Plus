@@ -8,6 +8,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::collections::HashSet;
 
+#[cfg(test)]
+#[path = "event_tests.rs"]
+mod event_tests;
+
 fn default_tag_id() -> String {
     String::new()
 }
@@ -26,6 +30,10 @@ pub struct TaskRow {
     pub id: String,
     pub title: String,
     pub date: String,
+    #[serde(default)]
+    pub end_date: Option<String>,
+    #[serde(default)]
+    pub outlook_details: Value,
     pub is_all_day: bool,
     pub start_time: Option<String>,
     pub end_time: Option<String>,
@@ -49,6 +57,10 @@ pub struct TaskInsertInput {
     #[serde(default)]
     pub title: Option<String>,
     pub date: String,
+    #[serde(default)]
+    pub end_date: Option<String>,
+    #[serde(default)]
+    pub outlook_details: Option<Value>,
     #[serde(default)]
     pub is_all_day: bool,
     #[serde(default)]
@@ -82,6 +94,10 @@ pub struct TaskUpdateInput {
     #[serde(default)]
     pub date: Option<String>,
     #[serde(default)]
+    pub end_date: Option<String>,
+    #[serde(default)]
+    pub outlook_details: Option<Value>,
+    #[serde(default)]
     pub is_all_day: bool,
     #[serde(default)]
     pub start_time: Option<String>,
@@ -104,6 +120,8 @@ fn row_to_task(row: &rusqlite::Row) -> rusqlite::Result<TaskRow> {
         id: row.get("id")?,
         title: row.get("title")?,
         date: row.get("date")?,
+        end_date: row.get("end_date")?,
+        outlook_details: serde_json::from_str(&row.get::<_,String>("outlook_details")?).unwrap_or(json!({})),
         is_all_day: is_all_day_int != 0,
         start_time: row.get("start_time")?,
         end_time: row.get("end_time")?,
@@ -141,11 +159,12 @@ pub(crate) fn tasks_get(conn: &Connection, id: &str) -> rusqlite::Result<Option<
 pub fn tasks_insert(conn: &Connection, input: TaskInsertInput) -> rusqlite::Result<TaskRow> {
     let transaction = if conn.is_autocommit() { Some(conn.unchecked_transaction()?) } else { None };
     let id = input.id.clone();
+    validate_event_input(&input.date,input.end_date.as_deref(),input.is_all_day,input.start_time.as_deref(),input.end_time.as_deref(),input.outlook_details.as_ref())?;
     let now = next_revision(None);
     let recurrence = input.recurrence.unwrap_or_else(default_recurrence);
     conn.execute(
-        "INSERT INTO tasks (id, title, date, is_all_day, start_time, end_time, tag_id, recurrence, memo, outlook_occurrence_key, outlook_series_id, created_at, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+        "INSERT INTO tasks (id, title, date, is_all_day, start_time, end_time, tag_id, recurrence, memo, outlook_occurrence_key, outlook_series_id, created_at, updated_at,end_date,outlook_details)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,?14,?15)",
         params![
             input.id,
             input.title.filter(|t| !t.is_empty()).unwrap_or_default(),
@@ -162,8 +181,11 @@ pub fn tasks_insert(conn: &Connection, input: TaskInsertInput) -> rusqlite::Resu
             input.outlook_series_id.filter(|s| !s.is_empty()),
             input.created_at.unwrap_or_else(|| now.clone()),
             now,
+            input.end_date,
+            input.outlook_details.unwrap_or(json!({})).to_string(),
         ],
     )?;
+    conn.execute("UPDATE outlook_links SET incoming_enabled=1 WHERE task_id=?1",params![id])?;
     if input.outlook_enabled { crate::outlook_jobs::enable(conn, &id)?; }
     let saved = tasks_get(conn, &id)?.expect("just inserted");
     if let Some(transaction) = transaction { transaction.commit()?; }
@@ -229,12 +251,15 @@ pub fn tasks_update(
         return Ok(None);
     };
     let now = next_revision(Some(&current.updated_at));
+    let end_date=input.end_date.clone().or(current.end_date.clone());
+    let details=crate::event_data::merge_details(&current.outlook_details,input.outlook_details.as_ref());
+    validate_event_input(input.date.as_deref().unwrap_or(""),end_date.as_deref(),input.is_all_day,input.start_time.as_deref(),input.end_time.as_deref(),Some(&details))?;
     let recurrence = input.recurrence.unwrap_or_else(default_recurrence);
-    let content_changed=input.title.as_deref().unwrap_or("")!=current.title || input.date.as_deref().unwrap_or("")!=current.date || input.memo.as_deref().unwrap_or("")!=current.memo || input.start_time!=current.start_time || input.end_time!=current.end_time || input.is_all_day!=current.is_all_day;
+    let content_changed=end_date!=current.end_date || details!=current.outlook_details || input.title.as_deref().unwrap_or("")!=current.title || input.date.as_deref().unwrap_or("")!=current.date || input.memo.as_deref().unwrap_or("")!=current.memo || input.start_time!=current.start_time || input.end_time!=current.end_time || input.is_all_day!=current.is_all_day;
     crate::outlook::reconcile::validate_edit(conn,&current,&recurrence,content_changed)?;
     conn.execute(
         "UPDATE tasks SET title=?1, date=?2, is_all_day=?3, start_time=?4, end_time=?5,
-            tag_id=?6, recurrence=?7, memo=?8, updated_at=?9
+            tag_id=?6, recurrence=?7, memo=?8, updated_at=?9,end_date=?11,outlook_details=?12
          WHERE id=?10",
         params![
             input.title.unwrap_or_default(),
@@ -248,6 +273,8 @@ pub fn tasks_update(
             input.memo.unwrap_or_default(),
             now,
             id,
+            end_date,
+            details.to_string(),
         ],
     )?;
     if let Some(enabled) = input.outlook_enabled
@@ -323,6 +350,10 @@ pub struct BatchTaskInput {
     pub outlook_enabled: Option<bool>,
     pub title: String,
     pub date: String,
+    #[serde(default)]
+    pub end_date: Option<String>,
+    #[serde(default)]
+    pub outlook_details: Option<Value>,
     pub is_all_day: bool,
     pub start_time: Option<String>,
     pub end_time: Option<String>,
@@ -354,16 +385,13 @@ pub enum TaskBatchError {
 }
 
 fn valid_task_time(value: &str) -> bool {
-    let bytes = value.as_bytes();
-    if bytes.len() != 5
-        || bytes[2] != b':'
-        || ![0, 1, 3, 4].into_iter().all(|i| bytes[i].is_ascii_digit())
-    {
-        return false;
-    }
-    let hours = ((bytes[0] - b'0') as u16) * 10 + (bytes[1] - b'0') as u16;
-    let minutes = ((bytes[3] - b'0') as u16) * 10 + (bytes[4] - b'0') as u16;
-    minutes < 60 && (hours < 24 || (hours == 24 && minutes == 0))
+    crate::event_data::date_time("2026-01-01",value).is_ok()
+}
+fn validate_event_input(date:&str,end_date:Option<&str>,all_day:bool,start:Option<&str>,end:Option<&str>,details:Option<&Value>)->rusqlite::Result<()> {
+    let invalid=rusqlite::Error::InvalidParameterName;
+    if let Some(last)=end_date {crate::event_data::range(date,Some(last),all_day,start,end).map_err(invalid)?;}
+    if let Some(details)=details {crate::event_data::validate_details(details).map_err(invalid)?;}
+    Ok(())
 }
 
 fn valid_batch_times(task: &BatchTaskInput) -> bool {
@@ -404,6 +432,7 @@ pub fn tasks_batch(
     }
     let mut touched = HashSet::new();
     for task in &input.upserts {
+        validate_event_input(&task.date,task.end_date.as_deref(),task.is_all_day,task.start_time.as_deref(),task.end_time.as_deref(),task.outlook_details.as_ref())?;
         if task.id.is_empty()
             || chrono::NaiveDate::parse_from_str(&task.date, "%Y-%m-%d").is_err()
             || chrono::DateTime::parse_from_rfc3339(&task.created_at).is_err()
@@ -462,19 +491,22 @@ pub fn tasks_batch(
     }
     for task in &input.upserts {
         let prior = current[task.id.as_str()].as_ref();
+        let end_date=task.end_date.clone().or_else(||prior.and_then(|p|p.end_date.clone()));
+        let details=crate::event_data::merge_details(&prior.map(|p|p.outlook_details.clone()).unwrap_or(json!({})),task.outlook_details.as_ref());
         if let Some(prior)=prior {
-            let changed=task.title!=prior.title||task.date!=prior.date||task.memo!=prior.memo||task.start_time!=prior.start_time||task.end_time!=prior.end_time||task.is_all_day!=prior.is_all_day;
+            let changed=end_date!=prior.end_date||details!=prior.outlook_details||task.title!=prior.title||task.date!=prior.date||task.memo!=prior.memo||task.start_time!=prior.start_time||task.end_time!=prior.end_time||task.is_all_day!=prior.is_all_day;
             crate::outlook::reconcile::validate_edit(&tx,prior,&task.recurrence,changed)?;
         }
         let revision = next_revision(prior.map(|row| row.updated_at.as_str()));
         tx.execute(
-            "INSERT INTO tasks (id,title,date,is_all_day,start_time,end_time,tag_id,recurrence,memo,outlook_occurrence_key,outlook_series_id,meeting_url,created_at,updated_at)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)
-             ON CONFLICT(id) DO UPDATE SET title=excluded.title,date=excluded.date,is_all_day=excluded.is_all_day,start_time=excluded.start_time,end_time=excluded.end_time,tag_id=excluded.tag_id,recurrence=excluded.recurrence,memo=excluded.memo,outlook_occurrence_key=excluded.outlook_occurrence_key,outlook_series_id=excluded.outlook_series_id,meeting_url=excluded.meeting_url,updated_at=excluded.updated_at",
-            params![task.id,task.title,task.date,task.is_all_day as i64,task.start_time,task.end_time,task.tag_id,task.recurrence.to_string(),task.memo,task.outlook_occurrence_key,task.outlook_series_id,task.meeting_url,task.created_at,revision],
+            "INSERT INTO tasks (id,title,date,is_all_day,start_time,end_time,tag_id,recurrence,memo,outlook_occurrence_key,outlook_series_id,meeting_url,created_at,updated_at,end_date,outlook_details)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)
+             ON CONFLICT(id) DO UPDATE SET title=excluded.title,date=excluded.date,is_all_day=excluded.is_all_day,start_time=excluded.start_time,end_time=excluded.end_time,tag_id=excluded.tag_id,recurrence=excluded.recurrence,memo=excluded.memo,outlook_occurrence_key=excluded.outlook_occurrence_key,outlook_series_id=excluded.outlook_series_id,meeting_url=excluded.meeting_url,updated_at=excluded.updated_at,end_date=excluded.end_date,outlook_details=excluded.outlook_details",
+            params![task.id,task.title,task.date,task.is_all_day as i64,task.start_time,task.end_time,task.tag_id,task.recurrence.to_string(),task.memo,task.outlook_occurrence_key,task.outlook_series_id,task.meeting_url,task.created_at,revision,end_date,details.to_string()],
         )?;
     }
     for task in &input.upserts {
+        if current[task.id.as_str()].is_none() {tx.execute("UPDATE outlook_links SET incoming_enabled=1 WHERE task_id=?1",params![task.id])?;}
         let was_enabled = current[task.id.as_str()].as_ref().is_some_and(|row| row.outlook_enabled);
         if let Some(enabled) = task.outlook_enabled
             && enabled != was_enabled {
@@ -756,6 +788,10 @@ struct BackupTask {
     title: String,
     date: String,
     #[serde(default)]
+    end_date: Option<String>,
+    #[serde(default)]
+    outlook_details: Value,
+    #[serde(default)]
     is_all_day: bool,
     #[serde(default)]
     start_time: Option<String>,
@@ -854,12 +890,12 @@ pub fn backup_restore(conn: &Connection, data: &Value) -> Result<RestoreCounts, 
 
     let tx = conn.unchecked_transaction()?;
     tx.execute_batch(
-        "DELETE FROM outlook_jobs; DELETE FROM outlook_links; DELETE FROM tasks; DELETE FROM tags; DELETE FROM settings; DELETE FROM ai_memory;",
+        "DELETE FROM outlook_series_results; DELETE FROM outlook_jobs; DELETE FROM outlook_links; DELETE FROM tasks; DELETE FROM tags; DELETE FROM settings; DELETE FROM ai_memory;",
     )?;
     for task in &tasks {
         tx.execute(
-            "INSERT INTO tasks (id, title, date, is_all_day, start_time, end_time, tag_id, recurrence, memo, outlook_occurrence_key, outlook_series_id, meeting_url, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+            "INSERT INTO tasks (id, title, date, is_all_day, start_time, end_time, tag_id, recurrence, memo, outlook_occurrence_key, outlook_series_id, meeting_url, created_at, updated_at,end_date,outlook_details)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,?15,?16)",
             params![
                 task.id,
                 task.title,
@@ -875,6 +911,8 @@ pub fn backup_restore(conn: &Connection, data: &Value) -> Result<RestoreCounts, 
                 task.meeting_url,
                 task.created_at,
                 task.updated_at,
+                task.end_date,
+                crate::event_data::merge_details(&task.outlook_details,None).to_string(),
             ],
         )?;
     }
@@ -1268,7 +1306,7 @@ pub fn outlook_sync_in_scope(conn: &Connection, events: &[OutlookEvent], tag_id:
     }
 
     for event in events {
-        conn.execute("UPDATE tasks SET recurrence=?2,outlook_calendar_ref=COALESCE(?3,outlook_calendar_ref) WHERE outlook_occurrence_key=?1 AND outlook_enabled=0",params![event.outlook_occurrence_key,event.recurrence.to_string(),calendar])?;
+        conn.execute("UPDATE tasks SET recurrence=?2,outlook_calendar_ref=COALESCE(?3,outlook_calendar_ref),end_date=?4,outlook_details=?5 WHERE outlook_occurrence_key=?1 AND outlook_enabled=0",params![event.outlook_occurrence_key,event.recurrence.to_string(),calendar,event.end_date,event.outlook_details.to_string()])?;
     }
     // 4) Outlookに存在しなくなった予定を削除(Outlook由来キー付きタスクのみ)
     let mut stale_ids = Vec::new();
@@ -1314,7 +1352,7 @@ mod outlook_sync_tests {
         start: &str,
         end: &str,
     ) -> OutlookEvent {
-        OutlookEvent {
+        OutlookEvent { end_date:None,outlook_details:json!({}),
             title: title.to_string(),
             date: date.to_string(),
             start_time: Some(start.to_string()),

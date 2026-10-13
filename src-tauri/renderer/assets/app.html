@@ -6,6 +6,7 @@
   <title>TaskCalendar+</title>
   <link rel="stylesheet" href="./styles.css" />
   <link rel="stylesheet" href="./modern-ui.css" />
+  <link rel="stylesheet" href="./event-fields.css" />
 </head>
 <body style="opacity:0">
   <div class="container">
@@ -494,6 +495,8 @@
             </div>
             <section class="settingsSection outlookWriteSettings">
               <div class="settingsSectionLabel"><span data-i18n="ui.c12faa89d1">Outlookへの登録</span></div>
+              <label class="uiToggle"><input type="checkbox" name="outlookWriteEnabled" class="uiToggleInput" role="switch" aria-describedby="outlook-write-gate-hint"><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel" data-i18n="outlook.writeEnabled">CalendarからOutlookへの送信を有効にする</span></label>
+              <p class="settingsTagHint" id="outlook-write-gate-hint" data-i18n="outlook.writeGateHint">初期設定はOFFです。ONにすると、タスクごとにONにした予定の変更を送信します。OFFでもOutlookからの取得は続けられます。</p>
               <label class="uiToggle"><input type="checkbox" name="outlookWriteDefault" class="uiToggleInput" role="switch"><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel"><span data-i18n="ui.1b26386d86">新しいタスクをOutlookへ登録する（既定）</span></span></label>
               <div class="outlookCalendarPicker" data-outlook-calendar-picker="target">
               <div class="settingsInlineRow settingsModelRow"><label for="cfg-outlook-target-select" data-i18n="ui.d245315c64">登録先の予定表</label><select id="cfg-outlook-target-select" aria-describedby="cfg-outlook-target-status"></select><button class="btn" type="button" data-calendar-refresh><span data-i18n="ui.90e07be37c">再取得</span></button></div>
@@ -915,8 +918,12 @@
   <template id="shared-task-form">
 <form method="dialog">
             <div class="formRow">
-              <label for="taskDate"><span data-i18n="ui.666819e178">日付</span></label>
+              <label for="taskDate"><span data-i18n="event.startDate">開始日</span></label>
               <input id="taskDate" name="date" type="date" />
+            </div>
+            <div class="formRow">
+              <label for="taskEndDate"><span data-i18n="event.endDate">終了日</span></label>
+              <input id="taskEndDate" name="endDate" type="date" />
             </div>
             <div class="formRow">
               <label for="allDay"><span data-i18n="ui.0aff5cf2d8">終日</span></label>
@@ -969,11 +976,12 @@
                 <option value="series" data-i18n="ui.163fca401d">繰り返し予定すべて</option>
               </select>
             </div>
-            <div class="formRow"><span>Outlook</span><div><label class="uiToggle"><input type="checkbox" name="outlookEnabled" class="uiToggleInput" role="switch"><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel" data-i18n="ui.8db5e560dc"> Outlookにも登録</span></label><p class="settingsTagHint" data-i18n="outlook.selectionHint">OFFで保存すると、連携中のOutlook予定を削除します。タスクは残ります。</p></div></div>
+            <div class="formRow"><span>Outlook</span><div><label class="uiToggle"><input type="checkbox" name="outlookEnabled" class="uiToggleInput" role="switch"><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel" data-i18n="ui.8db5e560dc"> Outlookにも登録</span></label><p class="settingsTagHint" data-i18n="outlook.selectionHint">OFFで保存すると送信を停止します。CalendarとOutlookの予定は両方残ります。</p></div></div>
             <div class="formRow">
               <label for="memo"><span data-i18n="ui.99fa5c96e0">メモ</span></label>
               <textarea id="memo" name="memo" rows="3" placeholder="任意" data-i18n-attrs="placeholder=ui.5d7906f5af"></textarea>
             </div>
+<p data-event-error role="alert" hidden></p><details data-event-details><summary data-event-details-title data-i18n="event.details">予定の詳細</summary><div class="eventDetailsBody"><p class="settingsTagHint" data-i18n="event.localTimeHint">日時はこのPCのタイムゾーンで表示・入力します。</p><div class="formRow"><label for="eventLocation"><span data-i18n="event.location"></span></label><input id="eventLocation" name="eventLocation" type="text" /></div><div class="formRow"><label for="eventCategories"><span data-i18n="event.categories"></span></label><input id="eventCategories" name="eventCategories" type="text" /></div><div class="formRow"><label for="eventBusyStatus"><span data-i18n="event.busyStatus"></span></label><select id="eventBusyStatus" name="eventBusyStatus"><option value="0" data-i18n="event.busy0"></option><option value="1" data-i18n="event.busy1"></option><option value="2" data-i18n="event.busy2"></option><option value="3" data-i18n="event.busy3"></option><option value="4" data-i18n="event.busy4"></option></select></div><div class="formRow"><label for="eventSensitivity"><span data-i18n="event.sensitivity"></span></label><select id="eventSensitivity" name="eventSensitivity"><option value="0" data-i18n="event.privacy0"></option><option value="1" data-i18n="event.privacy1"></option><option value="2" data-i18n="event.privacy2"></option><option value="3" data-i18n="event.privacy3"></option></select></div><div class="formRow"><label for="eventImportance"><span data-i18n="event.importance"></span></label><select id="eventImportance" name="eventImportance"><option value="0" data-i18n="event.importance0"></option><option value="1" data-i18n="event.importance1"></option><option value="2" data-i18n="event.importance2"></option></select></div><div class="formRow"><label for="eventReminderSet"><span data-i18n="event.reminder"></span></label><input id="eventReminderSet" name="eventReminderSet" type="checkbox" /></div><div class="formRow"><label for="eventReminderMinutesBeforeStart"><span data-i18n="event.reminderMinutes"></span></label><input id="eventReminderMinutesBeforeStart" name="eventReminderMinutesBeforeStart" type="number" min="0" step="1" value="15" /></div><div class="formRow"><label for="eventStartTimeZone"><span data-i18n="event.startTimeZone"></span></label><input id="eventStartTimeZone" name="eventStartTimeZone" type="text" /></div><div class="formRow"><label for="eventEndTimeZone"><span data-i18n="event.endTimeZone"></span></label><input id="eventEndTimeZone" name="eventEndTimeZone" type="text" /></div><div class="formRow top"><span data-i18n="event.organizer"></span><div data-event-organizer style="white-space:pre-wrap;overflow-wrap:anywhere;min-width:0"></div></div><div class="formRow top"><span data-i18n="event.attendees"></span><div data-event-attendees style="white-space:pre-wrap;overflow-wrap:anywhere;min-width:0"></div></div><div class="formRow top"><span data-i18n="event.attachments"></span><div data-event-attachments style="white-space:pre-wrap;overflow-wrap:anywhere;min-width:0"></div></div><p class="settingsTagHint" data-i18n="event.meetingReadOnly">会議への招待・更新通知はOutlookで送信してください。</p></div></details>
           </form>
   </template>
 

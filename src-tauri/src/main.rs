@@ -12,6 +12,7 @@ mod locale;
 mod mcp;
 mod outlook;
 mod outlook_jobs;
+mod event_data;
 mod repositories;
 mod single_instance;
 mod ui_preferences;
