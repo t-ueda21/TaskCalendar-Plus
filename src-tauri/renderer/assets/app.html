@@ -166,7 +166,7 @@
         </main>
 
         <dialog data-task-dialog class="dialog" aria-label="タスク作成ダイアログ" data-i18n-attrs="aria-label=ui.0bc09b98ce">
-          <header data-dialog-title><span data-i18n="ui.84431e9d03">タスク作成</span></header>
+          <header><div><h2 data-dialog-title><span data-i18n="ui.84431e9d03">タスク作成</span></h2><p data-editor-context></p></div></header>
           <template data-view-template="shared-task-form"></template>
           <footer>
             <button class="btn danger" type="button" data-delete hidden style="margin-right:auto"><span data-i18n="ui.e9653dc3ed">削除</span></button>
@@ -264,7 +264,7 @@
         </main>
 
         <dialog data-task-dialog class="dialog" aria-label="タスクダイアログ" data-i18n-attrs="aria-label=ui.583dacff94">
-          <header data-dialog-title><span data-i18n="ui.13ec227edb">タスクを追加</span></header>
+          <header><div><h2 data-dialog-title><span data-i18n="ui.13ec227edb">タスクを追加</span></h2><p data-editor-context></p></div></header>
           <template data-view-template="shared-task-form"></template>
           <footer>
             <button class="btn danger" type="button" data-delete hidden style="margin-right:auto"><span data-i18n="ui.e9653dc3ed">削除</span></button>
@@ -916,65 +916,37 @@
   </template>
 
   <template id="shared-task-form">
-<form method="dialog">
-            <div class="formRow">
-              <label for="taskDate"><span data-i18n="event.startDate">開始日</span></label>
-              <input id="taskDate" name="date" type="date" />
-            </div>
-            <div class="formRow">
-              <label for="taskEndDate"><span data-i18n="event.endDate">終了日</span></label>
-              <input id="taskEndDate" name="endDate" type="date" />
-            </div>
-            <div class="formRow">
-              <label for="allDay"><span data-i18n="ui.0aff5cf2d8">終日</span></label>
-              <label class="uiToggle">
-                <input id="allDay" name="allDay" type="checkbox" class="uiToggleInput" role="switch" />
-                <span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span>
-                <span class="themeToggleLabel"><span data-i18n="ui.598512328d">終日予定</span></span>
-              </label>
-            </div>
-            <div class="formRow">
-              <label for="title"><span data-i18n="ui.a20f57232e">タイトル</span></label>
-              <input id="title" name="title" type="text" />
-            </div>
-            <div class="formRow">
-              <label for="startTime"><span data-i18n="ui.cc147e162c">開始</span></label>
-              <input id="startTime" name="startTime" type="text" data-time-picker inputmode="numeric" placeholder="HH:MM" value="09:00" />
-            </div>
-            <div class="formRow">
-              <label for="endTime"><span data-i18n="ui.8f26d43810">終了</span></label>
-              <input id="endTime" name="endTime" type="text" data-time-picker inputmode="numeric" placeholder="HH:MM（24:00可）" value="10:00"  data-i18n-attrs="placeholder=ui.7c377ea186" />
-            </div>
-            <div class="formRow top">
-              <label><span data-i18n="ui.302eafc71d">タグ</span></label>
-              <div>
-                <input type="hidden" name="tag" value="" />
-                <div class="btnGroup" data-btn-group="tag"></div>
-              </div>
-            </div>
-            <div class="formRow top">
-              <label><span data-i18n="ui.d22642e52b">繰り返し</span></label>
-              <div>
-                <input type="hidden" name="repeat" value="none" />
-                <div class="btnGroup" data-btn-group="repeat">
-                  <button type="button" class="btnGroupItem active" data-value="none"><span data-i18n="ui.868310e193">なし</span></button>
-                  <button type="button" class="btnGroupItem" data-value="daily"><span data-i18n="ui.46f5dc37de">毎日</span></button>
-                  <button type="button" class="btnGroupItem" data-value="weekly"><span data-i18n="ui.227060417a">毎週</span></button>
-                  <button type="button" class="btnGroupItem" data-value="monthly"><span data-i18n="ui.8029c415eb">毎月</span></button>
-                </div>
-              </div>
-            </div>
-            <div class="formRow" data-repeat-period-row hidden>
-              <label for="repeatUntil"><span data-i18n="ui.0c8fa82e60">繰り返し終了</span></label>
-              <input id="repeatUntil" name="repeatUntil" type="date" />
-            </div>
-            <div class="formRow"><span>Outlook</span><div><label class="uiToggle"><input type="checkbox" name="outlookEnabled" class="uiToggleInput" role="switch"><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel" data-i18n="ui.8db5e560dc"> Outlookにも登録</span></label><p class="settingsTagHint" data-i18n="outlook.selectionHint">OFFで保存すると送信を停止します。CalendarとOutlookの予定は両方残ります。</p></div></div>
-            <div class="formRow">
-              <label for="memo"><span data-i18n="ui.99fa5c96e0">メモ</span></label>
-              <textarea id="memo" name="memo" rows="3" placeholder="任意" data-i18n-attrs="placeholder=ui.5d7906f5af"></textarea>
-            </div>
-<p data-event-error role="alert" hidden></p><details data-event-details><summary data-event-details-title data-i18n="event.details">予定の詳細</summary><div class="eventDetailsBody"><p class="settingsTagHint" data-i18n="event.localTimeHint">日時はこのPCのタイムゾーンで表示・入力します。</p><div class="formRow"><label for="eventCategories"><span data-i18n="event.categories"></span></label><input id="eventCategories" name="eventCategories" type="text" /></div><div class="formRow"><label for="eventBusyStatus"><span data-i18n="event.busyStatus"></span></label><select id="eventBusyStatus" name="eventBusyStatus"><option value="0" data-i18n="event.busy0"></option><option value="1" data-i18n="event.busy1"></option><option value="2" data-i18n="event.busy2"></option><option value="3" data-i18n="event.busy3"></option><option value="4" data-i18n="event.busy4"></option></select></div><div class="formRow"><label for="eventSensitivity"><span data-i18n="event.sensitivity"></span></label><select id="eventSensitivity" name="eventSensitivity"><option value="0" data-i18n="event.privacy0"></option><option value="1" data-i18n="event.privacy1"></option><option value="2" data-i18n="event.privacy2"></option><option value="3" data-i18n="event.privacy3"></option></select></div><div class="formRow"><label for="eventImportance"><span data-i18n="event.importance"></span></label><select id="eventImportance" name="eventImportance"><option value="0" data-i18n="event.importance0"></option><option value="1" data-i18n="event.importance1"></option><option value="2" data-i18n="event.importance2"></option></select></div><div class="formRow"><label for="eventReminderSet"><span data-i18n="event.reminder"></span></label><input id="eventReminderSet" name="eventReminderSet" type="checkbox" /></div><div class="formRow"><label for="eventReminderMinutesBeforeStart"><span data-i18n="event.reminderMinutes"></span></label><input id="eventReminderMinutesBeforeStart" name="eventReminderMinutesBeforeStart" type="number" min="0" step="1" value="15" /></div><div class="formRow"><label for="eventStartTimeZone"><span data-i18n="event.startTimeZone"></span></label><input id="eventStartTimeZone" name="eventStartTimeZone" type="text" /></div><div class="formRow"><label for="eventEndTimeZone"><span data-i18n="event.endTimeZone"></span></label><input id="eventEndTimeZone" name="eventEndTimeZone" type="text" /></div><div class="formRow top"><span data-i18n="event.organizer"></span><div data-event-organizer style="white-space:pre-wrap;overflow-wrap:anywhere;min-width:0"></div></div><div class="formRow top"><span data-i18n="event.attendees"></span><div data-event-attendees style="white-space:pre-wrap;overflow-wrap:anywhere;min-width:0"></div></div><div class="formRow top"><span data-i18n="event.attachments"></span><div data-event-attachments style="white-space:pre-wrap;overflow-wrap:anywhere;min-width:0"></div></div></div></details>
-          </form>
+    <form method="dialog" class="taskEditorForm">
+      <div class="formRow taskEditorTitle">
+        <label for="title" data-i18n="ui.a20f57232e">タイトル</label>
+        <input id="title" name="title" type="text" />
+      </div>
+      <div class="formRow"><label for="taskDate" data-i18n="event.startDate">開始日</label><input id="taskDate" name="date" type="date" /></div>
+      <div class="formRow"><label for="taskEndDate" data-i18n="event.endDate">終了日</label><input id="taskEndDate" name="endDate" type="date" /></div>
+      <div class="taskEditorAllDay"><label><input id="allDay" name="allDay" type="checkbox" /><span data-i18n="ui.598512328d">終日予定</span></label></div>
+      <div class="formRow" data-editor-time><label for="startTime" data-i18n="ui.cc147e162c">開始</label><input id="startTime" name="startTime" type="text" data-time-picker inputmode="numeric" placeholder="HH:MM" value="09:00" /></div>
+      <div class="formRow" data-editor-time><label for="endTime" data-i18n="ui.8f26d43810">終了</label><input id="endTime" name="endTime" type="text" data-time-picker inputmode="numeric" placeholder="HH:MM（24:00可）" value="10:00" data-i18n-attrs="placeholder=ui.7c377ea186" /></div>
+      <div class="formRow top"><label data-i18n="ui.302eafc71d">タグ</label><div><input type="hidden" name="tag" value="" /><div class="btnGroup" data-btn-group="tag"></div></div></div>
+      <div class="formRow taskEditorRepeat"><label data-i18n="editor.repeatQuestion">どの間隔で繰り返しますか？</label><div><input type="hidden" name="repeat" value="none" /><div class="btnGroup" data-btn-group="repeat">
+        <button type="button" class="btnGroupItem active" data-value="none" data-i18n="editor.noRepeat">繰り返さない</button>
+        <button type="button" class="btnGroupItem" data-value="daily" data-i18n="ui.46f5dc37de">毎日</button>
+        <button type="button" class="btnGroupItem" data-value="weekly" data-i18n="ui.227060417a">毎週</button>
+        <button type="button" class="btnGroupItem" data-value="monthly" data-i18n="ui.8029c415eb">毎月</button>
+      </div></div></div>
+      <div class="formRow" data-repeat-period-row hidden><label for="repeatUntil" data-i18n="editor.repeatUntil">繰り返す最終日</label><input id="repeatUntil" name="repeatUntil" type="date" /><p data-editor-repeat-summary class="taskEditorSchedule"></p></div>
+      <div data-editor-advanced-rule></div>
+      <div class="taskEditorOutlook">
+        <label class="taskEditorSendRow"><span data-i18n="editor.sendOutlook">このタスクをOutlookに送信</span><span class="uiToggle"><input type="checkbox" name="outlookEnabled" class="uiToggleInput" role="switch" /><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span></span></label>
+        <p class="taskEditorSyncStatus" data-editor-sync-status role="status"></p>
+      </div>
+      <div class="formRow"><label for="memo" data-i18n="ui.99fa5c96e0">メモ</label><textarea id="memo" name="memo" rows="3" data-i18n-attrs="placeholder=editor.memoPlaceholder" placeholder="準備するもの、確認したいことなど"></textarea></div>
+      <p data-event-error role="alert" hidden></p>
+      <section class="taskEditorMeeting" data-editor-meeting hidden>
+        <div class="formRow top"><span data-i18n="event.organizer"></span><div data-event-organizer></div></div>
+        <div class="formRow top"><span data-i18n="event.attendees"></span><div data-event-attendees></div></div>
+        <div class="formRow top"><span data-i18n="event.attachments"></span><div data-event-attachments></div></div>
+      </section>
+    </form>
   </template>
 
   <script src="../src/tauri-shell-bridge.js"></script>

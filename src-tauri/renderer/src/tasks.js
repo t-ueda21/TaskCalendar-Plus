@@ -1,9 +1,8 @@
-import { chooseSaveScope } from './save-scope.js';
-import { validateEventForm, eventDaySegment, shiftEventDate } from "./event-fields.js";
+import { wireTaskEditor, deleteTaskByChoice } from './task-editor-controller.js';
+import { eventDaySegment, shiftEventDate } from "./event-fields.js";
 import { t as translate, th as translateHtml, getLocale } from './i18n.js';
 import { copyIconHtml, checkIconHtml, errorIconHtml, editIconHtml, deleteIconHtml } from './ui-icons.js';
 import { wireTaskBatch } from './task-batch-ui.js';
-import { showAppAlert, showAppConfirm, chooseRecurrenceScope } from './app-dialogs.js';
 /**
  * tasks.js — タスク一覧ページのロジック
  *
@@ -26,10 +25,7 @@ import {
   syncViewDate,
   openCreateDialog,
   openEditDialog,
-  readDialogForm,
   getDialogTagsForDateKey,
-  updateTaskByChoice,
-  setupTimePicker,
   getCombinedHolidaysInMonth,
   wireSidebarToggle,
   renderSideSummaries,
@@ -70,24 +66,10 @@ function _setFocusedTaskRow(taskId = "") {
   if (row) row.classList.add("focused");
 }
 
-// 繰り返し予定の削除範囲を選ばせる(Outlookの「これ以降の予定」相当)。1=このみ/2=すべて/3=今日以降すべて。
-async function _chooseDeleteModeForTask(task) {
-  const count = Store.getTaskSeriesCount(task);
-  const message = task.title + '\n' + task.date;
-  if (count > 1) return chooseRecurrenceScope({title:translate('ui.e9653dc3ed'),message,operation:'delete'});
-  return await showAppConfirm(message, {title:translate('ui.e9653dc3ed'),confirmLabel:translate('ui.e9653dc3ed'),danger:true}) ? 'single' : null;
-}
-
-async function _deleteTaskByChoice(taskId, preferredMode = null) {
-  const task = Store.getAllTasks().find((t) => t.id === taskId);
-  if (!task) return;
-  const mode = preferredMode ?? await _chooseDeleteModeForTask(task);
-  if (!mode) return false;
-  if (preferredMode && !await showAppConfirm(task.title + '\n' + task.date, {title:translate('ui.e9653dc3ed'),confirmLabel:translate('ui.e9653dc3ed'),danger:true})) return false;
-  try { await Store.deleteTaskWithMode(taskId, mode); }
-  catch (error) { await showAppAlert(String(error?.message ?? error), {tone:'error'}); return false; }
-  if (_focusedTaskId === taskId) _setFocusedTaskRow("");
-  return true;
+function _deleteTaskByChoice(taskId, preferredMode = null) {
+  return deleteTaskByChoice(Store, taskId, preferredMode, () => {
+    if (_focusedTaskId === taskId) _setFocusedTaskRow("");
+  });
 }
 
 // 月ごとにタグを明示設定する前提のため、その月に設定がなければ空になる。
@@ -801,76 +783,5 @@ function _wireNewTaskButton() {
 }
 
 function _wireDialog() {
-  if (!$dialog) return;
-
-  let _saving = false;
-  const saveTask = async () => {
-    if (_saving) return;
-    let form;
-    try { form = readDialogForm($dialog); }
-    catch (error) { await showAppAlert(String(error.message || error), {tone:"error"}); return; }
-    if (!validateEventForm($dialog, form)) return;
-    if (!form.title) { await showAppAlert(translate('ui.f611575d37'), {tone:'error'}); return; }
-    const taskPatch = form;
-
-    const saveBtn = $dialog.querySelector("[data-save]");
-    _saving = true;
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.dataset.origText = saveBtn.textContent; saveBtn.textContent = translate('ui.ff509c9ba0'); }
-    try {
-      const editId = $dialog.getAttribute("data-edit-id");
-      if (editId) {
-        const mode = await chooseSaveScope($dialog, taskPatch);
-        if (!mode || !$dialog.open) return;
-        const updated = await updateTaskByChoice(Store, editId, taskPatch, mode);
-        if (!updated) return;
-      } else {
-        await Store.createTask({ ...taskPatch, date: taskPatch.date || formatDateKey(_selectedDate) });
-      }
-      $dialog.close();
-    } catch (error) {
-      await showAppAlert(translate('ui.20817f47e9', { p0: (String(error?.message ?? error)) }), {tone:'error'});
-    } finally {
-      _saving = false;
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.origText || translate('ui.a3030bf8f1'); }
-    }
-  };
-
-  $dialog.addEventListener("click", (e) => {
-    if (e.target !== $dialog) return;
-    const r = $dialog.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
-      $dialog.close();
-    }
-  });
-
-  // 閉じるにはどの経路でもロックを解除
-  $dialog.addEventListener("close", () => {
-    _saving = false;
-    const saveBtn = $dialog.querySelector("[data-save]");
-    if (saveBtn) { saveBtn.disabled = false; if (saveBtn.dataset.origText) saveBtn.textContent = saveBtn.dataset.origText; }
-  });
-
-  $dialog.querySelector("[data-cancel]")?.addEventListener("click", () => $dialog.close());
-
-  $dialog.querySelector("[data-save]")?.addEventListener("click", () => {
-    void saveTask();
-  });
-
-  $dialog.querySelector("[data-delete]")?.addEventListener("click", async () => {
-    const editId = $dialog.getAttribute("data-edit-id");
-    if (editId) {
-      if (await _deleteTaskByChoice(editId)) $dialog.close();
-    }
-  });
-
-  $dialog.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
-    if (e.target.closest('button')) return;
-    if (e.target instanceof HTMLTextAreaElement) return;
-    e.preventDefault();
-    void saveTask();
-  });
-
-  // 時刻ピッカー初期化
-  $dialog.querySelectorAll("[data-time-picker]").forEach(setupTimePicker);
+  wireTaskEditor($dialog, {Store, getDate:() => _selectedDate, deleteTask:_deleteTaskByChoice});
 }

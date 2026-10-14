@@ -1,8 +1,7 @@
-import { chooseSaveScope } from './save-scope.js';
-import { validateEventForm, eventDaySegment, shiftEventDate, moveEventRange, resizeEventRange, eventDateKeys } from "./event-fields.js";
+import { wireTaskEditor, deleteTaskByChoice } from './task-editor-controller.js';
+import { eventDaySegment, shiftEventDate, moveEventRange, resizeEventRange, eventDateKeys } from "./event-fields.js";
 import { t as translate, th as translateHtml } from './i18n.js';
 import { wireTaskBatch } from './task-batch-ui.js';
-import { showAppAlert, showAppConfirm, chooseRecurrenceScope } from './app-dialogs.js';
 /**
  * calendar.js — カレンダーページのロジック
  *
@@ -28,10 +27,7 @@ import {
   syncViewDate,
   openCreateDialog,
   openEditDialog,
-  readDialogForm,
   getDialogTagsForDateKey,
-  updateTaskByChoice,
-  setupTimePicker,
   normalizeBreaks,
   getCombinedHolidaysInMonth,
   normalizeHexColor,
@@ -263,28 +259,11 @@ function _getDialogTagsForDateKey(dateKey, currentTagId = "") {
   return getDialogTagsForDateKey(Store, dateKey, currentTagId, () => _viewDate);
 }
 
-// 繰り返し予定の削除範囲を選ばせる(Outlookの「これ以降の予定」相当)。1=このみ/2=すべて/3=今日以降すべて。
-async function _chooseDeleteModeForTask(task) {
-  const count = Store.getTaskSeriesCount(task);
-  const message = task.title + '\n' + task.date;
-  if (count > 1) return chooseRecurrenceScope({title:translate('ui.e9653dc3ed'),message,operation:'delete'});
-  return await showAppConfirm(message, {title:translate('ui.e9653dc3ed'),confirmLabel:translate('ui.e9653dc3ed'),danger:true}) ? 'single' : null;
-}
-
-async function _deleteTaskByChoice(taskId, preferredMode = null) {
-  const task = Store.getAllTasks().find((t) => t.id === taskId);
-  if (!task) return;
-  const mode = preferredMode ?? await _chooseDeleteModeForTask(task);
-  if (!mode) return false;
-  if (preferredMode && !await showAppConfirm(task.title + '\n' + task.date, {title:translate('ui.e9653dc3ed'),confirmLabel:translate('ui.e9653dc3ed'),danger:true})) return false;
-  // 繰り返し全体(series)の削除はUndo対象外(複数行の巻き戻しが複雑なため)。
-  // 単一予定の削除(single)のみUndo/Redoに対応する。
-  try { await Store.deleteTaskWithMode(taskId, mode); }
-  catch (error) { await showAppAlert(String(error?.message ?? error), {tone:'error'}); return false; }
-  if (mode === "single") {
-    _recordAction({ type: "delete", taskId, task });
-  }
-  return true;
+function _deleteTaskByChoice(taskId, preferredMode = null) {
+  return deleteTaskByChoice(Store, taskId, preferredMode, (task, mode) => {
+    // Series deletion remains outside the single-task Undo history.
+    if (mode === "single") _recordAction({type:"delete", taskId, task});
+  });
 }
 
 function _ensureTaskTimePreview() {
@@ -1049,95 +1028,26 @@ function _wireNewTaskButton() {
 }
 
 function _wireDialog() {
-  if (!$dialog) return;
-
-  let _saving = false;
-  const saveTask = async () => {
-    if (_saving) return;
-    let form;
-    try { form = readDialogForm($dialog); }
-    catch (error) { await showAppAlert(String(error.message || error), {tone:"error"}); return; }
-    if (!validateEventForm($dialog, form)) return;
-    if (!form.title) { await showAppAlert(translate('ui.f611575d37'), {tone:'error'}); return; }
-    const taskPatch = form;
-
-    const saveBtn = $dialog.querySelector("[data-save]");
-    _saving = true;
-    if (saveBtn) { saveBtn.disabled = true; saveBtn.dataset.origText = saveBtn.textContent; saveBtn.textContent = translate('ui.ff509c9ba0'); }
-    try {
-      const editId = $dialog.getAttribute("data-edit-id");
-      if (editId) {
-        const mode = await chooseSaveScope($dialog, taskPatch);
-        if (!mode || !$dialog.open) return;
-        // Undo対象は単一予定編集のみ(繰り返し系列一括編集は対象外、_recordActionのコメント参照)。
-        const existing = mode === "single" ? Store.getAllTasks().find((t) => t.id === editId) : null;
-        const expandsSeries = existing && taskPatch.recurrence && taskPatch.recurrence.type !== "none"
-          && Store.getTaskSeriesCount(existing) === 1
-          && (existing.recurrence?.type !== taskPatch.recurrence.type
-            || existing.recurrence?.until !== taskPatch.recurrence.until || existing.date !== taskPatch.date);
-        const updated = await updateTaskByChoice(Store, editId, taskPatch, mode);
-        if (!updated) return;
-        if (existing && !expandsSeries) {
-          const before = {};
-          Object.keys(taskPatch).forEach((key) => { before[key] = existing[key]; });
-          _recordAction({ type: "update", taskId: editId, before, after: { ...taskPatch } });
-        }
-      } else {
-        const created = await Store.createTask({ ...taskPatch, date: taskPatch.date || formatDateKey(_viewDate) });
-        // Undo対象は単発作成のみ(繰り返し系列の一括作成は対象外、_recordActionのコメント参照)。
-        if (created && created.recurrence?.type === "none") {
-          _recordAction({ type: "create", taskId: created.id, task: created });
-        }
-      }
-      $dialog.close();
-    } catch (error) {
-      await showAppAlert(translate('ui.20817f47e9', { p0: (String(error?.message ?? error)) }), {tone:'error'});
-    } finally {
-      _saving = false;
-      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = saveBtn.dataset.origText || translate('ui.a3030bf8f1'); }
-    }
-  };
-
-  // backdrop クリックで閉じる
-  $dialog.addEventListener("click", (e) => {
-    if (e.target !== $dialog) return;
-    const r = $dialog.getBoundingClientRect();
-    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
-      $dialog.close();
-    }
+  wireTaskEditor($dialog, {
+    Store, getDate:() => _viewDate, deleteTask:_deleteTaskByChoice,
+    beforeUpdate(editId, taskPatch, mode) {
+      const existing = mode === "single" ? Store.getAllTasks().find(task => task.id === editId) : null;
+      const expandsSeries = existing && taskPatch.recurrence && taskPatch.recurrence.type !== "none"
+        && Store.getTaskSeriesCount(existing) === 1
+        && (existing.recurrence?.type !== taskPatch.recurrence.type
+          || existing.recurrence?.until !== taskPatch.recurrence.until || existing.date !== taskPatch.date);
+      return {existing, expandsSeries};
+    },
+    onUpdated(editId, taskPatch, mode, {existing, expandsSeries}) {
+      if (!existing || expandsSeries) return;
+      const before = {};
+      Object.keys(taskPatch).forEach(key => { before[key] = existing[key]; });
+      _recordAction({type:"update", taskId:editId, before, after:{...taskPatch}});
+    },
+    onCreated(created) {
+      if (created && created.recurrence?.type === "none") _recordAction({type:"create", taskId:created.id, task:created});
+    },
   });
-
-  // 閉じるにはどの経路でもロックを解除
-  $dialog.addEventListener("close", () => {
-    _saving = false;
-    const saveBtn = $dialog.querySelector("[data-save]");
-    if (saveBtn) { saveBtn.disabled = false; if (saveBtn.dataset.origText) saveBtn.textContent = saveBtn.dataset.origText; }
-  });
-
-  $dialog.querySelector("[data-cancel]")?.addEventListener("click", () => $dialog.close());
-
-  $dialog.querySelector("[data-save]")?.addEventListener("click", () => {
-    void saveTask();
-  });
-
-  // 削除ボタン（編集モード時のみ表示）
-  $dialog.querySelector("[data-delete]")?.addEventListener("click", async () => {
-    const editId = $dialog.getAttribute("data-edit-id");
-    if (editId) {
-      if (await _deleteTaskByChoice(editId)) $dialog.close();
-    }
-  });
-
-  $dialog.addEventListener("keydown", (e) => {
-    if (e.key !== "Enter" || e.isComposing || e.keyCode === 229) return;
-    if (e.target.closest('button')) return;
-    if (e.target instanceof HTMLTextAreaElement) return;
-    e.preventDefault();
-    void saveTask();
-  });
-
-  // 時刻ピッカー初期化
-  $dialog.querySelectorAll("[data-time-picker]").forEach(setupTimePicker);
 }
 
 // ── ドラッグ選択（タスク作成: F-TASK-001 / F-TASK-007） ──

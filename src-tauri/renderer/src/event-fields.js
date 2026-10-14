@@ -89,8 +89,11 @@ export function populateEventFields(dialog, task = {}) {
       ? [item.name, item.address, item.type != null ? `(${t(`event.attendee${item.type}`)}; ${t(`event.response${item.responseStatus ?? 0}`)})` : ''].filter(Boolean).join(' ')
       : `${item.name || ''}${item.size != null ? ` (${item.size} B)` : ''}`).join('\n') : String(value || '—');
   }
-  const details = dialog.querySelector('[data-event-details]');
-  if (details) details.open = false;
+  const meeting = dialog.querySelector('[data-editor-meeting]');
+  if (meeting) meeting.hidden = !['organizer','attendees','attachments'].some(key => {
+    const value = task.outlookDetails?.[key];
+    return Array.isArray(value) ? value.length > 0 : Boolean(value);
+  });
 }
 
 export function readEventFields(dialog) {

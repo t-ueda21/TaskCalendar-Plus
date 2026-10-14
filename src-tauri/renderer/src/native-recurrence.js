@@ -26,7 +26,7 @@ function panel(dialog) {
   let node=dialog.querySelector('[data-native-recurrence]');if(node)return node;
   const anchor=dialog.querySelector('[data-btn-group="repeat"]');if(!anchor)return null;
   node=document.createElement('details');node.dataset.nativeRecurrence='';
-  node.innerHTML=`<summary>${label('Outlook の詳細な繰り返し','Outlook recurrence rule')}</summary>
+  node.innerHTML=`<summary>${label('繰り返しを詳しく設定','Advanced recurrence')}</summary>
     <label><input type="checkbox" name="nativeEnabled"> ${label('Outlook の定期予定として管理','Manage as an Outlook recurring series')}</label>
     <div data-native-fields style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:8px">
       <label>${label('種類','Pattern')} <select name="nativeType">${[[0,'日ごと','Daily'],[1,'週ごと','Weekly'],[2,'月ごと（日付）','Monthly by date'],[3,'月ごと（曜日）','Monthly nth day'],[5,'年ごと（日付）','Yearly by date'],[6,'年ごと（曜日）','Yearly nth day']].map(([n,ja,en])=>`<option value="${n}">${label(ja,en)}</option>`).join('')}</select></label>
@@ -41,7 +41,8 @@ function panel(dialog) {
       <label data-native-end-date>${label('終了日','End date')} <input name="nativeEnd" type="date"></label>
       <label data-native-end-count>${label('回数','Occurrences')} <input name="nativeCount" type="number" min="1" max="999" value="10"></label>
     </div><p data-native-rule-note>${label('変更する予定の範囲は、保存するときに選びます。','Choose which occurrences to change when saving.')}</p>`;
-  anchor.insertAdjacentElement('afterend',node);return node;
+  const host=dialog.querySelector('[data-editor-advanced-rule]');
+  if(host)host.append(node);else anchor.insertAdjacentElement('afterend',node);return node;
 }
 function sync(dialog){const enabled=field(dialog,'Enabled').checked;const kind=Number(field(dialog,'Type').value);const end=field(dialog,'EndMode').value;const node=panel(dialog);
   node.querySelector('[data-native-fields]').style.display=enabled?'grid':'none';
