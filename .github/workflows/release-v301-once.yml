@@ -1,3 +1,4 @@
+# Renderer checks retain asynchronous settings operations until completion.
 name: Publish v3.0.1 stable once
 
 on:
