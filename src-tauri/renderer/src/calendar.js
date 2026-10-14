@@ -1,3 +1,4 @@
+import { chooseSaveScope } from './save-scope.js';
 import { validateEventForm, eventDaySegment, shiftEventDate, moveEventRange, resizeEventRange, eventDateKeys } from "./event-fields.js";
 import { t as translate, th as translateHtml } from './i18n.js';
 import { wireTaskBatch } from './task-batch-ui.js';
@@ -1058,8 +1059,7 @@ function _wireDialog() {
     catch (error) { await showAppAlert(String(error.message || error), {tone:"error"}); return; }
     if (!validateEventForm($dialog, form)) return;
     if (!form.title) { await showAppAlert(translate('ui.f611575d37'), {tone:'error'}); return; }
-    const { editScope, ...taskPatch } = form;
-    const mode = editScope || "single";
+    const taskPatch = form;
 
     const saveBtn = $dialog.querySelector("[data-save]");
     _saving = true;
@@ -1067,6 +1067,8 @@ function _wireDialog() {
     try {
       const editId = $dialog.getAttribute("data-edit-id");
       if (editId) {
+        const mode = await chooseSaveScope($dialog, taskPatch);
+        if (!mode || !$dialog.open) return;
         // Undo対象は単一予定編集のみ(繰り返し系列一括編集は対象外、_recordActionのコメント参照)。
         const existing = mode === "single" ? Store.getAllTasks().find((t) => t.id === editId) : null;
         const expandsSeries = existing && taskPatch.recurrence && taskPatch.recurrence.type !== "none"

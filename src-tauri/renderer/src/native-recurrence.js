@@ -40,7 +40,7 @@ function panel(dialog) {
       <label>${label('終了条件','End condition')} <select name="nativeEndMode"><option value="none">${label('終了なし','No end')}</option><option value="date">${label('日付まで','End date')}</option><option value="count">${label('回数','Occurrences')}</option></select></label>
       <label data-native-end-date>${label('終了日','End date')} <input name="nativeEnd" type="date"></label>
       <label data-native-end-count>${label('回数','Occurrences')} <input name="nativeCount" type="number" min="1" max="999" value="10"></label>
-    </div><p data-native-rule-note>${label('ルールの変更は「繰り返し予定すべて」または「この日以降」を選択して保存します。会議通知は Outlook で送信してください。','Choose all or future occurrences to change the rule. Send meeting updates in Outlook.')}</p>`;
+    </div><p data-native-rule-note>${label('変更する予定の範囲は、保存するときに選びます。','Choose which occurrences to change when saving.')}</p>`;
   anchor.insertAdjacentElement('afterend',node);return node;
 }
 function sync(dialog){const enabled=field(dialog,'Enabled').checked;const kind=Number(field(dialog,'Type').value);const end=field(dialog,'EndMode').value;const node=panel(dialog);
@@ -48,7 +48,7 @@ function sync(dialog){const enabled=field(dialog,'Enabled').checked;const kind=N
   for(const control of node.querySelectorAll('[data-native-fields] input,[data-native-fields] select'))control.disabled=!enabled;
   for(const [selector,show] of [['weekdays',kind===1],['nth-days',[3,6].includes(kind)],['day',[2,5].includes(kind)],['month',[5,6].includes(kind)],['instance',[3,6].includes(kind)],['end-date',end==='date'],['end-count',end==='count']]){const group=node.querySelector(`[data-native-${selector}]`);group.hidden=!show;for(const control of group.querySelectorAll('input,select'))control.disabled=!enabled||!show;}
 }
-export function wireNativeRecurrence(dialog){const node=panel(dialog);if(!node||node.dataset.wired)return;node.dataset.wired='true';node.addEventListener('change',()=>{dialog._recurrenceChanged=true;dialog._nativeRecurrenceChanged=true;sync(dialog);if(field(dialog,'Enabled').checked){const scope=dialog.querySelector('[name="editScope"]');const row=dialog.querySelector('[data-edit-scope-row]');if(row)row.hidden=false;if(scope){scope.disabled=false;if(scope.value==='single')scope.value='series';}}});}
+export function wireNativeRecurrence(dialog){const node=panel(dialog);if(!node||node.dataset.wired)return;node.dataset.wired='true';node.addEventListener('change',()=>{dialog._recurrenceChanged=true;dialog._nativeRecurrenceChanged=true;sync(dialog);});}
 export function populateNativeRecurrence(dialog,task={}){
   wireNativeRecurrence(dialog);if(!panel(dialog))return;
   const start=task.recurrence?.native?.patternStartDate||task.date||new Date().toISOString().slice(0,10);const d=new Date(`${start}T00:00:00Z`);
