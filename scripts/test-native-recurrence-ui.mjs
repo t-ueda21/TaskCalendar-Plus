@@ -36,9 +36,13 @@ try{
   assert.equal(moved.recurrence.occurrenceDate,'2026-10-05');
   assert.equal(moved.recurrence.template.startTime,'09:00');
   await dialog.locator('[name="nativeEnabled"]').uncheck();
-  await dialog.locator('[name="editScope"]').selectOption('series');
   const requests=h.apiLog.length;
   await dialog.locator('[data-save]').click();
+  const scope=h.page.locator('[data-save-scope]');
+  await scope.waitFor();
+  assert.equal(await scope.locator('[value=single]').count(),0,'rule changes exclude single occurrence');
+  await scope.locator('[value=series]').check();
+  await scope.locator('[data-scope-confirm]').click();
   const confirmation=h.page.locator('[data-app-dialog]');
   await confirmation.waitFor({state:'visible'});
   assert.match(await confirmation.locator('[data-app-dialog-message]').textContent(),/3/,'removal confirmation states affected local count');

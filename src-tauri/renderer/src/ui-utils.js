@@ -551,16 +551,6 @@ function populateTagOptions(containerEl, tags, selectedTagId) {
   }
 }
 
-function _syncApplySeriesControl(dialog, { isEdit = false, recurrenceType = "none" } = {}) {
-  const row = dialog.querySelector("[data-edit-scope-row]");
-  const sel = dialog.querySelector("[name='editScope']");
-  if (!row || !sel) return;
-  const canApplySeries = isEdit && recurrenceType !== "none";
-  row.hidden = !canApplySeries;
-  sel.disabled = !canApplySeries;
-  if (!canApplySeries) sel.value = "single";
-}
-
 export function _isDateKey(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(value ?? ""));
 }
@@ -649,10 +639,6 @@ function _wireRecurrenceControls(dialog) {
       dialog._recurrenceChanged = true;
       _setRecurrenceBtn(dialog, btn.dataset.value);
       _syncRecurrenceControls(dialog);
-      _syncApplySeriesControl(dialog, {
-        isEdit: dialog.hasAttribute("data-edit-id"),
-        recurrenceType: btn.dataset.value,
-      });
     });
   });
 
@@ -753,7 +739,6 @@ export function openCreateDialog(dialog, opts = {}) {
   dialog.removeAttribute("data-edit-id");
   _wireRecurrenceControls(dialog);
   _syncRecurrenceControls(dialog);
-  _syncApplySeriesControl(dialog, { isEdit: false, recurrenceType: "none" });
 
   populateNativeRecurrence(dialog, dialog._eventOriginal || {});
   dialog._recurrenceChanged = false;
@@ -794,10 +779,6 @@ export function openEditDialog(dialog, task, tags) {
 
   _wireRecurrenceControls(dialog);
   _syncRecurrenceControls(dialog);
-  _syncApplySeriesControl(dialog, {
-    isEdit: true,
-    recurrenceType: task.recurrence?.type ?? "none",
-  });
 
   dialog.setAttribute("data-edit-id", task.id);
   populateNativeRecurrence(dialog, dialog._eventOriginal || {});
@@ -832,8 +813,6 @@ export function readDialogForm(dialog) {
     tagId:     dialog.querySelector("[name='tag']")?.value       ?? "",
     recurrence: readNativeRecurrence(dialog) || (dialog._originalRecurrence?.native && dialog._nativeRecurrenceChanged ? {type:"none"} : dialog._originalRecurrence && !dialog._recurrenceChanged ? structuredClone(dialog._originalRecurrence) : recurrence),
     ...readEventFields(dialog),
-    // 編集範囲(この予定のみ/今日以降すべて/繰り返し予定すべて)。
-    editScope: dialog.querySelector("[name='editScope']")?.value || "single",
     memo:      (dialog.querySelector("[name='memo']")?.value     ?? "").trim(),
     date,
   };

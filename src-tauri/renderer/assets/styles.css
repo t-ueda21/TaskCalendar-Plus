@@ -3471,8 +3471,9 @@ tr.isTaskSelected { background:var(--accent-soft); outline:2px solid var(--accen
 [data-task-dialog] .formRow:has([name=outlookEnabled]) { flex-direction:row; align-items:center; gap:20px; }
 [data-task-dialog] input:not([type=hidden]):not([type=checkbox]), [data-task-dialog] select, [data-task-dialog] textarea { width:100%; min-width:0; min-height:40px; padding:9px 12px; border:1px solid var(--border-strong); border-radius:9px; background:var(--panel); }
 [data-task-dialog] .timeStepperWrap { width:100%; }
-[data-task-dialog] .timeStepperWrap input { padding-right:34px; }
-[data-task-dialog] .timeStepperBtns { width:28px; right:3px; top:3px; bottom:3px; }
+[data-task-dialog] .timeStepperWrap input:not([type=hidden]):not([type=checkbox]) { border-top-right-radius:0; border-bottom-right-radius:0; }
+[data-task-dialog] .timeStepperBtns { flex:0 0 28px; border-color:var(--border-strong); border-radius:0 9px 9px 0; }
+[data-task-dialog] .timeStepperBtn { width:100%; border-radius:0; }
 [data-task-dialog] input:focus-visible, [data-task-dialog] textarea:focus-visible, [data-task-dialog] select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 [data-task-dialog] .btnGroup { gap:8px; }
 [data-task-dialog] .btnGroupItem { min-height:34px; }
@@ -3628,3 +3629,20 @@ button:focus-visible,
   .outlookCalendarPicker .settingsModelRow { grid-template-columns:minmax(0,1fr) auto; }
   .outlookCalendarPicker .settingsModelRow > label { grid-column:1 / -1; }
 }
+
+/* Shared task-editor typography and save-time recurrence scope (plan B). */
+[data-task-dialog] .formRow > label:first-child { font-size:13px; font-weight:600; }
+[data-task-dialog] input:not([type=hidden]):not([type=checkbox]),
+[data-task-dialog] textarea, [data-task-dialog] select { font-size:14px; font-weight:400; }
+.saveScopeDialog { width:min(480px,calc(100vw - 32px)); max-height:calc(100vh - 32px); overflow:auto; border:1px solid var(--border); border-radius:14px; padding:24px; color:var(--text); background:var(--panel); }
+.saveScopeDialog::backdrop { background:#13243a66; }
+.saveScopeDialog h2 { font-size:18px; margin:0 0 10px; }
+.saveScopeDialog p { font-size:13px; line-height:1.7; color:var(--muted); }
+.saveScopeChoices { display:grid; gap:10px; margin:18px 0; padding:0; border:0; }
+.saveScopeChoice { display:flex; align-items:center; gap:12px; padding:14px; border:1px solid var(--border); border-radius:9px; cursor:pointer; }
+.saveScopeChoice:has(:checked) { border-color:var(--accent); background:var(--accent-soft); }
+.saveScopeChoice input { accent-color:var(--accent); }
+.saveScopeChoice strong { display:block; font-size:14px; font-weight:600; }
+.saveScopeChoice small { display:block; margin-top:5px; color:var(--muted); font-size:12px; line-height:1.6; }
+.saveScopeDialog footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+.saveScopeDialog button { min-height:40px; }

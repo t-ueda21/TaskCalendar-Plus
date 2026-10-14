@@ -1,3 +1,4 @@
+import { chooseSaveScope } from './save-scope.js';
 import { validateEventForm, eventDaySegment, shiftEventDate } from "./event-fields.js";
 import { t as translate, th as translateHtml, getLocale } from './i18n.js';
 import { copyIconHtml, checkIconHtml, errorIconHtml, editIconHtml, deleteIconHtml } from './ui-icons.js';
@@ -810,7 +811,7 @@ function _wireDialog() {
     catch (error) { await showAppAlert(String(error.message || error), {tone:"error"}); return; }
     if (!validateEventForm($dialog, form)) return;
     if (!form.title) { await showAppAlert(translate('ui.f611575d37'), {tone:'error'}); return; }
-    const { editScope, ...taskPatch } = form;
+    const taskPatch = form;
 
     const saveBtn = $dialog.querySelector("[data-save]");
     _saving = true;
@@ -818,7 +819,9 @@ function _wireDialog() {
     try {
       const editId = $dialog.getAttribute("data-edit-id");
       if (editId) {
-        const updated = await updateTaskByChoice(Store, editId, taskPatch, editScope || "single");
+        const mode = await chooseSaveScope($dialog, taskPatch);
+        if (!mode || !$dialog.open) return;
+        const updated = await updateTaskByChoice(Store, editId, taskPatch, mode);
         if (!updated) return;
       } else {
         await Store.createTask({ ...taskPatch, date: taskPatch.date || formatDateKey(_selectedDate) });

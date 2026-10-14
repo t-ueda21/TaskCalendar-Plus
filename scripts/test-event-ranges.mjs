@@ -34,14 +34,15 @@ try {
   await dialog.locator('[name="startTime"]').fill('23:30:15');
   await dialog.locator('[name="endTime"]').fill('01:15:45');
   await dialog.locator('summary[data-event-details-title]').click();
-  await dialog.locator('[name="eventLocation"]').fill('A & <B>');
+  assert.equal(await dialog.locator('[name="eventLocation"]').count(),0);
+  await dialog.locator('[name="eventCategories"]').fill('A & <B>');
   await dialog.locator('[data-save]').click();
   await dialog.waitFor({state:'hidden'});
   await calendar.locator('[data-viewmode]').selectOption('week');
   const saved=h.state().tasks.find(t=>t.title==='Editor overnight');
   assert.equal(saved.endDate,'2026-10-09');
   assert.equal(saved.endTime,'01:15:45');
-  assert.equal(saved.outlookDetails.location,'A & <B>');
+  assert.equal(saved.outlookDetails.categories,'A & <B>');
   assert.equal(await calendar.locator(`[data-weekcol][data-date="2026-10-08"] [data-task-id="${saved.id}"]`).count(),1);
   assert.equal(await calendar.locator(`[data-weekcol][data-date="2026-10-09"] [data-task-id="${saved.id}"]`).count(),1);
   assert.equal(await calendar.locator(`[data-weekcol][data-date="2026-10-09"] [data-task-id="${saved.id}"]`).getAttribute('data-start'),'00:00');
