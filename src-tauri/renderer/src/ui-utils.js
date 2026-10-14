@@ -1,3 +1,4 @@
+import { prepareTaskEditor } from './task-editor-presentation.js';
 import { showAppConfirm } from "./app-dialogs.js";
 import { populateNativeRecurrence, readNativeRecurrence } from "./native-recurrence.js";
 /**
@@ -714,7 +715,7 @@ export function openCreateDialog(dialog, opts = {}) {
   const deleteButton = dialog.querySelector('[data-delete]');
   if (deleteButton) deleteButton.hidden = true;
   const titleEl = dialog.querySelector("[data-dialog-title]");
-  if (titleEl) titleEl.textContent = opts.dialogTitle ?? translate('ui.d3dd6281b0');
+  if (titleEl) titleEl.textContent = opts.dialogTitle ?? translate('editor.registerTitle');
 
   dialog.querySelector("[name='title']").value     = "";
   dialog.querySelector("[name='startTime']").value = opts.startTime ?? "09:00";
@@ -742,7 +743,11 @@ export function openCreateDialog(dialog, opts = {}) {
 
   populateNativeRecurrence(dialog, dialog._eventOriginal || {});
   dialog._recurrenceChanged = false;
+  prepareTaskEditor(dialog);
   dialog.showModal();
+  dialog.scrollTop = 0;
+  const form = dialog.querySelector("form");
+  if (form) form.scrollTop = 0;
   if (opts.focusTitle) {
     dialog.querySelector("[name='title']")?.focus({ preventScroll: true });
   }
@@ -783,7 +788,11 @@ export function openEditDialog(dialog, task, tags) {
   dialog.setAttribute("data-edit-id", task.id);
   populateNativeRecurrence(dialog, dialog._eventOriginal || {});
   dialog._recurrenceChanged = false;
+  prepareTaskEditor(dialog);
   dialog.showModal();
+  dialog.scrollTop = 0;
+  const form = dialog.querySelector("form");
+  if (form) form.scrollTop = 0;
   dialog.querySelector("[name='title']")?.focus({ preventScroll: true });
 }
 

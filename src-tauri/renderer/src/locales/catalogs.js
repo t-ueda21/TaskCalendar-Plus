@@ -1,3 +1,4 @@
+import editorFollowup from './editor-followup.js';
 import generated from './generated.js';
 import batchFollowup from './batch-followup.js';
 import settingsFollowup from './settings-followup.js';
@@ -6,6 +7,6 @@ import settingsFollowup from './settings-followup.js';
 export const catalogs = Object.fromEntries(
   Object.entries(generated).map(([locale, messages]) => [
     locale,
-    { ...messages, ...batchFollowup[locale], ...settingsFollowup[locale] },
+    { ...messages, ...batchFollowup[locale], ...settingsFollowup[locale], ...editorFollowup[locale] },
   ]),
 );

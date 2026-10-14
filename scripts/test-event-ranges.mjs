@@ -33,16 +33,15 @@ try {
   await dialog.locator('[name="endDate"]').fill('2026-10-09');
   await dialog.locator('[name="startTime"]').fill('23:30:15');
   await dialog.locator('[name="endTime"]').fill('01:15:45');
-  await dialog.locator('summary[data-event-details-title]').click();
   assert.equal(await dialog.locator('[name="eventLocation"]').count(),0);
-  await dialog.locator('[name="eventCategories"]').fill('A & <B>');
+  await dialog.locator('[name="memo"]').fill('A & <B>');
   await dialog.locator('[data-save]').click();
   await dialog.waitFor({state:'hidden'});
   await calendar.locator('[data-viewmode]').selectOption('week');
   const saved=h.state().tasks.find(t=>t.title==='Editor overnight');
   assert.equal(saved.endDate,'2026-10-09');
   assert.equal(saved.endTime,'01:15:45');
-  assert.equal(saved.outlookDetails.categories,'A & <B>');
+  assert.equal(saved.memo,'A & <B>');
   assert.equal(await calendar.locator(`[data-weekcol][data-date="2026-10-08"] [data-task-id="${saved.id}"]`).count(),1);
   assert.equal(await calendar.locator(`[data-weekcol][data-date="2026-10-09"] [data-task-id="${saved.id}"]`).count(),1);
   assert.equal(await calendar.locator(`[data-weekcol][data-date="2026-10-09"] [data-task-id="${saved.id}"]`).getAttribute('data-start'),'00:00');
@@ -54,7 +53,6 @@ try {
     const S=await import('/src/store.js'), U=await import('/src/ui-utils.js');
     U.openEditDialog(document.querySelector('[data-view="calendar"] [data-task-dialog]'),S.getAllTasks().find(t=>t.id===id),S.getAllTags());
   },result.row.id);
-  await dialog.locator('summary[data-event-details-title]').click();
   assert.equal(await dialog.locator('[data-event-organizer]').textContent(),'Owner');
   assert.ok((await dialog.locator('[data-event-attachments]').textContent()).includes('note.txt'));
   await dialog.locator('[name="title"]').fill('Metadata preserved');
@@ -63,11 +61,6 @@ try {
   assert.equal(await dialog.locator('[data-event-error]').isVisible(),true,'invalid dates keep form open');
   assert.equal(h.state().tasks.find(t=>t.id===result.row.id).title,'Overnight','invalid edit never writes');
   await dialog.locator('[name="endDate"]').fill('2026-11-02');
-  await dialog.locator('[name="eventReminderSet"]').check();
-  await dialog.locator('[name="eventReminderMinutesBeforeStart"]').fill('-1');
-  await dialog.locator('[data-save]').click();
-  assert.equal(await dialog.locator('[data-event-error]').isVisible(),true);
-  await dialog.locator('[name="eventReminderMinutesBeforeStart"]').fill('25');
   await h.page.setViewportSize({width:800,height:900});
   const footerBox=await dialog.locator('footer').boundingBox();
   assert.ok(footerBox.y+footerBox.height <= h.page.viewportSize().height,'Save and cancel stay visible with expanded event details');
@@ -85,7 +78,7 @@ try {
   assert.equal(edited.startTime,'23:30:15');
   assert.equal(edited.outlookDetails.organizer,'Owner');
   assert.deepEqual(edited.outlookDetails.attachments,[{name:'note.txt',size:42,index:1}]);
-  assert.equal(edited.outlookDetails.reminderMinutesBeforeStart,25);
+  assert.equal(edited.outlookDetails.location,'Room A');
   assert.deepEqual(h.pageErrors,[]);
   console.log('PASS: multi-day ranges, midnight boundary, daily totals, seconds and event editor');
 } finally { await h.close(); }

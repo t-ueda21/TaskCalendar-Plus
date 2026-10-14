@@ -1,7 +1,8 @@
+import { refreshTaskEditor } from './task-editor-presentation.js';
 import { t as translate } from './i18n.js';
 
 export function wireOutlookLinks(Store) {
-  const defaults = () => document.querySelectorAll('[data-task-dialog]').forEach(dialog => { dialog.dataset.outlookDefault = String(Store.getSettings().outlookWriteDefault === true); });
+  const defaults = () => document.querySelectorAll('[data-task-dialog]').forEach(dialog => { dialog.dataset.outlookDefault = String(Store.getSettings().outlookWriteDefault === true); dialog.dataset.outlookWriteEnabled = String(Store.getSettings().outlookWriteEnabled === true); refreshTaskEditor(dialog); });
   defaults(); Store.subscribe('settings', defaults);
   let polling = false;
   async function refresh() {

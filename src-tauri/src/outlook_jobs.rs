@@ -231,17 +231,48 @@ fn finish_series_job(conn:&Connection,id:&str,revision:i64,request:&crate::outlo
     Ok(())
 }
 
+// One claimed queue item. Column mapping stays next to the field names.
+struct ClaimedJob {
+    id: String,
+    operation: String,
+    payload: String,
+    revision: i64,
+    calendar_name: String,
+    entry_id: Option<String>,
+    store_id: Option<String>,
+    external_key: String,
+    remote_meta: Option<String>,
+    force: bool,
+    restore_deleted: bool,
+}
+
+impl ClaimedJob {
+    fn from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Self> {
+        Ok(Self {
+            id: row.get(0)?,
+            operation: row.get(1)?,
+            payload: row.get(2)?,
+            revision: row.get(3)?,
+            calendar_name: row.get(4)?,
+            entry_id: row.get(5)?,
+            store_id: row.get(6)?,
+            external_key: row.get(7)?,
+            remote_meta: row.get(8)?,
+            force: row.get(9)?,
+            restore_deleted: row.get(10)?,
+        })
+    }
+}
+
 pub async fn process_one(state: &crate::api::AppState) -> Result<bool, String> {
     let job = {
         let conn = state.conn.lock().map_err(|_| "Database lock failed")?;
         use rusqlite::OptionalExtension;
-        let found = conn.query_row("SELECT j.task_id,j.operation,j.payload,j.revision,l.calendar_name,l.entry_id,l.store_id,l.external_key,l.remote_meta,j.force_write,l.deleted_by_app FROM outlook_jobs j JOIN outlook_links l ON l.task_id=j.task_id WHERE j.status='pending' AND EXISTS(SELECT 1 FROM outlook_job_status s WHERE s.task_id=j.task_id AND s.authorized=1) ORDER BY CASE j.operation WHEN 'series' THEN 0 ELSE 1 END,json_extract(j.payload,'$.date'),j.rowid LIMIT 1",[],|row| {
-            Ok((row.get::<_,String>(0)?,row.get::<_,String>(1)?,row.get::<_,String>(2)?,row.get::<_,i64>(3)?,row.get::<_,String>(4)?,row.get::<_,Option<String>>(5)?,row.get::<_,Option<String>>(6)?,row.get::<_,String>(7)?,row.get::<_,Option<String>>(8)?,row.get::<_,bool>(9)?,row.get::<_,bool>(10)?))
-        }).optional().map_err(|e|e.to_string())?;
-        if let Some((id,_,_,revision,_,_,_,_,_,_,_)) = &found { conn.execute("UPDATE outlook_jobs SET status='working',attempts=attempts+1 WHERE task_id=?1 AND revision=?2",params![id,revision]).map_err(|e|e.to_string())?; }
+        let found = conn.query_row("SELECT j.task_id,j.operation,j.payload,j.revision,l.calendar_name,l.entry_id,l.store_id,l.external_key,l.remote_meta,j.force_write,l.deleted_by_app FROM outlook_jobs j JOIN outlook_links l ON l.task_id=j.task_id WHERE j.status='pending' AND EXISTS(SELECT 1 FROM outlook_job_status s WHERE s.task_id=j.task_id AND s.authorized=1) ORDER BY CASE j.operation WHEN 'series' THEN 0 ELSE 1 END,json_extract(j.payload,'$.date'),j.rowid LIMIT 1",[],ClaimedJob::from_row).optional().map_err(|e|e.to_string())?;
+        if let Some(ClaimedJob { id, revision, .. }) = &found { conn.execute("UPDATE outlook_jobs SET status='working',attempts=attempts+1 WHERE task_id=?1 AND revision=?2",params![id,revision]).map_err(|e|e.to_string())?; }
         found
     };
-    let Some((id,operation,payload,revision,calendar_name,entry_id,store_id,external_key,remote_meta,force,restore_deleted)) = job else { return Ok(false) };
+    let Some(ClaimedJob { id,operation,payload,revision,calendar_name,entry_id,store_id,external_key,remote_meta,force,restore_deleted }) = job else { return Ok(false) };
     if operation=="series" {
         let request=serde_json::from_str::<Value>(&payload).map_err(|e|e.to_string()).and_then(|value|serde_json::from_value::<crate::outlook::recurrence::SeriesEditRequest>(value["request"].clone()).map_err(|e|e.to_string()));
         match request {

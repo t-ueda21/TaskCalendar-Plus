@@ -3,9 +3,11 @@ globalThis.document = { addEventListener() {} };
 const { openCreateDialog, openEditDialog, readDialogForm } = await import('../src-tauri/renderer/src/ui-utils.js');
 function dialog(defaultValue) {
   const fields = Object.fromEntries(['title','startTime','endTime','allDay','memo','outlookEnabled','date','repeat'].map(name => [name, {value:'',checked:false,disabled:false,focus(){}}]));
+  const attributes = new Set();
   return { dataset:{outlookDefault:String(defaultValue)}, fields,
     querySelector(selector) { const name=selector.match(/^\[name=['"](\w+)['"]\]$/)?.[1]; return fields[name] ?? null; },
-    setAttribute(){},removeAttribute(){},showModal(){} };
+    querySelectorAll(){return [];},addEventListener(){},
+    setAttribute(name){attributes.add(name);},removeAttribute(name){attributes.delete(name);},hasAttribute(name){return attributes.has(name);},showModal(){} };
 }
 for(const initial of [true,false]) {
   const d=dialog(initial);
