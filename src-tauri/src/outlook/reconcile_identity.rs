@@ -37,8 +37,20 @@ impl<T: Clone> UidIndex<T> {
 pub(super) struct LookupCache {
     folders: HashMap<String, Result<w::IDispatch, String>>,
     identities: UidIndex<w::IDispatch>,
+    legacy_identities: UidIndex<w::IDispatch>,
 }
 impl LookupCache {
+    pub(super) fn legacy_imported(&mut self, folder:&w::IDispatch, uid:&str)->Result<Option<w::IDispatch>,String>{
+        let calendar=calendars::identify(folder)?;
+        self.legacy_identities.lookup(&calendar,uid,||{
+            let mut normalized:HashMap<String,Vec<w::IDispatch>>=HashMap::new();
+            for (id,items) in master_catalog(folder)? {
+                let key=legacy::stable_series_id(&id).ok_or("Outlookの予定識別情報を完全に確認できません")?;
+                normalized.entry(key).or_default().extend(items);
+            }
+            Ok(normalized)
+        })
+    }
     pub(super) fn folder(
         &mut self,
         namespace: &w::IDispatch,

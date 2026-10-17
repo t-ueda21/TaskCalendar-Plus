@@ -200,7 +200,7 @@ pub enum RecurringTaskUpdateResult {
     Conflict,
 }
 
-fn next_revision(previous: Option<&str>) -> String {
+pub(crate) fn next_revision(previous: Option<&str>) -> String {
     let mut now = chrono::Utc::now();
     if let Some(previous) =
         previous.and_then(|value| chrono::DateTime::parse_from_rfc3339(value).ok())
@@ -960,7 +960,7 @@ pub struct AutoSyncResult {
 struct ExistingRow {
     id: String,
     in_range: bool,
-    app_managed: bool,
+    protected_from_import: bool,
     signature: String,
     key: String,
     series_id: String,
@@ -1018,9 +1018,9 @@ pub fn outlook_auto_sync(
 
 #[cfg(test)]
 pub fn outlook_sync_in_range(conn: &Connection, events: &[OutlookEvent], tag_id: &str, range: crate::outlook::OutlookSyncRange) -> rusqlite::Result<AutoSyncResult> {
-    outlook_sync_in_scope(conn,events,tag_id,range,None)
+    outlook_sync_in_scope(conn,events,tag_id,range,None,true)
 }
-pub fn outlook_sync_in_scope(conn: &Connection, events: &[OutlookEvent], tag_id: &str, range: crate::outlook::OutlookSyncRange, calendar:Option<&str>) -> rusqlite::Result<AutoSyncResult> {
+pub fn outlook_sync_in_scope(conn: &Connection, events: &[OutlookEvent], tag_id: &str, range: crate::outlook::OutlookSyncRange, calendar:Option<&str>, remove_unseen:bool) -> rusqlite::Result<AutoSyncResult> {
     let start_key = range.start_key();
     let end_key = range.end_key();
     let tx = if conn.is_autocommit(){Some(conn.unchecked_transaction()?)}else{None};
@@ -1064,6 +1064,8 @@ pub fn outlook_sync_in_scope(conn: &Connection, events: &[OutlookEvent], tag_id:
             let app_managed: bool = row.get(11)?;
             let source:Option<String>=row.get(12)?;
             let scope_matches=calendar.is_none()||source.as_deref().is_some_and(|source|crate::outlook::reconcile::same_calendar(source,calendar.unwrap()));
+            // Also protect changed-start/series matching, not just exact keys.
+            let protected_from_import=app_managed||pending_outbound||(!remove_unseen&&!scope_matches);
             if calendar.is_some() && source.as_deref().is_some_and(|source|!crate::outlook::reconcile::same_calendar(source,calendar.unwrap())) {continue;}
             let sig = signature(
                 &title,
@@ -1075,8 +1077,8 @@ pub fn outlook_sync_in_scope(conn: &Connection, events: &[OutlookEvent], tag_id:
             );
             rows.push(ExistingRow {
                 id,
-                app_managed,
-                in_range: scope_matches && !app_managed && !pending_outbound && range.contains_task(&date, if is_all_day_int != 0 { None } else { start_time.as_deref() }),
+                protected_from_import,
+                in_range: scope_matches && !protected_from_import && range.contains_task(&date, if is_all_day_int != 0 { None } else { start_time.as_deref() }),
                 signature: sig,
                 key: occurrence_key.unwrap_or_default(),
                 series_id: series_id.unwrap_or_default(),
@@ -1094,7 +1096,7 @@ pub fn outlook_sync_in_scope(conn: &Connection, events: &[OutlookEvent], tag_id:
         // A matching imported appointment must not rekey or overwrite a task
         // whose registration is controlled here, including disabled tombstones.
         // Its signature still participates in deduplication.
-        if row.app_managed || row.key.is_empty() {
+        if row.protected_from_import || row.key.is_empty() {
             continue;
         }
         if !row.series_id.is_empty() {
@@ -1291,7 +1293,7 @@ pub fn outlook_sync_in_scope(conn: &Connection, events: &[OutlookEvent], tag_id:
             rows.push(ExistingRow {
                 id: task_id,
                 in_range: true,
-                app_managed: false,
+                protected_from_import: false,
                 signature: sig.clone(),
                 key: occurrence_key.clone(),
                 series_id: series_id.clone(),
@@ -1315,7 +1317,7 @@ pub fn outlook_sync_in_scope(conn: &Connection, events: &[OutlookEvent], tag_id:
             continue;
         }
         for &idx in indices {
-            if rows[idx].in_range {
+            if remove_unseen && rows[idx].in_range {
                 stale_ids.push(rows[idx].id.clone());
             }
         }

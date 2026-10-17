@@ -144,6 +144,7 @@ pub fn build_router(state: AppState) -> Router {
         )
         .route("/api/ai/chat", axum::routing::post(ai_chat))
         .route("/api/outlook/fetch", axum::routing::post(outlook_fetch))
+        .route("/api/outlook/legacy-source", axum::routing::post(outlook_legacy_source))
         .route("/api/outlook/jobs", get(outlook_job_list))
         .route("/api/outlook/calendars", get(outlook_calendars))
         .route("/api/outlook/jobs/{id}/retry", axum::routing::post(outlook_job_retry))
@@ -612,6 +613,19 @@ async fn outlook_fetch(State(state): State<AppState>, body: Bytes) -> Response {
     outlook_sync(state, request).await
 }
 
+async fn outlook_legacy_source(State(state):State<AppState>,body:Bytes)->Response {
+    #[derive(serde::Deserialize)]
+    struct Request {calendar:String,tasks:Vec<crate::outlook::reconcile::legacy::Selection>}
+    let request:Request=match parse_body(&body){Ok(value)=>value,Err(response)=>return *response};
+    let conn=lock_conn(&state);
+    match crate::outlook::reconcile::legacy::confirm_source(&conn,&request.calendar,&request.tasks){
+        Ok(updated)=>json_ok(json!({"updated":updated})),
+        Err(rusqlite::Error::QueryReturnedNoRows)=>json_err(StatusCode::CONFLICT,"予定が変更されたため、再度取得して確認してください"),
+        Err(rusqlite::Error::InvalidParameterName(message))=>json_err(StatusCode::BAD_REQUEST,message),
+        Err(error)=>json_err(StatusCode::INTERNAL_SERVER_ERROR,error.to_string()),
+    }
+}
+
 async fn outlook_sync(state: AppState, request: Value) -> Response {
     let settings = {
         let conn = lock_conn(&state);
@@ -1053,6 +1067,29 @@ mod tests {
             repo::backup_restore(&conn, &backup).unwrap();
         }
         assert_eq!(get(&router, Some(&etag)).await.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn legacy_source_confirmation_requires_exact_selection_and_current_revision() {
+        let (state,_tmp)=test_state();
+        {
+            let conn=state.conn.lock().unwrap();
+            for id in ["a","b"] {conn.execute("INSERT INTO tasks(id,date,outlook_occurrence_key,outlook_series_id,created_at,updated_at) VALUES(?1,'2026-10-17',?1,?1,'c','r1')",[id]).unwrap();}
+        }
+        let router=build_router(state.clone());
+        async fn post(router:&Router,body:Value)->Response {
+            router.clone().oneshot(Request::builder().method("POST").uri("/api/outlook/legacy-source")
+                .header("Host",TEST_HOST).header("X-TCPlus-Token",TEST_TOKEN).header("Content-Type","application/json")
+                .body(Body::from(body.to_string())).unwrap()).await.unwrap()
+        }
+        let calendar=r#"outlook-folder:{"entryId":"A","storeId":"store","label":"Work"}"#;
+        assert_eq!(post(&router,json!({"calendar":"Calendar","tasks":[{"id":"a","updatedAt":"r1"}]})).await.status(),StatusCode::BAD_REQUEST);
+        assert_eq!(post(&router,json!({"calendar":calendar,"tasks":[{"id":"a","updatedAt":"r1"},{"id":"b","updatedAt":"stale"}]})).await.status(),StatusCode::CONFLICT);
+        assert_eq!(crate::outlook::reconcile::legacy::candidates(&state.conn.lock().unwrap()).unwrap().len(),2);
+        assert_eq!(post(&router,json!({"calendar":calendar,"tasks":[{"id":"a","updatedAt":"r1"}]})).await.status(),StatusCode::OK);
+        let conn=state.conn.lock().unwrap();
+        let remaining=crate::outlook::reconcile::legacy::candidates(&conn).unwrap();assert_eq!(remaining.len(),1);assert_eq!(remaining[0]["id"],"b");
+        assert_eq!(repo::tasks_list(&conn).unwrap().len(),2,"confirmation must not delete tasks");
     }
 
     fn test_state() -> (AppState, tempfile::TempDir) {

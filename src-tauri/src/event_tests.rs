@@ -42,7 +42,7 @@ fn incoming_details_update_with_outgoing_off_without_erasing_unsent_local_edits(
     let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
     let mut e=OutlookEvent{title:"Remote".into(),date:"2026-10-09".into(),end_date:Some("2026-10-10".into()),start_time:Some("22:00:10".into()),end_time:Some("08:00:15".into()),is_all_day:false,location:"Memo".into(),outlook_details:json!({"location":"Room A"}),outlook_series_id:"series".into(),outlook_occurrence_key:"remote".into(),is_recurring:false,recurrence:json!({"type":"none"}),meeting_url:None,remote:Some(RemoteIdentity{imported:true,calendar:"Calendar".into(),entry_id:"entry".into(),store_id:"store".into(),series_id:"series".into(),version:"v1".into(),..Default::default()})};
     let range=OutlookSyncRange::dates("2026-10-09","2026-10-11").unwrap();
-    let mut s=OutlookSnapshot{events:vec![e.clone()],observations:vec![],range,calendar_ref:"Calendar".into(),cancelled:vec![],warnings:vec![]};
+    let mut s=OutlookSnapshot{events:vec![e.clone()],observations:vec![],range,calendar_ref:"Calendar".into(),cancelled:vec![],legacy_removed:vec![],warnings:vec![]};
     reconcile::synchronize(&c,&s,"",tasks_revision(&c).unwrap()).unwrap();
     let task=tasks_list(&c).unwrap().remove(0);
     assert!(!task.outlook_enabled);

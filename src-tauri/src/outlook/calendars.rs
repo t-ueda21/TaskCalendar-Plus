@@ -169,3 +169,5 @@ pub fn same_calendar(a:&str,b:&str)->bool {
         _=>false,
     }
 }
+
+pub fn is_stable_reference(value:&str)->bool { matches!(reference(value),Ok(Some(_))) }
