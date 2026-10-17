@@ -72,6 +72,7 @@ pub struct OutlookSnapshot {
     pub calendar_ref: String,
     pub observations: Vec<reconcile::Observation>,
     pub cancelled: Vec<OutlookEvent>,
+    pub legacy_removed: Vec<reconcile::legacy::Target>,
     pub warnings:Vec<String>,
 }
 
@@ -142,7 +143,7 @@ impl OutlookSyncRange {
 
 struct OutlookRequest {
     tracked: Vec<reconcile::Tracked>,
-    legacy:Vec<(String,String)>,
+    legacy:Vec<reconcile::legacy::Target>,
     calendar_name: String,
     range: OutlookSyncRange,
     reply: oneshot::Sender<Result<OutlookSnapshot, String>>,
@@ -241,7 +242,7 @@ pub async fn fetch_events_in_range(calendar_name: String, range: OutlookSyncRang
 pub async fn fetch_for_sync(calendar_name: String, range: OutlookSyncRange, tracked: Vec<reconcile::Tracked>) -> Result<OutlookSnapshot, String> {
     fetch_reconcile(calendar_name,range,tracked,Vec::new()).await
 }
-pub async fn fetch_reconcile(calendar_name:String,range:OutlookSyncRange,tracked:Vec<reconcile::Tracked>,legacy:Vec<(String,String)>)->Result<OutlookSnapshot,String>{
+pub async fn fetch_reconcile(calendar_name:String,range:OutlookSyncRange,tracked:Vec<reconcile::Tracked>,legacy:Vec<reconcile::legacy::Target>)->Result<OutlookSnapshot,String>{
     let tx = worker_sender();
     let (reply_tx, reply_rx) = oneshot::channel();
     tx.send(WorkerRequest::Fetch(OutlookRequest {
@@ -710,7 +711,7 @@ fn get_outlook_events(calendar_name: &str, range: OutlookSyncRange) -> Result<Ou
         if !range.accepts_new_event(&event) {continue;}
         if active {events.push(event);}else{cancelled.push(event);}
     }
-    Ok(OutlookSnapshot { events, range,calendar_ref,observations:Vec::new(),cancelled,warnings:Vec::new() })
+    Ok(OutlookSnapshot { events, range,calendar_ref,observations:Vec::new(),cancelled,legacy_removed:Vec::new(),warnings:Vec::new() })
 }
 
 #[cfg(test)]
@@ -945,7 +946,7 @@ mod sync_range_tests {
     fn snapshot_keeps_its_fetch_dates_across_midnight_and_year_end() {
         let snapshot = OutlookSnapshot {
             events: vec![],
-            calendar_ref:String::new(), observations:Vec::new(),cancelled:Vec::new(),warnings:Vec::new(),
+            calendar_ref:String::new(), observations:Vec::new(),cancelled:Vec::new(),legacy_removed:Vec::new(),warnings:Vec::new(),
             range: OutlookSyncRange::new(at("2026-12-31 23:59:59"), 1),
         };
         // 取得完了が翌日でも、呼び出し側はsnapshotの範囲を使う。

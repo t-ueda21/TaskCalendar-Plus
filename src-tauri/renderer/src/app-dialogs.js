@@ -60,6 +60,19 @@ function showNext() {
     }
     content.append(choices);
   }
+  if (options.items) {
+    const choices = element('fieldset', 'appDialogChoices');
+    choices.append(element('legend', 'srOnly', options.title));
+    for (const item of options.items) {
+      const label = element('label', 'appDialogChoice');
+      const checkbox = element('input');
+      checkbox.type = 'checkbox'; checkbox.value = item.id; checkbox.dataset.appDialogItem = item.id;
+      const text = element('span', 'appDialogChoiceText');
+      text.append(element('strong', '', item.label), element('span', '', item.description));
+      label.append(checkbox, text); choices.append(label);
+    }
+    content.append(choices);
+  }
   const error = element('p', 'appDialogError');
   error.dataset.appDialogError = ''; error.hidden = true; error.setAttribute('role', 'alert');
   const status = element('p', 'appDialogStatus');
@@ -73,6 +86,9 @@ function showNext() {
   if (!options.alert) footer.append(cancel);
   footer.append(confirm);
   form.append(header, content, footer); dialog.append(form); document.body.append(dialog);
+  const selectedItems = () => [...form.querySelectorAll('[data-app-dialog-item]:checked')].map(node => node.value);
+  const updateSelection = () => { if (options.items) confirm.disabled = selectedItems().length === 0; };
+  form.addEventListener('change', updateSelection); updateSelection();
   let settled = false;
   let busy = false;
 
@@ -84,7 +100,7 @@ function showNext() {
     request.resolve(value);
     queueMicrotask(showNext);
   };
-  const cancelValue = options.scope ? null : options.alert ? undefined : false;
+  const cancelValue = options.scope || options.items ? null : options.alert ? undefined : false;
   cancel.addEventListener('click', () => finish(cancelValue));
   dialog.addEventListener('cancel', event => { event.preventDefault(); finish(cancelValue); });
   dialog.addEventListener('close', () => finish(cancelValue));
@@ -107,7 +123,8 @@ function showNext() {
   form.addEventListener('submit', async event => {
     event.preventDefault();
     if (busy || event.isComposing) return;
-    const value = options.scope ? form.querySelector('input[name="scope"]:checked').value : options.alert ? undefined : true;
+    const value = options.items ? selectedItems() : options.scope ? form.querySelector('input[name="scope"]:checked').value : options.alert ? undefined : true;
+    if (options.items && !value.length) return;
     if (options.onConfirm) {
       busy = true; dialog.setAttribute('aria-busy', 'true'); error.hidden = true;
       for (const control of form.querySelectorAll('button,input')) control.disabled = true;
@@ -119,6 +136,7 @@ function showNext() {
       } finally {
         busy = false; dialog.removeAttribute('aria-busy'); status.hidden = true;
         for (const control of form.querySelectorAll('button,input')) control.disabled = false;
+        updateSelection();
         confirm.focus();
       }
     }
@@ -139,4 +157,9 @@ export function showAppConfirm(message, options = {}) {
 export function chooseRecurrenceScope({ title, message, operation = 'edit', onConfirm } = {}) {
   const danger = operation === 'delete';
   return enqueue({ scope: true, danger, onConfirm, title: title || t(danger ? 'dialog.scope.delete' : 'dialog.scope.edit'), message: message || t('dialog.scope.hint'), confirmLabel: t(danger ? 'dialog.delete' : 'dialog.apply') });
+}
+
+export function chooseAppItems(message, {items, title, confirmLabel, onConfirm} = {}) {
+  if (!items?.length) return Promise.resolve(null);
+  return enqueue({items, message, title: title || t('dialog.confirm'), confirmLabel: confirmLabel || t('dialog.apply'), onConfirm});
 }

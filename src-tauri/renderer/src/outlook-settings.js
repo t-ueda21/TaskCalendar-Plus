@@ -1,5 +1,6 @@
 import { formatDateKey } from './ui-utils.js';
 import { t as translate } from './i18n.js';
+import { wireLegacySourceReview } from './outlook-legacy-source.js';
 
 export function rangePreset(kind, selected = new Date(), now = new Date()) {
   const date = kind === 'view' ? new Date(selected) : new Date(now);
@@ -14,6 +15,7 @@ export function wireOutlookSync(dialog, Store, { getTagMgrMonth, getSelectedDate
   const find = selector => dialog.querySelector(selector);
   const button = find('[data-sync-outlook-btn]'), status = find('[data-outlook-sync-status]');
   if (!button || !status) return;
+  const legacyReview = wireLegacySourceReview(dialog, Store, status);
   const mode = find('[data-outlook-fetch-mode]'), start = find('[data-outlook-start]'), end = find('[data-outlook-end]');
   const days = find('[name="outlookDays"]'), tag = find('[data-outlook-tag-select]'), calendar = find('[name="outlookCalendarName"]');
   const syncMode = () => { find('[data-outlook-date-range]').hidden = mode.value !== 'range'; days.disabled = mode.value === 'range'; };
@@ -34,6 +36,7 @@ export function wireOutlookSync(dialog, Store, { getTagMgrMonth, getSelectedDate
   dialog.addEventListener('close', () => { active?.abort(); active = null; });
   button.addEventListener('click', async () => {
     if (active) return;
+    legacyReview.update({});
     const controller = new AbortController(); active = controller;
     button.disabled = true; status.textContent = translate('outlook.loading'); status.className = 'settingsOutlookStatus';
     const timeout = setTimeout(() => controller.abort(), 60000);
@@ -49,7 +52,8 @@ export function wireOutlookSync(dialog, Store, { getTagMgrMonth, getSelectedDate
       status.textContent = translate('outlook.result', { added: data.added ?? 0, updated: data.updated ?? 0, deleted: data.deleted ?? 0, skipped: data.skipped ?? 0 });
       if (Number(data.conflicts) > 0) status.textContent += ' ' + translate('outlook.conflicts', { count: data.conflicts });
       if (Array.isArray(data.warnings) && data.warnings.length) status.textContent += '\n' + data.warnings.join(' / ');
-      status.className = 'settingsOutlookStatus ' + (data.conflicts || data.warnings?.length ? 'error' : 'success');
+      legacyReview.update(data);
+      status.className = 'settingsOutlookStatus ' + (data.conflicts || data.warnings?.length || data.legacyCandidates?.length ? 'error' : 'success');
     } catch (error) {
       if (active !== controller) return;
       status.textContent = error.name === 'AbortError' ? translate('outlook.timeout') : String(error.message ?? error);

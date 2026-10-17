@@ -1,10 +1,10 @@
 # TaskCalendar+
 
-> このブランチは **v3.0.0-pre.2** のソースです。[確認用プレリリース](https://github.com/t-ueda21/TaskCalendar-Plus/releases/tag/v3.0.0-pre.2)は手動ダウンロード用で、通常のアプリ内更新通知の対象には含めません。以下の操作説明は3.0系に合わせています。[変更内容](docs/releases/v3.0.0.md)、[スクリーンショット](docs/screenshots-v3.0.0.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)も確認できます。「最新版」へのダウンロードリンクは正式版を指します。
+> このブランチは **v3.0.2** のソースです。[修正内容](docs/releases/v3.0.2.md)、[スクリーンショット](docs/screenshots-v3.0.0.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)を確認できます。
 
 **予定を入れる。作業時間を見渡す。日報にまとめる。**
 
-Pre.2は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.0-pre.2/TaskCalendar%2B_3.0.0-pre.2_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.0-pre.2/TaskCalendar%2B_3.0.0-pre.2_x64-setup.zip)から手動で取得できます。[再公開の変更内容](docs/releases/v3.0.0-pre.2.md)を確認してください。ZIPは展開後にインストーラーを実行します。
+v3.0.2は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.2/TaskCalendar%2B_3.0.2_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.2/TaskCalendar%2B_3.0.2_x64-setup.zip)から取得できます。ZIPは展開後にインストーラーを実行します。通常のアプリ内更新にも対応します。
 
 TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windows アプリです。案件や作業の種類ごとにタグを付けると、一日・一か月の工数を集計できます。
 
@@ -158,6 +158,8 @@ CalendarからOutlookへの送信は「設定」→「Outlook」の全体スイ�
 <a href="docs/images/v3.0.0-settings/settings-outlook.png"><img src="docs/images/v3.0.0-settings/settings-outlook.png" alt="Outlookの期間指定、日付プリセット、タスク登録の既定設定" width="800" height="556"></a>
 
 Outlookで変更・削除・キャンセルされた連携予定は、次の「今すぐ取得」または自動同期で反映します。識別情報を保存した連携予定は、新規取り込みの期間より前でも状態を確認します。Outlookに連携していない手動予定は削除しません。取得エラーや確認できない状態を、削除済みとして扱いません。
+
+旧版から引き継いだ予定も、連携元が確認できていれば開始時刻後のキャンセル・削除を別途照合します。取得結果に「旧版の予定の連携元を確認」が出た場合は、その予定表から取り込んだことが分かる予定だけを選んで登録し、もう一度「今すぐ取得」を押してください。未選択の予定の連携元は変更しません。連携元や安定した識別情報がない予定、元の回を特定できない旧版の移動済み繰り返し予定は、推測で削除せず保留します。
 
 「現在時刻以降」は取得開始時点より前に始まった予定を新たに取り込みません（当日開始の終日予定も含みます）。「期間指定」は範囲と重なる予定が対象で、範囲の前に始まった複数日予定も取り込みます。既知の連携予定は保存した識別情報で別に確認し、期間外という理由だけでは削除しません。
 

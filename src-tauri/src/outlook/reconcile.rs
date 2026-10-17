@@ -2,6 +2,13 @@ use super::*;
 use rusqlite::{Connection, OptionalExtension, params};
 use serde::{Deserialize, Serialize};
 
+#[cfg(test)]
+#[path = "legacy_tests.rs"]
+mod legacy_tests;
+
+#[path = "legacy.rs"]
+pub mod legacy;
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct RemoteIdentity {
     #[serde(default)]
@@ -771,10 +778,19 @@ pub fn synchronize(
     };
     if import_is_current {
         let tracked = capture(&tx)?;
+        let mut protected_legacy=legacy::protected_keys(&tx,&snapshot.calendar_ref)?;
+        let legacy_by_key:std::collections::HashMap<_,_>=legacy::targets(&tx)?.into_iter().map(|t|(t.key.clone(),t)).collect();
+        for event in snapshot.events.iter().filter(|e|e.is_recurring) {
+            if let Some(target)=legacy_by_key.get(&event.outlook_occurrence_key)
+                && let Err(error)=legacy::recurring_removed(target,event,true) {
+                protected_legacy.insert(event.outlook_occurrence_key.clone());
+                result.warnings.push(error);
+            }
+        }
         let mut untracked: Vec<_> = snapshot
             .events
             .iter()
-            .filter(|event| !tracked.iter().any(|track| matches_event(track, event)))
+            .filter(|event| !protected_legacy.contains(&event.outlook_occurrence_key) && !tracked.iter().any(|track| matches_event(track, event)))
             .cloned()
             .collect();
         for event in &mut untracked {
@@ -794,6 +810,7 @@ pub fn synchronize(
             tag,
             snapshot.range,
             Some(&snapshot.calendar_ref),
+            false, // Missing imports require individual evidence, including legacy rows.
         )?;
         for event in &untracked {
             let Some(meta) = &event.remote else { continue };
@@ -824,11 +841,18 @@ pub fn synchronize(
                 result.warnings.push(format!("{}: {reason}", event.title));
             }
         }
-        // Explicit cancellation carries its identity even if a legacy row's source
-        // was never recorded. Absence alone is insufficient for those old rows.
+        result.deleted += legacy::apply_removed(&tx,&snapshot.legacy_removed,&snapshot.calendar_ref)?;
+        // Even explicit cancellation needs a confirmed source for old imports:
+        // copies of a meeting may share an occurrence key across calendars.
+        let mut cancellation_targets:std::collections::HashMap<_,_>=legacy::targets(&tx)?.into_iter().map(|t|(t.key.clone(),t)).collect();
         for event in &snapshot.cancelled {
-            let id:Option<String>=tx.query_row("SELECT id FROM tasks WHERE outlook_occurrence_key=?1 AND NOT EXISTS(SELECT 1 FROM outlook_links WHERE task_id=tasks.id)",params![event.outlook_occurrence_key],|r|r.get(0)).optional()?;
-            if let Some(id) = id {
+            let candidate=cancellation_targets.remove(&event.outlook_occurrence_key);
+            if let Some(target) = candidate.filter(|t|t.calendar.as_deref().is_some_and(|source|same_calendar(source,&snapshot.calendar_ref)
+                && event.remote.as_ref().is_some_and(|meta|same_calendar(source,&meta.calendar)))) {
+                if event.is_recurring && let Err(error)=legacy::recurring_removed(&target,event,false){
+                    result.warnings.push(error);continue;
+                }
+                let id=target.id;
                 tx.execute("DELETE FROM tasks WHERE id=?1", params![id])?;
                 result.deleted += 1;
             }
@@ -839,9 +863,10 @@ pub fn synchronize(
                 .into(),
         );
     }
+    let legacy_candidates=legacy::candidates(&tx)?;
     tx.commit()?;
     Ok(
-        json!({"success":true,"count":imported.count,"added":imported.added+result.restored,"updated":imported.updated+result.updated,"deleted":imported.deleted+result.deleted,"skipped":imported.skipped,"conflicts":result.conflicts,"warnings":result.warnings}),
+        json!({"success":true,"count":imported.count,"added":imported.added+result.restored,"updated":imported.updated+result.updated,"deleted":imported.deleted+result.deleted,"skipped":imported.skipped,"conflicts":result.conflicts,"warnings":result.warnings,"legacyCandidates":legacy_candidates,"calendarRef":snapshot.calendar_ref}),
     )
 }
 #[cfg(test)]
@@ -882,7 +907,7 @@ mod matrix_tests {
             range: OutlookSyncRange::dates("2026-10-09", "2026-10-09").unwrap(),
             calendar_ref: calendar.into(),
             observations: vec![],
-            cancelled: vec![],
+            cancelled: vec![], legacy_removed: vec![],
             warnings: vec![],
         }
     }
@@ -1054,13 +1079,16 @@ mod matrix_tests {
         assert_eq!(crate::repositories::tasks_list(&c).unwrap().len(), 1);
     }
     #[test]
-    fn legacy_unknown_calendar_requires_positive_cancellation_evidence() {
+    fn legacy_unknown_calendar_requires_source_confirmation_even_for_cancellation() {
         let c = db();
         c.execute("INSERT INTO tasks(id,title,date,outlook_occurrence_key,outlook_series_id,created_at,updated_at) VALUES('legacy','Meeting','2026-10-09','e1','series-e1','x','x')",[]).unwrap();
         sync(&c, &snapshot(vec![], "B"));
         assert_eq!(crate::repositories::tasks_list(&c).unwrap().len(), 1);
         let mut s = snapshot(vec![], "A");
         s.cancelled.push(event("e1", "A"));
+        sync(&c, &s);
+        assert_eq!(crate::repositories::tasks_list(&c).unwrap().len(),1);
+        c.execute("UPDATE tasks SET outlook_calendar_ref='A' WHERE id='legacy'",[]).unwrap();
         sync(&c, &s);
         assert!(crate::repositories::tasks_list(&c).unwrap().is_empty());
     }
@@ -1113,22 +1141,23 @@ pub fn validate_edit(
     Ok(())
 }
 
-pub fn legacy_targets(conn: &Connection) -> rusqlite::Result<Vec<(String, String)>> {
-    conn.prepare("SELECT outlook_occurrence_key,date FROM tasks WHERE outlook_occurrence_key IS NOT NULL AND NOT EXISTS(SELECT 1 FROM outlook_links WHERE task_id=tasks.id)")?.query_map([],|row|Ok((row.get(0)?,row.get(1)?)))?.collect()
+pub fn legacy_targets(conn: &Connection) -> rusqlite::Result<Vec<legacy::Target>> {
+    legacy::targets(conn)
 }
 pub(super) fn adopt_legacy(
     snapshot: &mut OutlookSnapshot,
     calendar: &str,
-    legacy: Vec<(String, String)>,
+    legacy: Vec<legacy::Target>,
 ) {
-    let keys: std::collections::HashSet<_> = legacy.iter().map(|(key, _)| key.as_str()).collect();
-    let months: std::collections::BTreeSet<_> = legacy
+    let scoped:Vec<_>=legacy.iter().filter(|t|t.calendar.as_deref().is_some_and(|source|same_calendar(source,&snapshot.calendar_ref))).collect();
+    let keys: std::collections::HashSet<_> = scoped.iter().map(|target| target.key.as_str()).collect();
+    let months: std::collections::BTreeSet<_> = scoped
         .iter()
-        .filter_map(|(_, date)| date.get(..7))
+        .filter_map(|target| target.date.get(..7))
         .collect();
     if months.len() > 32 {
         snapshot.warnings.push(
-            "旧データの追加確認は32か月までです。残りは期間を指定して取得してください".into(),
+            "旧予定の詳細取得は32か月までです。残りの詳細は期間を指定して取得してください".into(),
         );
     }
     for month in months.into_iter().rev().take(32) {
@@ -1148,6 +1177,9 @@ pub(super) fn adopt_legacy(
         };
         match get_outlook_events(calendar, range) {
             Ok(extra) => {
+                if !same_calendar(&extra.calendar_ref,&snapshot.calendar_ref){
+                    snapshot.warnings.push("旧予定の確認中に予定表が変わったため、反映を保留しました".into());continue;
+                }
                 for event in extra
                     .events
                     .into_iter()
@@ -1180,6 +1212,7 @@ pub(super) fn adopt_legacy(
                 .push(format!("旧データ {month} の確認を保留しました: {error}")),
         }
     }
+    legacy::inspect(snapshot,&legacy);
 }
 
 pub(super) fn restore_original(
