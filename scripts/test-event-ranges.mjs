@@ -41,7 +41,8 @@ try {
   const saved=h.state().tasks.find(t=>t.title==='Editor overnight');
   assert.equal(saved.endDate,'2026-10-09');
   assert.equal(saved.endTime,'01:15:45');
-  assert.equal(saved.memo,'A & <B>');
+  assert.equal(saved.localMemo,'A & <B>');
+  assert.equal(saved.memo,'','personal memo is not an Outlook description');
   assert.equal(await calendar.locator(`[data-weekcol][data-date="2026-10-08"] [data-task-id="${saved.id}"]`).count(),1);
   assert.equal(await calendar.locator(`[data-weekcol][data-date="2026-10-09"] [data-task-id="${saved.id}"]`).count(),1);
   assert.equal(await calendar.locator(`[data-weekcol][data-date="2026-10-09"] [data-task-id="${saved.id}"]`).getAttribute('data-start'),'00:00');

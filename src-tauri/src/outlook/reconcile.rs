@@ -100,7 +100,7 @@ pub fn migrate(conn: &Connection) -> rusqlite::Result<()> {
     }
     conn.execute("UPDATE outlook_links SET source_key=COALESCE((SELECT outlook_occurrence_key FROM tasks WHERE id=outlook_links.task_id),json_extract(COALESCE(deleted_task,last_task),'$.outlookOccurrenceKey'),CASE WHEN COALESCE(json_extract(remote_meta,'$.imported'),0)=0 THEN 'tcplus:'||external_key END) WHERE source_key IS NULL",[])?;
     conn.execute_batch("DROP TRIGGER IF EXISTS outlook_keep_deleted_snapshot; CREATE TRIGGER outlook_keep_deleted_snapshot BEFORE DELETE ON tasks WHEN EXISTS(SELECT 1 FROM outlook_links WHERE task_id=OLD.id) BEGIN
-        UPDATE outlook_links SET deleted_task=json_object('id',OLD.id,'title',OLD.title,'date',OLD.date,'startTime',OLD.start_time,'endTime',OLD.end_time,'isAllDay',json(CASE WHEN OLD.is_all_day THEN 'true' ELSE 'false' END),'tagId',OLD.tag_id,'memo',OLD.memo,'recurrence',json(CASE WHEN json_valid(OLD.recurrence) THEN OLD.recurrence ELSE '{}' END),'outlookOccurrenceKey',OLD.outlook_occurrence_key,'outlookSeriesId',OLD.outlook_series_id,'meetingUrl',OLD.meeting_url,'outlookEnabled',json(CASE WHEN OLD.outlook_enabled THEN 'true' ELSE 'false' END),'createdAt',OLD.created_at,'updatedAt',OLD.updated_at,'endDate',OLD.end_date,'outlookDetails',json(OLD.outlook_details)) WHERE task_id=OLD.id;
+        UPDATE outlook_links SET deleted_task=json_object('id',OLD.id,'title',OLD.title,'date',OLD.date,'startTime',OLD.start_time,'endTime',OLD.end_time,'isAllDay',json(CASE WHEN OLD.is_all_day THEN 'true' ELSE 'false' END),'tagId',OLD.tag_id,'memo',OLD.memo,'localMemo',OLD.local_memo,'recurrence',json(CASE WHEN json_valid(OLD.recurrence) THEN OLD.recurrence ELSE '{}' END),'outlookOccurrenceKey',OLD.outlook_occurrence_key,'outlookSeriesId',OLD.outlook_series_id,'meetingUrl',OLD.meeting_url,'outlookEnabled',json(CASE WHEN OLD.outlook_enabled THEN 'true' ELSE 'false' END),'createdAt',OLD.created_at,'updatedAt',OLD.updated_at,'endDate',OLD.end_date,'outlookDetails',json(OLD.outlook_details)) WHERE task_id=OLD.id;
         UPDATE outlook_links SET incoming_enabled=0 WHERE task_id=OLD.id AND OLD.outlook_enabled=0;
       END;")?;
     Ok(())
@@ -226,7 +226,7 @@ pub fn apply(conn: &Connection, observations: &[Observation]) -> rusqlite::Resul
                     if !identity.imported {
                         rec = saved.get("recurrence").cloned().unwrap_or(rec);
                     }
-                    let input=serde_json::from_value(json!({"id":track.id,"createdAt":saved.get("createdAt"),"title":event.title,"date":event.date,"endDate":event.end_date,"outlookDetails":event.outlook_details,"isAllDay":event.is_all_day,"startTime":event.start_time,"endTime":event.end_time,"memo":event.location,"recurrence":rec,"tagId":saved.get("tagId").and_then(Value::as_str).unwrap_or("")})).map_err(|e|rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
+                    let input=serde_json::from_value(json!({"id":track.id,"createdAt":saved.get("createdAt"),"title":event.title,"date":event.date,"endDate":event.end_date,"outlookDetails":event.outlook_details,"isAllDay":event.is_all_day,"startTime":event.start_time,"endTime":event.end_time,"memo":event.location,"localMemo":saved.get("localMemo"),"recurrence":rec,"tagId":saved.get("tagId").and_then(Value::as_str).unwrap_or("")})).map_err(|e|rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
                     crate::repositories::tasks_insert(tx, input)?;
                     result.restored += 1;
                 }

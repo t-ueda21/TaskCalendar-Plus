@@ -63,3 +63,39 @@ fn incoming_details_update_with_outgoing_off_without_erasing_unsent_local_edits(
     let result=reconcile::synchronize(&c,&s,"",tasks_revision(&c).unwrap()).unwrap();
     assert_eq!(result["conflicts"],1);assert_eq!(tasks_list(&c).unwrap()[0].title,"Unsent local edit");
 }
+#[test]
+fn personal_memo_is_separate_from_outlook_body_and_survives_updates() {
+    let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    let task=tasks_insert(&c,serde_json::from_value(json!({"id":"note","title":"Meeting","date":"2026-10-20","startTime":"09:00","endTime":"10:00","memo":"Outlook meeting body","localMemo":"My note","outlookOccurrenceKey":"external-key","outlookDetails":{"location":"Room A"}})).unwrap()).unwrap();
+    assert_eq!(serde_json::to_value(&task).unwrap()["localMemo"],"My note");
+    assert_eq!(task.memo,"Outlook meeting body");
+    let mut patch=serde_json::to_value(&task).unwrap();patch["localMemo"]=json!("New personal note");
+    let task=tasks_update(&c,"note",serde_json::from_value(patch).unwrap()).unwrap().unwrap();
+    assert_eq!(task.memo,"Outlook meeting body");
+    assert_eq!(serde_json::to_value(&task).unwrap()["localMemo"],"New personal note");
+    c.execute("UPDATE tasks SET memo='New Outlook body' WHERE id='note'",[]).unwrap();
+    assert_eq!(serde_json::to_value(tasks_get(&c,"note").unwrap().unwrap()).unwrap()["localMemo"],"New personal note");
+}
+#[test]
+fn personal_note_changes_never_queue_outbound_and_survive_batch_undo() {
+    let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    let task=tasks_insert(&c,serde_json::from_value(json!({"id":"linked-note","title":"Meeting","date":"2026-10-20","startTime":"09:00","endTime":"10:00","memo":"Remote body","localMemo":"Before","outlookEnabled":true})).unwrap()).unwrap();
+    c.execute("UPDATE outlook_jobs SET status='done'",[]).unwrap();
+    let mut changed=serde_json::to_value(&task).unwrap();changed["localMemo"]=json!("After");
+    let changed=tasks_update(&c,&task.id,serde_json::from_value(changed).unwrap()).unwrap().unwrap();
+    let status:String=c.query_row("SELECT status FROM outlook_jobs WHERE task_id=?1",[&task.id],|r|r.get(0)).unwrap();assert_eq!(status,"done");
+    let batch=json!({"expected":[{"id":task.id,"updatedAt":changed.updated_at}],"upserts":[serde_json::to_value(&task).unwrap()],"deleteIds":[]});
+    assert!(tasks_batch(&c,serde_json::from_value(batch).unwrap()).is_ok());
+    let saved=tasks_get(&c,&task.id).unwrap().unwrap();assert_eq!(saved.personal_memo(),"Before");assert_eq!(saved.memo,"Remote body");
+    tasks_remove(&c,&task.id).unwrap();
+    let archived:String=c.query_row("SELECT deleted_task FROM outlook_links WHERE task_id=?1",[&task.id],|r|r.get(0)).unwrap();assert_eq!(serde_json::from_str::<Value>(&archived).unwrap()["localMemo"],"Before");
+}
+
+#[test]
+fn migration_preserves_local_notes_and_separates_imported_body_without_erasing_it() {
+    let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    c.execute("INSERT INTO tasks(id,date,memo,outlook_occurrence_key,created_at,updated_at) VALUES('local','2026-10-20','Existing note',NULL,'x','x'),('remote','2026-10-20','Outlook body','uid|date','x','x')",[]).unwrap();
+    crate::db::migrate(&c,"2026-10").unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    let local=tasks_get(&c,"local").unwrap().unwrap();let remote=tasks_get(&c,"remote").unwrap().unwrap();
+    assert_eq!(local.personal_memo(),"Existing note");assert_eq!(remote.personal_memo(),"");assert_eq!(remote.memo,"Outlook body");
+}

@@ -197,7 +197,7 @@ impl Data {
             "minutes": minutes,
             "durationSeconds": self.seconds(task),
             "duration": format_minutes(minutes),
-            "memo": task.memo,
+            "memo": task.personal_memo(),
         })
     }
 
@@ -214,7 +214,7 @@ impl Data {
             .filter(|t| tag.is_none_or(|name| contains_ci(&self.tag_name(t), name)))
             .filter(|t| {
                 let tag_name = self.tag_name(t);
-                words.iter().all(|w| contains_ci(&t.title, w) || contains_ci(&t.memo, w) || contains_ci(&tag_name, w))
+                words.iter().all(|w| contains_ci(&t.title, w) || contains_ci(t.personal_memo(), w) || contains_ci(&t.memo, w) || contains_ci(&tag_name, w))
             })
             .collect();
         rows.sort_by(|a, b| a.date.cmp(&b.date).then(a.start_time.cmp(&b.start_time)));
@@ -469,7 +469,7 @@ fn task_as_map(data: &Data, task: &repo::TaskRow) -> Map<String, Value> {
     m.insert("allDay".into(), json!(task.is_all_day));
     m.insert("title".into(), json!(task.title));
     m.insert("tagName".into(), json!(data.tag_name(task)));
-    m.insert("memo".into(), json!(task.memo));
+    m.insert("memo".into(), json!(task.personal_memo()));
     m
 }
 

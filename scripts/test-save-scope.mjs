@@ -25,7 +25,7 @@ try{
   await h.page.evaluate(async mode=>{const S=await import('/src/store.js'),U=await import('/src/ui-utils.js');await S.createTask({title:'Range '+mode,date:'2026-10-08',startTime:'09:00',endTime:'10:00',tagId:'tag-design',recurrence:{type:'weekly',until:'2026-10-22'}});const t=S.getAllTasks().find(t=>t.title==='Range '+mode&&t.date==='2026-10-15');U.openEditDialog(document.querySelector('[data-view="calendar"] [data-task-dialog]'),t,S.getAllTags());},mode);
   const d=h.page.locator('[data-view="calendar"] [data-task-dialog]');await d.locator('[name=memo]').fill('Range change');await d.locator('[data-save]').click();
   const c=h.page.locator('[data-save-scope]');await c.waitFor();await c.locator(`[value=${mode}]`).check();await c.locator('[data-scope-confirm]').click();await d.waitFor({state:'hidden'});
-  assert.equal(h.state().tasks.filter(t=>t.title==='Range '+mode&&t.memo==='Range change').length,mode==='future'?2:3);
+  assert.equal(h.state().tasks.filter(t=>t.title==='Range '+mode&&t.localMemo==='Range change').length,mode==='future'?2:3);
  }
  assert.deepEqual(h.pageErrors,[]);
  console.log('PASS: both editors confirm before saving, back preserves input, single scope, hidden metadata retained');

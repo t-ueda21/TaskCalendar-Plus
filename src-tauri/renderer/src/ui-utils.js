@@ -1,6 +1,6 @@
+import { personalMemo, memoPatch } from './task-notes.js';
 import { prepareTaskEditor } from './task-editor-presentation.js';
 import { showAppConfirm } from "./app-dialogs.js";
-import { populateNativeRecurrence, readNativeRecurrence } from "./native-recurrence.js";
 /**
  * ui-utils.js — 画面共通のユーティリティ
  *
@@ -741,7 +741,6 @@ export function openCreateDialog(dialog, opts = {}) {
   _wireRecurrenceControls(dialog);
   _syncRecurrenceControls(dialog);
 
-  populateNativeRecurrence(dialog, dialog._eventOriginal || {});
   dialog._recurrenceChanged = false;
   prepareTaskEditor(dialog);
   dialog.showModal();
@@ -766,7 +765,7 @@ export function openEditDialog(dialog, task, tags) {
   dialog.querySelector("[name='startTime']").value = task.startTime ?? "09:00";
   dialog.querySelector("[name='endTime']").value   = task.endTime   ?? "10:00";
   dialog.querySelector("[name='allDay']").checked  = Boolean(task.isAllDay);
-  dialog.querySelector("[name='memo']").value      = task.memo      ?? "";
+  dialog.querySelector("[name='memo']").value      = personalMemo(task);
   const outlook = dialog.querySelector('[name="outlookEnabled"]');
   if (outlook) { outlook.checked = Boolean(task.outlookEnabled); outlook.disabled = false; }
   if (dialog.querySelector("[name='date']")) {
@@ -786,7 +785,6 @@ export function openEditDialog(dialog, task, tags) {
   _syncRecurrenceControls(dialog);
 
   dialog.setAttribute("data-edit-id", task.id);
-  populateNativeRecurrence(dialog, dialog._eventOriginal || {});
   dialog._recurrenceChanged = false;
   prepareTaskEditor(dialog);
   dialog.showModal();
@@ -820,9 +818,9 @@ export function readDialogForm(dialog) {
     endTime:   dialog.querySelector("[name='endTime']")?.value   ?? "10:00",
     isAllDay:  dialog.querySelector("[name='allDay']")?.checked  ?? false,
     tagId:     dialog.querySelector("[name='tag']")?.value       ?? "",
-    recurrence: readNativeRecurrence(dialog) || (dialog._originalRecurrence?.native && dialog._nativeRecurrenceChanged ? {type:"none"} : dialog._originalRecurrence && !dialog._recurrenceChanged ? structuredClone(dialog._originalRecurrence) : recurrence),
+    recurrence: dialog._originalRecurrence && (dialog._originalRecurrence.native || !dialog._recurrenceChanged) ? structuredClone(dialog._originalRecurrence) : recurrence,
     ...readEventFields(dialog),
-    memo:      (dialog.querySelector("[name='memo']")?.value     ?? "").trim(),
+    ...memoPatch(dialog._eventOriginal, dialog.querySelector("[name='memo']")?.value),
     date,
   };
 }

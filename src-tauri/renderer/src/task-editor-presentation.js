@@ -2,6 +2,15 @@ import { t, formatDate } from './i18n.js';
 
 export function refreshTaskEditor(dialog) {
   const field = name => dialog.querySelector(`[name="${name}"]`);
+  const native = Boolean(dialog._originalRecurrence?.native);
+  const repeatLabel = dialog.querySelector('.taskEditorRepeat > label');
+  if (repeatLabel) { repeatLabel.dataset.i18n = 'ui.d22642e52b'; repeatLabel.textContent = t(repeatLabel.dataset.i18n); }
+  const group = dialog.querySelector('[data-btn-group="repeat"]');
+  if (group) { group.hidden = native; group.querySelectorAll('button').forEach(button => { button.disabled = native; }); }
+  const rule = dialog.querySelector('[data-editor-native-rule]');
+  if (rule) rule.hidden = !native;
+  const period = dialog.querySelector('[data-repeat-period-row]');
+  if (period && native) period.hidden = true;
   const allDay = field('allDay')?.checked;
   dialog.querySelectorAll('[data-editor-time]').forEach(row => { row.hidden = Boolean(allDay); });
   const enabled = field('outlookEnabled')?.checked;

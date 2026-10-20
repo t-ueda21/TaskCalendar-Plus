@@ -1,3 +1,4 @@
+import {personalMemo,memoPatch} from '../src-tauri/renderer/src/task-notes.js';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
@@ -10,7 +11,7 @@ const proposalCode = source.slice(source.indexOf(proposalStart), source.indexOf(
 const snapshot = {title:'会議', date:'2026-09-26', startTime:'09:00', endTime:'10:00', memo:'旧メモ', tagName:'作業', allDay:false};
 function proposalContext(current) {
   const operations=[];
-  const ctx=vm.createContext({t,th,translate:t,translateHtml:th,Store:{
+  const ctx=vm.createContext({personalMemo,memoPatch,t,th,translate:t,translateHtml:th,Store:{
     refreshTasks:async()=>{},getAllTasks:()=>current?[current]:[],getAllTags:()=>[{id:'work',name:'作業'}],
     updateTask:async(id,patch,options)=>{operations.push({kind:'update',id,patch,options});return {...current,...patch};},
     deleteTaskWithMode:async(id,mode,options)=>{operations.push({kind:'delete',id,mode,options});},

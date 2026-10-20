@@ -668,6 +668,7 @@ function _makeTaskEntity(data, dateKey, recurrence, nowIso) {
     tagId:     String(data.tagId  ?? ""),
     recurrence,
     memo:      String(data.memo   ?? "").trim(),
+    ...(data.localMemo !== undefined ? {localMemo:data.localMemo} : {}),
     outlookEnabled: data.outlookEnabled === undefined ? _settings.outlookWriteDefault : data.outlookEnabled === true,
     createdAt: nowIso,
     updatedAt: nowIso,

@@ -1,10 +1,10 @@
 # TaskCalendar+
 
-> このブランチは **v3.0.2** のソースです。[修正内容](docs/releases/v3.0.2.md)、[スクリーンショット](docs/screenshots-v3.0.0.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)を確認できます。
+> このブランチは **v3.0.3** のソースです。[修正内容](docs/releases/v3.0.3.md)、[スクリーンショット](docs/screenshots-v3.0.0.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)を確認できます。
 
 **予定を入れる。作業時間を見渡す。日報にまとめる。**
 
-v3.0.2は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.2/TaskCalendar%2B_3.0.2_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.2/TaskCalendar%2B_3.0.2_x64-setup.zip)から取得できます。ZIPは展開後にインストーラーを実行します。通常のアプリ内更新にも対応します。
+v3.0.3は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.3/TaskCalendar%2B_3.0.3_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.3/TaskCalendar%2B_3.0.3_x64-setup.zip)から取得できます。ZIPは展開後にインストーラーを実行します。通常のアプリ内更新にも対応します。
 
 TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windows アプリです。案件や作業の種類ごとにタグを付けると、一日・一か月の工数を集計できます。
 

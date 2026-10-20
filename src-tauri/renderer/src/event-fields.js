@@ -81,16 +81,19 @@ export function populateEventFields(dialog, task = {}) {
     if (key === 'reminderSet') input.checked = value;
     else input.value = value;
   }
-  for (const key of ['organizer','attendees','attachments']) {
+  for (const key of ['location','organizer','attendees','attachments']) {
     const el = dialog.querySelector(`[data-event-${key}]`);
     if (!el) continue;
     const value = task.outlookDetails?.[key];
+    const hasValue = Array.isArray(value) ? value.length > 0 : Boolean(value);
+    const row = el.closest('.formRow');
+    if (row) row.hidden = key !== 'location' && !hasValue;
     el.textContent = Array.isArray(value) ? value.map(item => key === 'attendees'
       ? [item.name, item.address, item.type != null ? `(${t(`event.attendee${item.type}`)}; ${t(`event.response${item.responseStatus ?? 0}`)})` : ''].filter(Boolean).join(' ')
       : `${item.name || ''}${item.size != null ? ` (${item.size} B)` : ''}`).join('\n') : String(value || '—');
   }
   const meeting = dialog.querySelector('[data-editor-meeting]');
-  if (meeting) meeting.hidden = !['organizer','attendees','attachments'].some(key => {
+  if (meeting) meeting.hidden = !['location','organizer','attendees','attachments'].some(key => {
     const value = task.outlookDetails?.[key];
     return Array.isArray(value) ? value.length > 0 : Boolean(value);
   });

@@ -14,7 +14,10 @@ export default {
     "editor.saveChanges": "変更を保存",
     "editor.chooseRange": "変更範囲を選ぶ",
     "editor.registerTitle": "タスクを登録",
-    "editor.repeatSummary": "{start} から {end} まで"
+    "editor.repeatSummary": "{start} から {end} まで",
+    "editor.room": "会議室・場所（Outlook）",
+    "editor.outlookBody": "Outlookの説明",
+    "editor.outlookRule": "Outlookで設定された繰り返し（変更せず保持）"
   },
   "en": {
     "editor.repeatQuestion": "How often does this repeat?",
@@ -31,7 +34,10 @@ export default {
     "editor.saveChanges": "Save changes",
     "editor.chooseRange": "Choose occurrences",
     "editor.registerTitle": "Create a task",
-    "editor.repeatSummary": "{start} to {end}"
+    "editor.repeatSummary": "{start} to {end}",
+    "editor.room": "Room / location (Outlook)",
+    "editor.outlookBody": "Outlook description",
+    "editor.outlookRule": "Outlook recurrence rule (preserved)"
   },
   "ko": {
     "editor.repeatQuestion": "얼마나 자주 반복하나요?",
@@ -48,7 +54,10 @@ export default {
     "editor.saveChanges": "변경 저장",
     "editor.chooseRange": "변경 범위 선택",
     "editor.registerTitle": "작업 등록",
-    "editor.repeatSummary": "{start}부터 {end}까지"
+    "editor.repeatSummary": "{start}부터 {end}까지",
+    "editor.room": "회의실 / 장소 (Outlook)",
+    "editor.outlookBody": "Outlook 설명",
+    "editor.outlookRule": "Outlook 반복 규칙 (유지)"
   },
   "zh-CN": {
     "editor.repeatQuestion": "多久重复一次？",
@@ -65,7 +74,10 @@ export default {
     "editor.saveChanges": "保存更改",
     "editor.chooseRange": "选择更改范围",
     "editor.registerTitle": "创建任务",
-    "editor.repeatSummary": "{start} 至 {end}"
+    "editor.repeatSummary": "{start} 至 {end}",
+    "editor.room": "会议室 / 地点（Outlook）",
+    "editor.outlookBody": "Outlook说明",
+    "editor.outlookRule": "Outlook重复规则（保持不变）"
   },
   "zh-TW": {
     "editor.repeatQuestion": "多久重複一次？",
@@ -82,7 +94,10 @@ export default {
     "editor.saveChanges": "儲存變更",
     "editor.chooseRange": "選擇變更範圍",
     "editor.registerTitle": "建立工作",
-    "editor.repeatSummary": "{start} 至 {end}"
+    "editor.repeatSummary": "{start} 至 {end}",
+    "editor.room": "會議室 / 地點（Outlook）",
+    "editor.outlookBody": "Outlook說明",
+    "editor.outlookRule": "Outlook重複規則（保持不變）"
   },
   "es": {
     "editor.repeatQuestion": "¿Con qué frecuencia se repite?",
@@ -99,7 +114,10 @@ export default {
     "editor.saveChanges": "Guardar cambios",
     "editor.chooseRange": "Elegir eventos",
     "editor.registerTitle": "Crear una tarea",
-    "editor.repeatSummary": "De {start} a {end}"
+    "editor.repeatSummary": "De {start} a {end}",
+    "editor.room": "Sala / lugar (Outlook)",
+    "editor.outlookBody": "Descripción de Outlook",
+    "editor.outlookRule": "Repetición de Outlook (se conserva)"
   },
   "fr": {
     "editor.repeatQuestion": "À quelle fréquence répéter ?",
@@ -116,7 +134,10 @@ export default {
     "editor.saveChanges": "Enregistrer",
     "editor.chooseRange": "Choisir les occurrences",
     "editor.registerTitle": "Créer une tâche",
-    "editor.repeatSummary": "Du {start} au {end}"
+    "editor.repeatSummary": "Du {start} au {end}",
+    "editor.room": "Salle / lieu (Outlook)",
+    "editor.outlookBody": "Description Outlook",
+    "editor.outlookRule": "Récurrence Outlook (conservée)"
   },
   "de": {
     "editor.repeatQuestion": "Wie oft wiederholen?",
@@ -133,7 +154,10 @@ export default {
     "editor.saveChanges": "Änderungen speichern",
     "editor.chooseRange": "Termine auswählen",
     "editor.registerTitle": "Aufgabe erstellen",
-    "editor.repeatSummary": "{start} bis {end}"
+    "editor.repeatSummary": "{start} bis {end}",
+    "editor.room": "Raum / Ort (Outlook)",
+    "editor.outlookBody": "Outlook-Beschreibung",
+    "editor.outlookRule": "Outlook-Wiederholung (bleibt erhalten)"
   },
   "pt": {
     "editor.repeatQuestion": "Com que frequência repetir?",
@@ -150,6 +174,9 @@ export default {
     "editor.saveChanges": "Guardar alterações",
     "editor.chooseRange": "Escolher ocorrências",
     "editor.registerTitle": "Criar tarefa",
-    "editor.repeatSummary": "De {start} a {end}"
+    "editor.repeatSummary": "De {start} a {end}",
+    "editor.room": "Sala / local (Outlook)",
+    "editor.outlookBody": "Descrição do Outlook",
+    "editor.outlookRule": "Recorrência do Outlook (preservada)"
   }
 };

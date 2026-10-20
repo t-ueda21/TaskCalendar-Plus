@@ -1,3 +1,4 @@
+import { personalMemo } from './task-notes.js';
 import { t as translate, th as translateHtml } from './i18n.js';
 /**
  * ai-memory.js
@@ -96,7 +97,7 @@ export async function summarizeDay(dateKey, { overwrite = false } = {}) {
     ...tasks.slice(0, 80).map((task) => {
       const tag = tagById.get(String(task.tagId ?? "")) || translate('ui.af1cc864e3');
       const time = task.isAllDay ? translate('ui.0aff5cf2d8') : `${task.startTime ?? "--:--"}-${task.endTime ?? "--:--"}`;
-      const memo = String(task.memo ?? "").trim();
+      const memo = personalMemo(task).trim();
       return translate('ui.d901206d87', { p0: (time), p1: (String(task.title ?? "").trim() || "無題"), p2: (tag), p3: (Store.taskDurationMinutes(task)), p4: (memo ? ` メモ:${memo}` : "") });
     }),
     translate('ui.e966ed6e9c'),

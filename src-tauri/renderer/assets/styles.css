@@ -3646,49 +3646,49 @@ button:focus-visible,
 .saveScopeChoice small { display:block; margin-top:5px; color:var(--muted); font-size:12px; line-height:1.6; }
 .saveScopeDialog footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
 .saveScopeDialog button { min-height:40px; }
-/* Approved B mock: title-first form, separated groups and explicit send state. */
-[data-task-dialog] { width:min(720px,calc(100vw - 32px)); border-radius:15px; font-family:'Segoe UI','Meiryo',sans-serif; }
-[data-task-dialog] > header { padding:22px 26px; border-bottom:1px solid var(--border); }
+/* Compact task-editor mock: aligned date/time columns and an all-day group header. */
+[data-task-dialog] { width:min(600px,calc(100vw - 32px)); border-radius:14px; font-family:'Segoe UI','Meiryo',sans-serif; }
+[data-task-dialog] > header { padding:18px 24px 14px; border-bottom:1px solid var(--border); }
 [data-task-dialog] > header h2 { margin:0; font-size:18px; font-weight:600; }
-[data-task-dialog] [data-editor-context] { margin:6px 0 0; font-size:11px; font-weight:400; color:var(--muted); }
-[data-task-dialog] > form.taskEditorForm { padding:24px 26px; gap:18px 16px; background:var(--panel); }
-[data-task-dialog] .formRow > label:first-child { font-size:13px; font-weight:600; color:var(--muted); }
-[data-task-dialog] input:not([type=hidden]):not([type=checkbox]), [data-task-dialog] textarea, [data-task-dialog] select { min-height:42px; padding:11px 12px; border-radius:8px; font-size:14px; font-weight:400; }
+[data-task-dialog] [data-editor-context] { margin:4px 0 0; font-size:12px; font-weight:400; color:var(--muted); }
+[data-task-dialog] > form.taskEditorForm { padding:18px 24px; gap:14px; background:var(--panel); }
+[data-task-dialog] .formRow { gap:6px; }
+[data-task-dialog] .formRow > label:first-child { font-size:13px; font-weight:600; color:var(--muted); line-height:18px; }
+[data-task-dialog] input:not([type=hidden]):not([type=checkbox]), [data-task-dialog] textarea, [data-task-dialog] select { min-height:44px; padding:10px 12px; border-radius:9px; font-size:14px; font-weight:400; line-height:22px; }
 [data-task-dialog] .timeStepperWrap input:not([type=hidden]):not([type=checkbox]) { border-top-right-radius:0; border-bottom-right-radius:0; }
-[data-task-dialog] .timeStepperBtns { flex-basis:32px; border-radius:0 8px 8px 0; }
-[data-task-dialog] .timeStepperBtn { width:100%; font-size:9px; }
+[data-task-dialog] .timeStepperBtns { flex-basis:28px; border-radius:0 9px 9px 0; }
+[data-task-dialog] .timeStepperBtn { width:100%; font-size:10px; }
 [data-task-dialog] .timeStepperBtn + .timeStepperBtn { border-top:1px solid var(--border); }
-[data-task-dialog] .taskEditorAllDay { grid-column:1/-1; }
-[data-task-dialog] .taskEditorAllDay label { display:flex; align-items:center; gap:8px; font-size:13px; }
-[data-task-dialog] .taskEditorAllDay input { accent-color:var(--accent); width:16px; height:16px; }
-[data-task-dialog] .btnGroup { gap:6px; }
-[data-task-dialog] .btnGroupItem { min-height:34px; padding:8px 15px; border:1px solid var(--border-strong); font-size:12px; font-weight:400; border-radius:20px; }
+[data-task-dialog] .taskEditorDateTime { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 12px; min-width:0; }
+[data-task-dialog] .taskEditorDateTime .formRow { grid-column:auto; }
+[data-task-dialog] .taskEditorDateTimeHeader { grid-column:1/-1; display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:13px; font-weight:600; }
+[data-task-dialog] .taskEditorAllDay { display:flex; align-items:center; gap:7px; min-height:24px; font-size:13px; font-weight:400; cursor:pointer; }
+[data-task-dialog] .taskEditorAllDay input { accent-color:var(--accent); width:16px; height:16px; margin:0; }
+[data-task-dialog] .btnGroup { gap:7px; }
+[data-task-dialog] .btnGroupItem { min-height:36px; padding:7px 14px; border:1px solid var(--border-strong); font-size:13px; font-weight:400; border-radius:20px; }
 [data-task-dialog] .btnGroupItem.active { background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
-[data-task-dialog] .taskEditorRepeat { border-top:1px solid var(--border); padding-top:24px; margin-top:5px; }
-[data-task-dialog] [data-repeat-period-row], [data-task-dialog] [data-editor-advanced-rule], [data-task-dialog] .taskEditorOutlook, [data-task-dialog] .taskEditorMeeting { grid-column:1/-1; }
+[data-task-dialog] [data-repeat-period-row], [data-task-dialog] .taskEditorOutlook, [data-task-dialog] .taskEditorMeeting { grid-column:1/-1; }
 [data-task-dialog] .taskEditorSchedule { margin:0; font-size:12px; color:var(--accent); }
-[data-task-dialog] [data-editor-advanced-rule] { font-size:12px; }
-[data-task-dialog] [data-editor-advanced-rule]:empty { display:none; }
-[data-task-dialog] [data-native-recurrence] { margin:0; padding:0; border:0; }
-[data-task-dialog] [data-native-recurrence] summary { font-size:12px; color:var(--muted); cursor:pointer; }
-[data-task-dialog] .taskEditorOutlook { border-top:1px solid var(--border); padding-top:24px; margin-top:5px; }
+[data-task-dialog] .taskEditorOutlook { border-top:1px solid var(--border); padding-top:16px; }
 [data-task-dialog] .taskEditorSendRow { display:flex; align-items:center; justify-content:space-between; gap:16px; font-size:13px; font-weight:600; cursor:pointer; }
-[data-task-dialog] .taskEditorSyncStatus { margin:10px 0 0; padding:10px 12px; background:var(--editor-status-bg,#f3f6f9); color:var(--muted); font-size:12px; border-radius:7px; line-height:1.8; }
-[data-task-dialog] .taskEditorMeeting { border-top:1px solid var(--border); padding-top:18px; display:grid; gap:16px; }
-[data-task-dialog] .taskEditorMeeting [data-event-organizer], [data-task-dialog] .taskEditorMeeting [data-event-attendees], [data-task-dialog] .taskEditorMeeting [data-event-attachments] { white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; }
+[data-task-dialog] .taskEditorSyncStatus { margin:5px 0 0; padding:0; color:var(--muted); font-size:12px; line-height:18px; }
+[data-task-dialog] .taskEditorMeeting { display:grid; gap:12px; }
+[data-task-dialog] .taskEditorMeeting .formRow { display:flex; flex-direction:row; align-items:baseline; gap:14px; font-size:13px; }
+[data-task-dialog] .taskEditorMeeting .formRow > span { flex-shrink:0; color:var(--muted); }
+[data-task-dialog] .taskEditorMeeting .formRow > div { min-width:0; white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; font-weight:400; }
 [data-task-dialog] .taskEditorMeeting[hidden] { display:none; }
-[data-task-dialog] > footer { padding:17px 26px; }
-[data-task-dialog] textarea[name=memo] { min-height:76px; }
-@media(max-width:520px) {
-  [data-task-dialog] > form.taskEditorForm { padding:20px; gap:16px; }
-  [data-task-dialog] > header, [data-task-dialog] > footer { padding:18px 20px; }
+[data-task-dialog] > footer { padding:14px 24px; }
+[data-task-dialog] > footer .btn { min-height:40px; }
+[data-task-dialog] textarea[name=memo] { height:86px; min-height:86px; }
+@media(max-width:420px) {
+  [data-task-dialog] > form.taskEditorForm { padding:18px; }
+  [data-task-dialog] > header, [data-task-dialog] > footer { padding-left:18px; padding-right:18px; }
+  [data-task-dialog] .taskEditorMeeting .formRow { flex-direction:column; gap:3px; }
 }
 [data-task-dialog] .taskEditorSendRow .uiToggle { position:relative; display:inline-flex; flex-shrink:0; }
 [data-task-dialog] .taskEditorSendRow .uiToggleInput { inset:0; width:100%; height:100%; z-index:1; cursor:pointer; }
-[data-task-dialog] .taskEditorSendRow .themeToggleTrack { pointer-events:none; }
-
-[data-theme="dark"] [data-task-dialog] { --editor-status-bg:#252f42; }
-[data-task-dialog] .taskEditorSendRow .themeToggleTrack { width:39px; height:23px; flex-basis:39px; border:0; background:#cbd4dd; }
+[data-task-dialog] .taskEditorSendRow .themeToggleTrack { pointer-events:none; width:39px; height:23px; flex-basis:39px; border:0; background:#cbd4dd; }
 [data-task-dialog] .taskEditorSendRow .themeToggleThumb { top:3px; left:3px; width:17px; height:17px; background:#fff; }
 [data-task-dialog] .taskEditorSendRow .uiToggle:has(input:checked) .themeToggleTrack { background:var(--accent); }
 [data-task-dialog] .taskEditorSendRow .uiToggle:has(input:checked) .themeToggleThumb { transform:translateX(16px); }
+[data-task-dialog] .taskEditorRuleReference { grid-column:1/-1; margin:0; color:var(--muted); font-size:12px; }

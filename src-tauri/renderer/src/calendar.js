@@ -1,3 +1,4 @@
+import { personalMemo } from './task-notes.js';
 import { wireTaskEditor, deleteTaskByChoice } from './task-editor-controller.js';
 import { eventDaySegment, shiftEventDate, moveEventRange, resizeEventRange, eventDateKeys } from "./event-fields.js";
 import { t as translate, th as translateHtml } from './i18n.js';
@@ -715,6 +716,16 @@ function _renderTimeGrids() {
 }
 
 // ── タスクブロック描画 ────────────────────────────────
+function _taskHoverText(task, tag) {
+  const time = task.isAllDay ? translate('ui.598512328d') : `${task.startTime ?? ""}-${task.endTime ?? ""}`;
+  const location = String(task.outlookDetails?.location ?? '').trim();
+  return [
+    `${task.title || translate('ui.6ada6dbdde')} (${time}${tag?.name ? ` / ${tag.name}` : ""})`,
+    location ? `${translate('editor.room')}: ${location}` : '',
+    personalMemo(task).trim(),
+  ].filter(Boolean).join('\n');
+}
+
 function _makeTaskBlock(task, tags, dateKey = task.date) {
   const segment = eventDaySegment(task, dateKey) || task;
   const allTags = Store.getAllTags();
@@ -742,8 +753,7 @@ function _makeTaskBlock(task, tags, dateKey = task.date) {
     ? `<button type="button" class="taskTeamsJoinBtn" title="Teams${translateHtml('ui.2bb89d4102')}">📹</button>`
     : "";
   el.innerHTML = `<span class="taskMain">${titleText}</span><small>${escHtml(subLine)}</small>${teamsBtn}`;
-  const memoText = String(task.memo ?? "").trim();
-  el.title = `${task.title || translate('ui.6ada6dbdde')} (${task.startTime ?? ""}-${task.endTime ?? ""}${tag?.name ? ` / ${tag.name}` : ""})${memoText ? `\n${memoText}` : ""}`;
+  el.title = _taskHoverText(task, tag);
 
   if (task.meetingUrl) {
     el.querySelector(".taskTeamsJoinBtn")?.addEventListener("click", (e) => {
@@ -936,6 +946,7 @@ function _renderAllDayLaneSingle(tasks) {
     pill.setAttribute("data-task-id", t.id);
     if (isRecurring) pill.setAttribute("data-recurring", "1");
     pill.textContent = `${t.title}${tag?.name ? ` / ${tag.name}` : ""}`;
+    pill.title = _taskHoverText(t, tag);
     pill.style.cursor = "pointer";
     pill.addEventListener("click", () => {
       _setFocusedTaskElement(pill);
@@ -971,6 +982,7 @@ function _renderAllDayLane() {
       pill.setAttribute("data-task-id", t.id);
       if (isRecurring) pill.setAttribute("data-recurring", "1");
       pill.textContent = `${t.title}${tag?.name ? ` / ${tag.name}` : ""}`;
+      pill.title = _taskHoverText(t, tag);
       pill.style.cursor = "pointer";
       pill.addEventListener("click", () => {
         _setFocusedTaskElement(pill);

@@ -1,3 +1,4 @@
+import { personalMemo, memoPatch } from './task-notes.js';
 import { t as translate, th as translateHtml, weekdayLabels } from './i18n.js';
 /**
  * ai-mode.js
@@ -135,7 +136,7 @@ function _proposalRows(proposal) {
     [translate('ui.11b74db9d1'), _taskLabel(task)],
     [translate('ui.a20f57232e'), task.title ?? ""],
     [translate('ui.302eafc71d'), task.tagName ? `${task.tagName}${proposal.newTag ? translate('ui.d0bd1c2904') : ""}` : translate('ui.868310e193')],
-    ...(task.memo ? [[translate('ui.99fa5c96e0'), task.memo]] : []),
+    ...(personalMemo(task) ? [[translate('ui.99fa5c96e0'), personalMemo(task)]] : []),
   ];
 }
 
@@ -237,7 +238,7 @@ function _proposalTaskSnapshot(task, tagName = task?.tagName) {
     title: String(task?.title ?? ""), date: String(task?.date ?? ""), allDay,
     startTime: allDay ? "" : String(task?.startTime ?? ""),
     endTime: allDay ? "" : String(task?.endTime ?? ""),
-    tagName: String(tagName ?? ""), memo: String(task?.memo ?? ""),
+    tagName: String(tagName ?? ""), memo: personalMemo(task),
   };
 }
 
@@ -266,7 +267,7 @@ async function _applyProposal(proposal) {
     startTime: task.allDay ? "" : task.startTime,
     endTime: task.allDay ? "" : task.endTime,
     tagId: await _ensureTagId(task.tagName, task.date),
-    memo: task.memo ?? "",
+    ...memoPatch(Store.getAllTasks().find(row => row.id === proposal.taskId), task.memo ?? ""),
   });
   if (proposal.action === "create") {
     const created = await Store.createTask({ ...(await fields()), outlookEnabled: proposal.outlookEnabled ?? Store.getSettings().outlookWriteDefault, recurrence: { type: "none" } });

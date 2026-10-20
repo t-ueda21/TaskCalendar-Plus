@@ -93,6 +93,7 @@ pub(crate) fn enqueue(conn:&Connection,id:&str,body:Value)->Result<Vec<repo::Tas
     let raw_rule=body.get("rule").ok_or("Rule missing")?;
     let mut rule=if raw_rule.is_null(){Value::Null}else{recurrence::validate(raw_rule)?};
     let patch=body.get("payload").and_then(Value::as_object).ok_or("Series payload missing")?;
+    let changed_local_memo=patch.get("localMemo").filter(|value|value.as_str().is_some_and(|memo|memo!=task.personal_memo())).cloned();
     let mut edit=serde_json::to_value(&task).map_err(|e|e.to_string())?;
     for (key,value) in patch {edit[key]=value.clone();}
     crate::event_data::range(edit["date"].as_str().ok_or("Date missing")?,edit["endDate"].as_str(),edit["isAllDay"].as_bool().unwrap_or(false),edit["startTime"].as_str(),edit["endTime"].as_str())?;
@@ -111,6 +112,21 @@ pub(crate) fn enqueue(conn:&Connection,id:&str,body:Value)->Result<Vec<repo::Tas
     }
     let affected:Vec<_>=same_group.iter().filter(|t|scope=="all"||original_date(t)>=original.as_str()).cloned().collect();
     if affected.is_empty(){return Err("Series has no occurrences".into());}
+    let before=normalized_fields(&serde_json::to_value(&task).map_err(|e|e.to_string())?);
+    let after=normalized_fields(&edit);
+    let note_only=changed_local_memo.is_some() && raw_rule==task.recurrence.get("native").unwrap_or(&Value::Null)
+        && ["title","date","endDate","isAllDay","startTime","endTime","memo","outlookDetails","recurrence","tagId","outlookEnabled"].iter().all(|key|before[*key]==after[*key]);
+    if note_only {
+        for row in &affected {
+            let mut value=serde_json::to_value(row).map_err(|e|e.to_string())?;
+            value["localMemo"]=changed_local_memo.clone().unwrap();
+            repo::tasks_update(&tx,&row.id,serde_json::from_value(value).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
+        }
+        let saved=repo::tasks_list(&tx).map_err(|e|e.to_string())?;
+        tx.commit().map_err(|e|e.to_string())?;
+        return Ok(saved);
+    }
+
     // Never replace a possibly started COM operation, even if global OFF returned it to pending.
     let pending_rows:Vec<(String,String,String,i64)>=tx.prepare("SELECT task_id,payload,status,attempts FROM outlook_jobs WHERE operation='series' AND status<>'done'").map_err(|e|e.to_string())?.query_map([],|r|Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?))).map_err(|e|e.to_string())?.collect::<rusqlite::Result<_>>().map_err(|e|e.to_string())?;
     let mut pending:Option<(String,recurrence::SeriesEditRequest)>=None;
@@ -152,6 +168,7 @@ pub(crate) fn enqueue(conn:&Connection,id:&str,body:Value)->Result<Vec<repo::Tas
         let retained=previous.or_else(||if source_reusable&&!source_reused{source_reused=true;Some(&task)}else{None});
         let next_id=retained.map(|row|row.id.clone()).unwrap_or_else(||format!("task-series-{stamp:x}-{index}"));
         let mut value=if !rule.is_null()&&previous.is_some_and(|row|exceptions.contains(&row.id)){serde_json::to_value(previous.unwrap()).unwrap()}else{template_at(&template,date)?};
+        value["localMemo"]=changed_local_memo.clone().unwrap_or_else(||json!(retained.map(|row|row.personal_memo()).unwrap_or("")));
         if let Some(previous)=retained {
             // Read-only metadata belongs to each occurrence, never to the selected source row.
             if !exceptions.contains(&previous.id)||rule.is_null(){let editable=Value::Object(value["outlookDetails"].as_object().into_iter().flat_map(|map|map.iter()).filter(|(key,_)|crate::event_data::EDITABLE_DETAILS.contains(&key.as_str())).map(|(k,v)|(k.clone(),v.clone())).collect());value["outlookDetails"]=crate::event_data::merge_details(&previous.outlook_details,Some(&editable));}
@@ -177,7 +194,7 @@ pub(crate) fn enqueue(conn:&Connection,id:&str,body:Value)->Result<Vec<repo::Tas
     let mut saved=Vec::new();
     for (next_id,value,existing) in prepared {
         if existing {
-            tx.execute("UPDATE tasks SET title=?2,date=?3,end_date=?4,is_all_day=?5,start_time=?6,end_time=?7,memo=?8,outlook_details=?9,recurrence=?10,tag_id=?11,updated_at=?12 WHERE id=?1",params![next_id,value["title"].as_str().unwrap_or(""),value["date"].as_str(),value["endDate"].as_str(),value["isAllDay"].as_bool().unwrap_or(false) as i64,value["startTime"].as_str(),value["endTime"].as_str(),value["memo"].as_str().unwrap_or(""),value["outlookDetails"].to_string(),value["recurrence"].to_string(),value["tagId"].as_str().unwrap_or(""),chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Nanos,true)]).map_err(|e|e.to_string())?;
+            tx.execute("UPDATE tasks SET title=?2,date=?3,end_date=?4,is_all_day=?5,start_time=?6,end_time=?7,memo=?8,outlook_details=?9,recurrence=?10,tag_id=?11,updated_at=?12,local_memo=?13 WHERE id=?1",params![next_id,value["title"].as_str().unwrap_or(""),value["date"].as_str(),value["endDate"].as_str(),value["isAllDay"].as_bool().unwrap_or(false) as i64,value["startTime"].as_str(),value["endTime"].as_str(),value["memo"].as_str().unwrap_or(""),value["outlookDetails"].to_string(),value["recurrence"].to_string(),value["tagId"].as_str().unwrap_or(""),chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Nanos,true),value["localMemo"].as_str()]).map_err(|e|e.to_string())?;
         }else{repo::tasks_insert(&tx,serde_json::from_value(value).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;}
         crate::outlook_jobs::enable(&tx,&next_id).map_err(|e|e.to_string())?;
         if !enabled{crate::outlook_jobs::disable(&tx,&next_id).map_err(|e|e.to_string())?;}
@@ -215,6 +232,17 @@ mod queue_tests {
         c
     }
     fn body(c:&Connection,id:&str,scope:&str,rule:Value)->Value {let task=repo::tasks_get(c,id).unwrap().unwrap();json!({"expectedUpdatedAt":task.updated_at,"scope":scope,"rule":rule,"payload":serde_json::to_value(task).unwrap()})}
+    #[test]
+    fn personal_notes_apply_to_selected_scope_without_outlook_jobs() {
+        let c=fixture(true);
+        c.execute("UPDATE tasks SET local_memo='Before'",[]).unwrap();
+        let mut request=body(&c,"b","future",rule(32));
+        request["payload"]["localMemo"]=json!("After");
+        enqueue(&c,"b",request).unwrap();
+        assert_eq!(repo::tasks_get(&c,"a").unwrap().unwrap().personal_memo(),"Before");
+        for id in ["b","c","d"]{let task=repo::tasks_get(&c,id).unwrap().unwrap();assert_eq!(task.personal_memo(),"After");assert_eq!(task.memo,"Master memo");}
+        let pending:i64=c.query_row("SELECT count(*) FROM outlook_jobs WHERE status<>'done'",[],|r|r.get(0)).unwrap();assert_eq!(pending,0);
+    }
     fn coordinator(c:&Connection)->(String,Value) {let (id,raw):(String,String)=c.query_row("SELECT task_id,payload FROM outlook_jobs WHERE operation='series' AND status<>'done' ORDER BY rowid DESC LIMIT 1",[],|r|Ok((r.get(0)?,r.get(1)?))).unwrap();(id,serde_json::from_str::<Value>(&raw).unwrap()["request"].clone())}
     #[test]
     fn rule_only_edit_keeps_moved_exception_tag_and_private_metadata() {

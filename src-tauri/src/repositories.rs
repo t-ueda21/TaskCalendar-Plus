@@ -40,12 +40,24 @@ pub struct TaskRow {
     pub tag_id: String,
     pub recurrence: Value,
     pub memo: String,
+    #[serde(default)]
+    pub local_memo: Option<String>,
     pub outlook_occurrence_key: Option<String>,
     pub outlook_series_id: Option<String>,
     pub meeting_url: Option<String>,
     pub created_at: String,
     pub updated_at: String,
     pub outlook_enabled: bool,
+}
+
+impl TaskRow {
+    pub fn personal_memo(&self) -> &str {
+        if let Some(memo) = &self.local_memo { return memo; }
+        let key = self.outlook_occurrence_key.as_deref().filter(|value| !value.is_empty());
+        let imported = key.is_some_and(|key| !key.starts_with("tcplus:"))
+            || key.is_none() && self.outlook_series_id.as_deref().is_some_and(|value| !value.is_empty());
+        if imported { "" } else { &self.memo }
+    }
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -73,6 +85,8 @@ pub struct TaskInsertInput {
     pub recurrence: Option<Value>,
     #[serde(default)]
     pub memo: Option<String>,
+    #[serde(default)]
+    pub local_memo: Option<String>,
     #[serde(default)]
     pub outlook_occurrence_key: Option<String>,
     #[serde(default)]
@@ -110,6 +124,8 @@ pub struct TaskUpdateInput {
     #[serde(default)]
     pub memo: Option<String>,
     #[serde(default)]
+    pub local_memo: Option<String>,
+    #[serde(default)]
     pub expected_updated_at: Option<String>,
 }
 
@@ -128,6 +144,7 @@ fn row_to_task(row: &rusqlite::Row) -> rusqlite::Result<TaskRow> {
         tag_id: row.get("tag_id")?,
         recurrence: serde_json::from_str(&recurrence_text).unwrap_or_else(|_| default_recurrence()),
         memo: row.get("memo")?,
+        local_memo: row.get("local_memo")?,
         outlook_occurrence_key: row.get("outlook_occurrence_key")?,
         outlook_series_id: row.get("outlook_series_id")?,
         meeting_url: row.get("meeting_url")?,
@@ -159,12 +176,15 @@ pub(crate) fn tasks_get(conn: &Connection, id: &str) -> rusqlite::Result<Option<
 pub fn tasks_insert(conn: &Connection, input: TaskInsertInput) -> rusqlite::Result<TaskRow> {
     let transaction = if conn.is_autocommit() { Some(conn.unchecked_transaction()?) } else { None };
     let id = input.id.clone();
+    let local_memo = input.local_memo.clone().or_else(|| {
+        input.outlook_occurrence_key.as_deref().is_none_or(|key| key.starts_with("tcplus:")).then(|| input.memo.clone().unwrap_or_default())
+    });
     validate_event_input(&input.date,input.end_date.as_deref(),input.is_all_day,input.start_time.as_deref(),input.end_time.as_deref(),input.outlook_details.as_ref())?;
     let now = next_revision(None);
     let recurrence = input.recurrence.unwrap_or_else(default_recurrence);
     conn.execute(
-        "INSERT INTO tasks (id, title, date, is_all_day, start_time, end_time, tag_id, recurrence, memo, outlook_occurrence_key, outlook_series_id, created_at, updated_at,end_date,outlook_details)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,?14,?15)",
+        "INSERT INTO tasks (id, title, date, is_all_day, start_time, end_time, tag_id, recurrence, memo, outlook_occurrence_key, outlook_series_id, created_at, updated_at,end_date,outlook_details,local_memo)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13,?14,?15,?16)",
         params![
             input.id,
             input.title.filter(|t| !t.is_empty()).unwrap_or_default(),
@@ -183,6 +203,7 @@ pub fn tasks_insert(conn: &Connection, input: TaskInsertInput) -> rusqlite::Resu
             now,
             input.end_date,
             input.outlook_details.unwrap_or(json!({})).to_string(),
+            local_memo,
         ],
     )?;
     conn.execute("UPDATE outlook_links SET incoming_enabled=1 WHERE task_id=?1",params![id])?;
@@ -259,7 +280,7 @@ pub fn tasks_update(
     crate::outlook::reconcile::validate_edit(conn,&current,&recurrence,content_changed)?;
     conn.execute(
         "UPDATE tasks SET title=?1, date=?2, is_all_day=?3, start_time=?4, end_time=?5,
-            tag_id=?6, recurrence=?7, memo=?8, updated_at=?9,end_date=?11,outlook_details=?12
+            tag_id=?6, recurrence=?7, memo=?8, updated_at=?9,end_date=?11,outlook_details=?12,local_memo=?13
          WHERE id=?10",
         params![
             input.title.unwrap_or_default(),
@@ -275,6 +296,7 @@ pub fn tasks_update(
             id,
             end_date,
             details.to_string(),
+            input.local_memo.or(current.local_memo),
         ],
     )?;
     if let Some(enabled) = input.outlook_enabled
@@ -360,6 +382,8 @@ pub struct BatchTaskInput {
     pub tag_id: String,
     pub recurrence: Value,
     pub memo: String,
+    #[serde(default)]
+    pub local_memo: Option<String>,
     #[serde(default)]
     pub outlook_occurrence_key: Option<String>,
     #[serde(default)]
@@ -499,10 +523,10 @@ pub fn tasks_batch(
         }
         let revision = next_revision(prior.map(|row| row.updated_at.as_str()));
         tx.execute(
-            "INSERT INTO tasks (id,title,date,is_all_day,start_time,end_time,tag_id,recurrence,memo,outlook_occurrence_key,outlook_series_id,meeting_url,created_at,updated_at,end_date,outlook_details)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)
-             ON CONFLICT(id) DO UPDATE SET title=excluded.title,date=excluded.date,is_all_day=excluded.is_all_day,start_time=excluded.start_time,end_time=excluded.end_time,tag_id=excluded.tag_id,recurrence=excluded.recurrence,memo=excluded.memo,outlook_occurrence_key=excluded.outlook_occurrence_key,outlook_series_id=excluded.outlook_series_id,meeting_url=excluded.meeting_url,updated_at=excluded.updated_at,end_date=excluded.end_date,outlook_details=excluded.outlook_details",
-            params![task.id,task.title,task.date,task.is_all_day as i64,task.start_time,task.end_time,task.tag_id,task.recurrence.to_string(),task.memo,task.outlook_occurrence_key,task.outlook_series_id,task.meeting_url,task.created_at,revision,end_date,details.to_string()],
+            "INSERT INTO tasks (id,title,date,is_all_day,start_time,end_time,tag_id,recurrence,memo,outlook_occurrence_key,outlook_series_id,meeting_url,created_at,updated_at,end_date,outlook_details,local_memo)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17)
+             ON CONFLICT(id) DO UPDATE SET title=excluded.title,date=excluded.date,is_all_day=excluded.is_all_day,start_time=excluded.start_time,end_time=excluded.end_time,tag_id=excluded.tag_id,recurrence=excluded.recurrence,memo=excluded.memo,outlook_occurrence_key=excluded.outlook_occurrence_key,outlook_series_id=excluded.outlook_series_id,meeting_url=excluded.meeting_url,updated_at=excluded.updated_at,end_date=excluded.end_date,outlook_details=excluded.outlook_details,local_memo=excluded.local_memo",
+            params![task.id,task.title,task.date,task.is_all_day as i64,task.start_time,task.end_time,task.tag_id,task.recurrence.to_string(),task.memo,task.outlook_occurrence_key,task.outlook_series_id,task.meeting_url,task.created_at,revision,end_date,details.to_string(),task.local_memo.clone().or_else(||prior.and_then(|p|p.local_memo.clone()))],
         )?;
     }
     for task in &input.upserts {
