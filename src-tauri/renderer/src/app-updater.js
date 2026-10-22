@@ -1,5 +1,6 @@
-import { t as translate, th as translateHtml } from './i18n.js';
+import { t as translate } from './i18n.js';
 import { createUpdateController, isUpdateApplying, isUpdateBusy } from './app-update-controller.js';
+import { renderMarkdown } from './markdown.js';
 
 // Preserve the existing module API for callers of the standalone controller.
 export { createUpdateController } from './app-update-controller.js';
@@ -31,6 +32,25 @@ function updateStatus(state, supported) {
   }
 }
 
+// Toolbar entries keep their icons; other open buttons display translated text.
+function renderUpdateOpenButtons(view, latest, { hasUpdate, busy, applying }) {
+  const title = hasUpdate ? translate('ui.728be0b322', { p0: latest.version }) : translate('ui.916ee83f1b');
+  view.openButtons.forEach(el => {
+    const entry = view.entries.includes(el);
+    el.hidden = !entry && !hasUpdate;
+    if (!entry) {
+      el.textContent = el.closest('[data-settings-dialog]') ? translate('ui.1c0e325f78')
+        : hasUpdate ? translate('ui.c5837a6813') : busy ? translate('ui.0064397763') : translate('ui.d0e7d03d32');
+    }
+    el.title = title;
+    if (entry) {
+      el.classList.toggle('hasUpdate', hasUpdate);
+      el.setAttribute('aria-label', hasUpdate ? translate('ui.439ecd40e6', { p0: el.title }) : busy ? translate('ui.7ad2329c15') : el.title);
+    }
+    el.disabled = applying;
+  });
+}
+
 // Collect stable elements once. Rendering only reflects controller state.
 function createUpdateView(root, dialog, supported) {
   const all = selector => [...root.querySelectorAll(selector)];
@@ -41,43 +61,41 @@ function createUpdateView(root, dialog, supported) {
     checkButtons: all('[data-update-check]'),
     openButtons: all('[data-update-open]'),
     entries: all('[data-update-entry]'),
+    title: dialog.querySelector('#update-title'),
+    intro: dialog.querySelector('.updateIntro'),
+    notesHeading: dialog.querySelector('.updateNotesHeading'),
+    availableDetails: ['.updateSafetyNote', '.updateLatestVersion'].map(selector => dialog.querySelector(selector)),
+    versionArrow: dialog.querySelector('.updateVersionComparison [aria-hidden]'),
     notes: dialog.querySelector('[data-update-notes]'),
     install: dialog.querySelector('[data-update-install]'),
     close: dialog.querySelector('[data-update-close]'),
     progress: dialog.querySelector('progress'),
     show() { if (!dialog.open) dialog.showModal(); },
     render(state) {
-      const busy = isUpdateBusy(state.phase);
-      const applying = isUpdateApplying(state.phase);
+      const flags = {
+        hasUpdate: Boolean(state.latest),
+        busy: isUpdateBusy(state.phase),
+        applying: isUpdateApplying(state.phase),
+      };
+      const { hasUpdate, busy, applying } = flags;
       const status = updateStatus(state, supported);
       view.statuses.forEach(el => { el.textContent = status; });
       view.checkButtons.forEach(el => { el.disabled = busy || !supported; });
-      view.openButtons.forEach(el => {
-        const entry = view.entries.includes(el);
-        el.hidden = !entry && !state.latest;
-        if (!entry) el.textContent = el.closest('[data-settings-dialog]') ? translate('ui.1c0e325f78')
-          : state.latest ? translate('ui.c5837a6813') : busy ? translate('ui.0064397763') : translate('ui.d0e7d03d32');
-        el.title = state.latest ? translate('ui.728be0b322', { p0: (state.latest.version) }) : translate('ui.916ee83f1b');
-        if (entry) {
-          el.classList.toggle('hasUpdate', Boolean(state.latest));
-          el.setAttribute('aria-label', state.latest ? translate('ui.439ecd40e6', { p0: (el.title) }) : busy ? translate('ui.7ad2329c15') : el.title);
-        }
-        el.disabled = applying;
-      });
-      const hasUpdate = Boolean(state.latest);
-      dialog.querySelector('#update-title').textContent = hasUpdate ? translate('ui.08ba844851') : translate('ui.f156c3dde4');
-      dialog.querySelector('.updateIntro').textContent = hasUpdate
+      renderUpdateOpenButtons(view, state.latest, flags);
+      view.title.textContent = hasUpdate ? translate('ui.08ba844851') : translate('ui.f156c3dde4');
+      view.intro.textContent = hasUpdate
         ? translate('ui.83b81c3e1c') : translate('ui.ad25ca5044');
-      for (const selector of ['.updateNotesHeading', '.updateSafetyNote', '.updateLatestVersion']) {
-        dialog.querySelector(selector).hidden = !hasUpdate;
-      }
-      const arrow = dialog.querySelector('.updateVersionComparison [aria-hidden]');
-      if (arrow) arrow.hidden = !hasUpdate;
+      view.availableDetails.forEach(el => { el.hidden = !hasUpdate; });
+      if (view.versionArrow) view.versionArrow.hidden = !hasUpdate;
       view.install.hidden = !hasUpdate;
       view.close.textContent = hasUpdate ? translate('ui.c829aa2489') : translate('ui.f6c244f988');
-      view.latest.forEach(el => { el.textContent = state.latest ? `v${state.latest.version}` : '—'; });
-      view.notes.textContent = state.latest?.notes || '';
-      view.install.disabled = !supported || !state.latest || busy;
+      view.latest.forEach(el => { el.textContent = hasUpdate ? `v${state.latest.version}` : '—'; });
+      const notes = state.latest?.notes?.trim() || '';
+      // Release text is untrusted. renderMarkdown escapes HTML before formatting it.
+      view.notes.innerHTML = renderMarkdown(notes);
+      view.notes.hidden = !notes;
+      view.notesHeading.hidden = !notes;
+      view.install.disabled = !supported || !hasUpdate || busy;
       view.close.disabled = applying;
       view.progress.hidden = !applying;
       if (state.percent == null) view.progress.removeAttribute('value');

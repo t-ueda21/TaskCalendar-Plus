@@ -3523,10 +3523,46 @@ tr.isTaskSelected { background:var(--accent-soft); outline:2px solid var(--accen
   }
 }
 /* The update dialog uses the same typography and colors as settings. */
-.updateDialog { width: min(540px, calc(100vw - 32px)); padding: 0; }
-.updateDialogBody { padding: 28px; }
+.updateDialog { width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; }
+dialog.updateDialog[open] { display: flex; flex-direction: column; }
+.updateDialogBody { padding: 24px; min-height: 0; overflow-y: auto; }
 .updateDialogBody h2 { font-size: 21px; line-height: 1.5; margin: 0 0 8px; }
-.updateReleaseNotes { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow-y: auto; line-height: 1.9; }
+.updateReleaseNotes {
+  padding: 16px 18px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--panel2);
+  overflow-wrap: anywhere;
+  max-height: min(340px, 38vh);
+  overflow: auto;
+  font-size: var(--font-body);
+  line-height: 1.8;
+  scrollbar-gutter: stable;
+}
+.updateReleaseNotes > :first-child { margin-top: 0; }
+.updateReleaseNotes > :last-child { margin-bottom: 0; }
+.updateReleaseNotes :is(p, ul, ol, pre, table, blockquote) { margin: 0 0 12px; }
+.updateReleaseNotes :is(ul, ol) { padding-left: 1.6em; }
+.updateReleaseNotes li + li { margin-top: 6px; }
+.updateReleaseNotes li :is(ul, ol) { margin: 6px 0 0; }
+.updateReleaseNotes .mdHeading { font-size: var(--font-section); font-weight: 700; margin: 20px 0 8px; }
+.updateReleaseNotes .mdH1 { font-size: var(--font-title); }
+.updateReleaseNotes code { font-family: var(--font-code); font-size: .95em; background: var(--hover-tint); border-radius: 4px; padding: 1px 4px; }
+.updateReleaseNotes pre { overflow: auto; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.updateReleaseNotes pre code { padding: 0; background: none; }
+.updateReleaseNotes table { border-collapse: collapse; width: 100%; }
+.updateReleaseNotes :is(th, td) { text-align: left; padding: 6px 8px; border: 1px solid var(--border-strong); }
+.updateReleaseNotes th { background: var(--hover-tint); }
+.updateReleaseNotes blockquote { margin-left: 0; padding-left: 12px; border-left: 3px solid var(--accent); color: var(--muted); }
+.updateReleaseNotes hr { border: 0; border-top: 1px solid var(--border-strong); margin: 16px 0; }
+.updateReleaseNotes a { color: var(--accent-strong); text-underline-offset: 3px; }
+.updateReleaseNotes:focus-visible, .updateReleaseNotes a:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.updateDialog footer { flex-wrap: wrap; }
+@media (max-width: 480px) {
+  .updateDialogBody { padding: 18px; }
+  .updateDialog .updateVersionComparison { gap: 10px; flex-wrap: wrap; }
+  .updateReleaseNotes { padding: 12px; }
+}
 .updateDialog progress { width: 100%; accent-color: var(--accent); }
 .updateVersionRow { display: flex; align-items: center; gap: 10px; }
 .updateVersionRow { margin: 0; }
