@@ -17,6 +17,7 @@ const VIEW_MODULE_LOADERS = {
   calendar: () => import("./calendar.js"),
   tasks: () => import("./tasks.js"),
   ai: () => import("./ai-mode.js"),
+  summary: () => import("./summary.js"),
 };
 
 const _mountedViews = new Map(); // name -> 初回importしたモジュール(再取得を避けるためキャッシュ)

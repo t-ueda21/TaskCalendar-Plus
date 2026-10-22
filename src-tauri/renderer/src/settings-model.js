@@ -4,6 +4,7 @@ import { normalizeQuickLinks } from "./settings-transfer.js";
 import { DEFAULT_UI_COLOR, normalizeUiColor } from "./ui-colors.js";
 import { normalizeLocale, t as translate } from './i18n.js';
 import { personalization } from "./ai-personalization.js";
+import { normalizeSummaryPreferences } from './summary-preferences.js';
 import { normalizeBreaks, normalizeUrlAutoOpenTimes } from "./ui-utils.js";
 
 // AIの接続先。"none"(既定)のときはAIを呼ばない。
@@ -38,6 +39,7 @@ function _normalizeShortText(value) {
 
 // ── デフォルト値 ──────────────────────────────────────
 export const DEFAULT_SETTINGS = {
+  summaryPreferences: normalizeSummaryPreferences(),
   uiLanguage: "auto",
   aiPersonalization: personalization({}),
   workStart:           "09:00",
@@ -145,6 +147,7 @@ export function _normalizeSettings(settingsLike) {
   merged.uiAccentColor = normalizeUiColor(merged.uiAccentColor);
   merged.uiLanguage = merged.uiLanguage === "auto" ? "auto" : normalizeLocale(merged.uiLanguage);
   merged.aiPersonalization = personalization(merged);
+  merged.summaryPreferences = normalizeSummaryPreferences(merged.summaryPreferences);
   merged.outlookWriteEnabled = merged.outlookWriteEnabled === true;
   merged.outlookWriteDefault = merged.outlookWriteDefault === true;
   for (const key of ['outlookWriteCalendarName','outlookSyncCalendarName']) {

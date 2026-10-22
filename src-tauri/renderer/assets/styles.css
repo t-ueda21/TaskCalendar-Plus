@@ -323,9 +323,9 @@ a { color: inherit; text-decoration: none; }
 .nav {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
-  width: 330px;
+  width: 420px;
   padding: 4px;
   border-radius: var(--radius-pill);
   background: var(--nav-track);
@@ -3589,7 +3589,7 @@ dialog.updateDialog[open] { display: flex; flex-direction: column; }
 .updateNotesHeading { font-size: var(--font-body); margin: 20px 0 10px; }
 .updateSafetyNote { margin-top: 20px; line-height: 1.7; }
 .headerNavigation { display: flex; align-items: center; gap: 10px; min-width: 0; max-width: 100%; }
-.headerNavigation > .nav { width: 300px; flex: 0 1 300px; }
+.headerNavigation > .nav { width: 420px; flex: 0 1 420px; }
 .toolbarActions { display: flex; align-items: center; gap: 10px; }
 .toolbar .right .btn { display: inline-flex; align-items: center; justify-content: center; height: 34px; padding: 6px 10px; line-height: 20px; white-space: nowrap; }
 .toolbarIconButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 6px 10px; flex: 0 0 auto; white-space: nowrap; }
