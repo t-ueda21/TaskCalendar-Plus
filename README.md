@@ -1,10 +1,12 @@
 # TaskCalendar+
 
-> このブランチは **v3.0.3** のソースです。[修正内容](docs/releases/v3.0.3.md)、[スクリーンショット](docs/screenshots-v3.0.0.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)を確認できます。
+> このブランチは **v3.0.4** のソースです。[修正内容](docs/releases/v3.0.4.md)、[スクリーンショット](docs/screenshots-v3.0.0.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)を確認できます。
+
+[v3.0.4の更新画面とリファクタリングの前後比較](docs/reviews/v3.0.4.md)も掲載しています。
 
 **予定を入れる。作業時間を見渡す。日報にまとめる。**
 
-v3.0.3は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.3/TaskCalendar%2B_3.0.3_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.3/TaskCalendar%2B_3.0.3_x64-setup.zip)から取得できます。ZIPは展開後にインストーラーを実行します。通常のアプリ内更新にも対応します。
+v3.0.4は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.4/TaskCalendar%2B_3.0.4_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.4/TaskCalendar%2B_3.0.4_x64-setup.zip)から取得できます。ZIPは展開後にインストーラーを実行します。通常のアプリ内更新にも対応します。
 
 TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windows アプリです。案件や作業の種類ごとにタグを付けると、一日・一か月の工数を集計できます。
 
@@ -31,7 +33,7 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 | **AIモード** | 記録について質問したり、予定の追加・変更を依頼 |
 | **サイド** | 左のミニカレンダーと集計欄を表示・非表示 |
 | **取得** | Outlookの取り込み設定を開く |
-| **更新** | アプリの新しいバージョンを確認 |
+| **更新** | 新しいバージョンと更新内容をアプリ内で確認。見出し・箇条書き・リンクを整えて表示 |
 | **設定** | 勤務時間、タグ、見た目、連携、バックアップを設定 |
 
 ## 予定を作る・動かす

@@ -1,4 +1,4 @@
-import { t as translate, th as translateHtml } from './i18n.js';
+import { t as translate } from './i18n.js';
 export const isUpdateApplying = phase => ['downloading', 'installing'].includes(phase);
 export const isUpdateBusy = phase => phase === 'checking' || isUpdateApplying(phase);
 
