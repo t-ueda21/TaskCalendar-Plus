@@ -341,7 +341,6 @@
           <div class="summaryNotice" data-summary-notice hidden><p data-summary-status role="status"></p><button class="btn" data-summary-retry hidden data-i18n="summary.retry"></button></div>
           <div class="summaryMetrics" data-summary-metrics aria-live="polite"></div>
           <div class="summaryContent" data-summary-content>
-            <div class="summaryColumn summaryVisual">
               <section class="summaryPanel summaryTrend" data-summary-panel="trend">
                 <div class="summaryPanelHeading"><h2 data-summary-chart-title></h2><div class="summaryLegend" data-summary-legend></div></div>
                 <p class="summaryRange" data-summary-range></p>
@@ -350,19 +349,18 @@
                   <div class="summaryPlot"><div class="summaryGridlines" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="summaryBars" data-summary-bars></div></div>
                   <div class="summaryEmpty" data-summary-empty hidden><strong data-i18n="summary.empty"></strong><span data-i18n="summary.emptyHint"></span></div>
                 </div>
+                <section class="summaryNumbers" data-summary-panel="numbers" data-summary-numbers><div class="summaryNumbersHeading"><h2 data-summary-numbers-title></h2><span data-summary-numbers-hint></span></div><div class="summaryNumberGrid" data-summary-number-grid></div></section>
                 <div class="summarySelected" data-summary-selected aria-live="polite"></div>
               </section>
+            <aside class="summarySide">
               <section class="summaryPanel summaryTags" data-summary-panel="tags">
                 <div class="summaryPanelHeading"><h2 data-i18n="summary.tagsTitle"></h2><div class="summaryTagPager" data-summary-tag-pager hidden><button type="button" class="btn" data-summary-tag-page="-1" aria-label="前のタグ" data-i18n-attrs="aria-label=summary.prevTags">‹</button><span data-summary-tag-page-label></span><button type="button" class="btn" data-summary-tag-page="1" aria-label="次のタグ" data-i18n-attrs="aria-label=summary.nextTags">›</button></div><button type="button" class="btn" data-summary-all-tags aria-pressed="true" data-i18n="summary.showAll"></button></div>
                 <p class="srOnly" data-i18n="summary.tagsHint"></p>
                 <div class="srOnly" aria-live="polite"><span data-i18n="summary.targetTags"></span><strong data-summary-tag-status></strong></div>
                 <div class="summaryTagList" data-summary-tags></div>
               </section>
-            </div>
-            <div class="summaryColumn summaryDetails">
-              <section class="summaryPanel summaryNumbers" data-summary-panel="numbers" data-summary-numbers><div class="summaryNumbersHeading"><h2 data-summary-numbers-title></h2><span data-summary-numbers-hint></span></div><div class="summaryNumberGrid" data-summary-number-grid></div></section>
               <section class="summaryPanel summaryInsights" data-summary-panel="insights"><h2 data-i18n="summary.insights"></h2><div data-summary-insights></div></section>
-            </div>
+            </aside>
           </div>
         </main>
         <dialog class="dialog summaryOptions" data-summary-options aria-labelledby="summary-options-title">

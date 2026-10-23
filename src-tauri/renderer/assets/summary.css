@@ -37,13 +37,13 @@ body:has(.summaryView:not([hidden])) .clock .v { font-size: 16px; }
 .summaryMetricValue { font-size: 30px; line-height: 34px; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .summaryMetricValue small { font-size: 14px; line-height: 20px; font-weight: 500; margin: 0 4px; color: var(--muted); }
 .summaryMetricDetail { font-size: 14px; line-height: 20px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.summaryContent { display: grid; grid-template-columns: minmax(0,1fr) 600px; gap: 16px; flex: 1; min-width: 0; min-height: 496px; }
-.summaryColumn { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
+.summaryContent { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 16px; flex: 1; min-width: 0; min-height: 496px; }
+.summarySide { display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
 .summaryPanel { min-width: 0; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--panel); box-shadow: var(--shadow-sm); }
 .summaryPanelHeading, .summaryNumbersHeading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px var(--summary-inset); flex-shrink: 0; }
 .summaryPanelHeading h2, .summaryNumbersHeading h2, .summaryInsights h2 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; }
 .summaryTrend { display: flex; flex-direction: column; flex: 1; min-height: 210px; }
-.summaryTrend .summaryPanelHeading { padding-top: 8px; }
+.summaryTrend > .summaryPanelHeading { min-height: 44px; padding-top: 2px; padding-bottom: 2px; }
 .summaryLegend { display: flex; align-items: center; justify-content: flex-end; gap: 10px; max-width: 55%; min-width: 0; font-size: 14px; line-height: 20px; color: var(--muted); }
 .summaryLegend span { display: inline-flex; align-items: center; gap: 5px; max-width: 145px; min-width: 0; }
 .summaryLegend b { font-size: 14px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -74,11 +74,11 @@ body:has(.summaryView:not([hidden])) .clock .v { font-size: 16px; }
 .summaryTags { flex-shrink: 0; }
 .summaryTags .summaryPanelHeading { min-height: 44px; padding-top: 2px; padding-bottom: 2px; }
 .summaryTags [data-summary-all-tags][aria-pressed="true"] { color: var(--accent-strong); border-color: var(--accent-strong); background: var(--accent-soft); }
-.summaryTagList { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-rows: 40px; gap: 4px 8px; padding: 0 var(--summary-inset) 8px; }
-.summaryTag { min-width: 0; height: 40px; padding: 4px 8px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--panel2); color: var(--text); cursor: pointer; text-align: left; font: inherit; }
-.summaryTagHead { display: flex; align-items: center; gap: 6px; min-width: 0; width: 100%; }
+.summaryTagList { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-rows: 56px; gap: 4px 8px; padding: 0 var(--summary-inset) 8px; }
+.summaryTag { min-width: 0; height: 56px; padding: 4px 8px; border: 1px solid var(--border-strong); border-radius: 7px; background: var(--panel2); color: var(--text); cursor: pointer; text-align: left; font: inherit; }
+.summaryTagHead { display: grid; grid-template-columns: 20px 8px minmax(0,1fr); align-items: center; gap: 2px 6px; min-width: 0; width: 100%; }
 .summaryTagName { min-width: 0; flex: 1; font-size: 16px; line-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.summaryTagHead strong { flex-shrink: 0; font-size: 14px; line-height: 20px; font-weight: 600; white-space: nowrap; }
+.summaryTagHead strong { grid-column: 1 / -1; justify-self: end; font-size: 14px; line-height: 20px; font-weight: 600; white-space: nowrap; }
 .summaryTagCheck { width: 20px; height: 20px; border: 1px solid var(--border-strong); border-radius: 5px; flex-shrink: 0; font-size: 14px; line-height: 18px; text-align: center; }
 .summaryTagDot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 .summaryTagTrack, .summaryTagShare { display: none; }
@@ -87,23 +87,23 @@ body:has(.summaryView:not([hidden])) .clock .v { font-size: 16px; }
 .summaryTagPager { display: flex; align-items: center; gap: 4px; margin-left: auto; font-size: 14px; }
 .summaryTagPager .btn { width: 40px; padding: 0; }
 .summaryNoTags { grid-column: 1 / -1; margin: auto; color: var(--muted); font-size: 16px; }
-.summaryNumbers { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.summaryNumbers { display: flex; flex-direction: column; flex-shrink: 0; min-width: 0; border-top: 1px solid var(--border); }
 .summaryNumbersHeading { min-height: 40px; padding-top: 8px; padding-bottom: 8px; }
 .summaryNumbersHeading > span { font-size: 14px; line-height: 20px; color: var(--muted); }
-.summaryNumberGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); grid-auto-rows: minmax(40px,1fr); gap: 2px 6px; padding: 0 var(--summary-inset) 4px; flex: 1; min-height: 0; }
-.summaryNumberGrid.year { grid-template-columns: repeat(3,minmax(0,1fr)); }
-.summaryDay { display: flex; align-items: center; justify-content: space-between; gap: 3px; min-width: 0; min-height: 40px; padding: 2px 4px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--panel2); font: inherit; color: var(--text); cursor: pointer; }
-.summaryDayLabel { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 22px; font-size: 14px; line-height: 16px; white-space: nowrap; }
+.summaryNumberGrid { display: grid; grid-template-columns: repeat(12,minmax(0,1fr)); grid-auto-rows: minmax(66px,1fr); gap: 4px; padding: 0 var(--summary-inset) 8px; min-height: 0; }
+.summaryNumberGrid.year { grid-template-columns: repeat(6,minmax(0,1fr)); }
+.summaryDay { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; min-height: 40px; padding: 2px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--panel2); font: inherit; color: var(--text); cursor: pointer; }
+.summaryDayLabel { display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; font-size: 14px; line-height: 16px; white-space: nowrap; }
 .summaryDayLabel em { font-size: 14px; line-height: 16px; font-weight: 400; font-style: normal; color: var(--muted); }
-.summaryDayTime { display: inline-flex; align-items: baseline; justify-content: center; gap: 2px; min-width: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.summaryDayHours, .summaryDayMinutes { font-size: 16px; line-height: 24px; font-weight: 600; }
+.summaryDayTime { display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.summaryDayHours, .summaryDayMinutes { font-size: 16px; line-height: 20px; font-weight: 600; }
 .summaryDayHours small, .summaryDayMinutes small { font-size: 14px; font-weight: 400; margin-left: 1px; }
 .summaryDay[aria-pressed="true"] { border-color: var(--accent-strong); box-shadow: inset 0 0 0 1px var(--accent-strong); background: var(--accent-soft); }
 .summaryDay:hover:not(:disabled) { border-color: var(--accent-strong); }
 .summaryDay.no-time { color: var(--muted); background: transparent; }
 .summaryDay:disabled { cursor: default; color: var(--muted); }
 .summaryDay.today .summaryDayLabel { color: var(--accent-strong); font-weight: 700; }
-.summaryNumberGrid.year .summaryDay { flex-direction: column; justify-content: center; gap: 6px; }
+.summaryNumberGrid.year .summaryDay { gap: 4px; padding: 4px 2px; }
 .summaryNumberGrid.year .summaryDayLabel { font-size: 16px; line-height: 24px; }
 .summaryNumberGrid.year .summaryDayHours, .summaryNumberGrid.year .summaryDayMinutes { font-size: 20px; }
 .summaryInsights { padding: 6px var(--summary-inset); flex-shrink: 0; }
@@ -131,14 +131,14 @@ body:has(.summaryView:not([hidden])) .clock .v { font-size: 16px; }
   .summaryToolbar .left { flex-wrap: wrap; width: auto; }
   .summaryToolbar .right { margin-left: auto; }
   .summaryScreen { min-height: 640px; }
-  .summaryContent { grid-template-columns: minmax(0,1fr) minmax(540px,1fr); }
 }
 @media (max-width:1199px) {
   .summaryContent { display: flex; flex-direction: column; flex: none; }
-  .summaryColumn { flex: none; min-height: auto; }
+  .summarySide { flex: none; min-height: auto; }
   .summaryScreen { min-height: 0; }
-  .summaryTrend { height: 300px; flex: none; }
-  .summaryNumbers { min-height: 410px; }
+  .summaryTrend { min-height: 560px; flex: none; }
+  .summaryChart { min-height: 210px; }
+  .summaryNumberGrid { grid-template-columns: repeat(10,minmax(0,1fr)); }
   .summaryMetrics { grid-auto-flow: row; grid-template-columns: repeat(2,minmax(0,1fr)); }
   body:has(.summaryView:not([hidden])) .header { flex-wrap: wrap; }
   body:has(.summaryView:not([hidden])) .headerNavigation { order: 3; flex-basis: 100%; }
@@ -146,10 +146,8 @@ body:has(.summaryView:not([hidden])) .clock .v { font-size: 16px; }
 }
 @media (max-width:600px) {
   .summaryTagList { grid-template-columns: 1fr; }
-  .summaryNumberGrid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .summaryNumberGrid.year { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .summaryNumbers { min-height: 740px; }
-  .summaryNumbers:has(.year) { min-height: 450px; }
+  .summaryNumberGrid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .summaryNumberGrid.year { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .summaryNumbersHeading { flex-wrap: wrap; }
   body:has(.summaryView:not([hidden])) .nav a { padding: 0 4px; }
 }

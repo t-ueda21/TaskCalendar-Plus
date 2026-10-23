@@ -4,7 +4,7 @@
 
 **Goal:** Rebuild the Summary screen at a readable scale and restore the upper page tabs and shared application action bar.
 
-**Architecture:** Keep the existing Store aggregation and state behavior. Reuse the shared toolbar template without the sidebar action on Summary. Scope larger typography and shell adjustments to the active Summary view; other views retain their present sizing. Use a left chart/tag column and a right numeric/insight column.
+**Architecture:** Keep the existing Store aggregation and state behavior. Reuse the shared toolbar template without the sidebar action on Summary. Scope larger typography and shell adjustments to the active Summary view; other views retain their present sizing. Preserve the original arrangement: chart and numeric dates in one panel on the left, tags above insights on the right.
 
 **Tech Stack:** Existing vanilla HTML/CSS/JavaScript, nine locale catalogs and isolated Chromium harness.
 
@@ -13,13 +13,15 @@
 ## Design choices
 
 - Use 16px for primary Summary text/actions, at least 14px for supporting text, axis labels, weekdays and time units; use 30px metric values and 18px section headings. These are implementation choices proposed in conversation, not user-specified exact dimensions.
-- Replace the cramped 16-column numeric layout with four columns for all 28–31 dates and three columns for all 12 months. Keep hours and minutes explicit. Dates remain selectable and annual cells still open the selected month.
-- Put the graph above tag filters in the left column; numeric dates above the derived insights on the right. Keep all four components visible at the standard desktop targets with 10 tags. Use concise localized insight sentences to retain the existing facts without tiny secondary text.
+- Following the user's explicit correction, restore numeric dates below the chart inside the original left panel. Use 12 columns for all 28–31 dates and six columns for all 12 months to retain enlarged text. Keep hours and minutes explicit on separate lines. Dates remain selectable and annual cells still open the selected month.
+- Restore tags above the derived insights on the right. Keep all four components visible at the standard desktop targets with 10 tags. Tag names and durations use separate lines. The rejected chart/tag-left and numbers/insights-right arrangement is superseded, not an accepted design.
 - Restore shared Outlook acquisition, update and settings actions, with one working settings trigger. Omit the sidebar toggle because the user selected upper bars rather than a left sidebar.
 - Retain the existing four navigation tabs and enlarge them only while Summary is active. Avoid global changes to other views or global settings dialogs.
 - Aim for no page scrolling at 1280×800 and 1366×768, standard CSS scale. For smaller/zoomed windows allow scrolling rather than hide controls or reduce text below the stated floor.
 
 ## Constraints
+
+**2026-10-24 correction:** User: 「これはひどい、元の配置に戻して、大きさはこんな漢字でいい」. Restore spatial grouping while keeping the enlarged text, controls, upper tabs and shared action bar. This is a layout correction, with no aggregation or release change.
 
 - No aggregation changes, new AI calls, live Outlook calls, native app/WebView2/Edge launch, schema migration, version bump, release, or main merge.
 - No change to task data. Use synthetic data/API/native bridge for UI tests and screenshots.

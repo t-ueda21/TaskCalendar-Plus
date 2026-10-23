@@ -20,13 +20,25 @@ try {
       const ticks=[...el.querySelectorAll('.summaryAxis > span')];
       if(grid.length!==ticks.length)errors.push({message:'each tick needs a matching gridline',ticks:ticks.length,lines:grid.length});
       ticks.forEach((node,i)=>{if(!grid[i])return;const r=node.getBoundingClientRect();same([r.y+r.height/2,grid[i].y+grid[i].height/2],'axis tick '+node.textContent);});
-      // The readable redesign places tags below the chart and numbers in the right column.
-      same([rect('.summaryTrend h2').x,rect('.summaryRange').x,rect('.summarySelected > strong').x,rect('.summaryTags h2').x],'left column content edges');
-      same([rect('.summaryNumbersHeading h2').x,rect('.summaryNumberGrid > button').x,rect('.summaryInsights h2').x],'right column content edges');
-      const headings=['.summaryTrend h2','.summaryNumbersHeading h2'].map(selector=>rect(selector));
+      // Preserve the user's original arrangement at the larger readable scale.
+      same([rect('.summaryTrend h2').x,rect('.summaryRange').x,rect('.summaryNumbersHeading h2').x,rect('.summaryNumberGrid > button').x,rect('.summarySelected > strong').x],'left column content edges');
+      same([rect('.summaryTags h2').x,rect('.summaryInsights h2').x],'right column content edges');
+      const headings=['.summaryTrend h2','.summaryTags h2'].map(selector=>rect(selector));
       same(headings.map(r=>r.y+r.height/2),'panel heading centers');
-      const panels=[...el.querySelectorAll('[data-summary-panel]')].map(n=>n.getBoundingClientRect());
-      for(const r of panels)if(r.right>innerWidth||r.bottom>innerHeight-8)errors.push({message:'panel outside viewport'});
+      const left=el.querySelector('.summaryTrend'),chart=el.querySelector('[data-summary-chart]'),numbers=el.querySelector('[data-summary-numbers]');
+      const side=el.querySelector('.summarySide'),tags=el.querySelector('[data-summary-panel="tags"]'),insights=el.querySelector('[data-summary-panel="insights"]');
+      if(!left.contains(chart)||!left.contains(numbers))errors.push({message:'chart and numbers must share the left panel'});
+      if(!side?.contains(tags)||!side?.contains(insights))errors.push({message:'tags and insights must share the right column'});
+      if(numbers.getBoundingClientRect().top<chart.getBoundingClientRect().bottom-1)errors.push({message:'numbers must be below chart'});
+      if(tags.getBoundingClientRect().left<left.getBoundingClientRect().right-1)errors.push({message:'tags must be right of chart and numbers'});
+      if(insights.getBoundingClientRect().top<tags.getBoundingClientRect().bottom-1)errors.push({message:'insights must be below tags'});
+      const panels=[...el.querySelectorAll('[data-summary-panel]')];
+      for(const panel of panels){const r=panel.getBoundingClientRect();if(r.right>innerWidth||r.bottom>innerHeight-8)errors.push({message:'panel outside viewport'});}
+      for(let i=0;i<panels.length;i++)for(let j=i+1;j<panels.length;j++){
+        if(panels[i].contains(panels[j])||panels[j].contains(panels[i]))continue;
+        const a=panels[i].getBoundingClientRect(),b=panels[j].getBoundingClientRect();
+        if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1)errors.push({message:'sibling panels overlap'});
+      }
       if(document.documentElement.scrollHeight>innerHeight||document.documentElement.scrollWidth>innerWidth)errors.push({message:'page scrolls'});
       return errors;
     });

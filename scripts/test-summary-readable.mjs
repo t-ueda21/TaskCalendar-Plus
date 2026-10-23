@@ -47,7 +47,7 @@ function sameGeometry(actual, expected, label) {
 
 // Catch tiny inherited text, reduced hit targets, clipped values and offscreen panels.
 // These assertions use computed fonts, text ranges and actual rectangles, not CSS source strings.
-async function inspectLayout(label, columns) {
+async function inspectLayout(label, columns, dayCount) {
   const result = await root.evaluate((el, columns) => {
     const failures = [];
     const visible = node => {
@@ -110,10 +110,24 @@ async function inspectLayout(label, columns) {
       }
     }
     for (let i = 0; i < panels.length; i++) for (let j = i + 1; j < panels.length; j++) {
+      if (panels[i].contains(panels[j]) || panels[j].contains(panels[i])) continue;
       const a = panels[i].getBoundingClientRect(), b = panels[j].getBoundingClientRect();
       if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > 1
         && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 1) fail(`${name(panels[i])} overlaps ${name(panels[j])}`);
     }
+    // User correction: keep chart then numbers together on the left, tags then insights on the right.
+    const left = el.querySelector('.summaryTrend'), chart = el.querySelector('[data-summary-chart]');
+    const numbers = el.querySelector('[data-summary-numbers]'), side = el.querySelector('.summarySide');
+    const tags = el.querySelector('[data-summary-panel="tags"]'), insights = el.querySelector('[data-summary-panel="insights"]');
+    const leftBox = left.getBoundingClientRect(), chartBox = chart.getBoundingClientRect();
+    const numbersBox = numbers.getBoundingClientRect(), tagsBox = tags.getBoundingClientRect(), insightsBox = insights.getBoundingClientRect();
+    if (!left.contains(chart) || !left.contains(numbers)) fail('chart and numbers must share the original left panel');
+    if (!side?.contains(tags) || !side?.contains(insights)) fail('tags and insights must share the original right column');
+    if (numbersBox.top < chartBox.bottom - 1 || numbersBox.left < leftBox.left - 1 || numbersBox.right > leftBox.right + 1) {
+      fail('numeric area must stay below the chart inside the left panel');
+    }
+    if (tagsBox.left < leftBox.right - 1 || insightsBox.left < leftBox.right - 1) fail('tags and insights must stay right of the left panel');
+    if (insightsBox.top < tagsBox.bottom - 1) fail('insights must stay below tags');
     const days = [...el.querySelectorAll('[data-summary-day]')].map(node => ({ key: node.dataset.summaryDay, ...node.getBoundingClientRect().toJSON() }));
     const rows = [];
     for (const day of days) {
@@ -131,7 +145,7 @@ async function inspectLayout(label, columns) {
   }, columns);
   if (output) await h.page.screenshot({ path: path.join(output, label + '.png'), animations: 'disabled' });
   assert.deepEqual(result.failures, [], label);
-  assert.equal(result.dayCount, columns === 4 ? 31 : 12, `${label}: every date/month remains visible`);
+  assert.equal(result.dayCount, dayCount, `${label}: every date/month remains visible`);
   const links = await h.page.locator('nav.nav [data-nav-target]').evaluateAll(nodes => nodes.map(el => {
     const r = el.getBoundingClientRect();
     return { view: el.dataset.navTarget, font: Math.min(...[el, ...el.querySelectorAll('span')].map(node => parseFloat(getComputedStyle(node).fontSize))),
@@ -178,7 +192,7 @@ try {
   for (const viewport of [{ width: 1280, height: 800 }, { width: 1366, height: 768 }]) {
     await h.page.setViewportSize(viewport);
     await root.locator('[data-summary-period="month"]').click();
-    await inspectLayout(`summary-readable-month-${viewport.width}`, 4);
+    await inspectLayout(`summary-readable-month-${viewport.width}`, 12, 31);
     const day = root.locator('[data-summary-day="2026-10-06"]');
     const visibleText = (await day.innerText()).replace(/\s/g, '');
     assert.ok(visibleText.includes('23時間59分'), `Long daily value must retain exact visible units: ${visibleText}`);
@@ -190,7 +204,7 @@ try {
     assert.equal(await selectedTick.innerText(), '6');
     assert.ok((await root.locator('[data-summary-selected]').innerText()).replace(/\s/g, '').includes('23時間59分'));
     await root.locator('[data-summary-period="year"]').click();
-    await inspectLayout(`summary-readable-year-${viewport.width}`, 3);
+    await inspectLayout(`summary-readable-year-${viewport.width}`, 6, 12);
     assert.ok((await root.locator('[data-summary-day="2026-10"]').innerText()).replace(/\s/g, '').includes('68時間59分'));
     await root.locator('[data-summary-day="2026-10"]').click();
     assert.equal(await root.locator('[data-summary-day]').count(), 31, 'Selecting an annual cell must open that month');
@@ -209,9 +223,9 @@ try {
     if (['de', 'fr', 'pt'].includes(locale)) viewports.push({ width: 1280, height: 800 });
     for (const viewport of viewports) {
       await h.page.setViewportSize(viewport);
-      for (const [period, columns] of [['month', 4], ['year', 3]]) {
+      for (const [period, columns, dayCount] of [['month', 12, 31], ['year', 6, 12]]) {
         await root.locator(`[data-summary-period="${period}"]`).click();
-        try { await inspectLayout(`summary-readable-${locale}-${period}-${viewport.width}`, columns); }
+        try { await inspectLayout(`summary-readable-${locale}-${period}-${viewport.width}`, columns, dayCount); }
         catch (error) { localeFailures.push(error.message); }
       }
     }
@@ -259,15 +273,16 @@ try {
   assert.equal(await root.locator('[data-summary-bar="2026-10-31"]').getAttribute('aria-pressed'), 'true');
   await root.locator('[data-summary-retry]').click();
   await root.locator('[data-summary-retry]').waitFor({ state: 'hidden' });
-  await inspectLayout('summary-readable-after-retry', 4);
+  await inspectLayout('summary-readable-after-retry', 12, 31);
 
   for (const viewport of [{ width: 1024, height: 640 }, { width: 1000, height: 800 }, { width: 800, height: 600 }]) {
     await h.page.setViewportSize(viewport);
     const collisions = await root.evaluate(el => {
-      const panels = [...el.querySelectorAll('[data-summary-panel]')].map(node => ({ name: node.dataset.summaryPanel, r: node.getBoundingClientRect() }));
+      const panels = [...el.querySelectorAll('[data-summary-panel]')].map(node => ({ node, name: node.dataset.summaryPanel, r: node.getBoundingClientRect() }));
       const overlaps = [];
       for (let i=0;i<panels.length;i++) for (let j=i+1;j<panels.length;j++) {
         const a=panels[i],b=panels[j];
+        if (a.node.contains(b.node) || b.node.contains(a.node)) continue;
         if (Math.min(a.r.right,b.r.right)-Math.max(a.r.left,b.r.left)>1 && Math.min(a.r.bottom,b.r.bottom)-Math.max(a.r.top,b.r.top)>1) overlaps.push(`${a.name}/${b.name}`);
       }
       return overlaps;
@@ -287,7 +302,7 @@ try {
     assert.ok(await lastDay.locator('small').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize)) >= 14);
   }
   await h.page.setViewportSize({ width: 1366, height: 768 });
-  await inspectLayout('summary-readable-restored-desktop', 4);
+  await inspectLayout('summary-readable-restored-desktop', 12, 31);
   console.log('PASS: readable error recovery and smaller-window scrolling without obscured dates');
 
   await h.page.evaluate(async () => {
@@ -300,7 +315,7 @@ try {
   await root.locator('[data-summary-day="2026-10-31"]').scrollIntoViewIfNeeded();
   await root.locator('[data-summary-day="2026-10-31"]').click();
   await h.page.evaluate(async()=>{await(await import('/src/store.js')).updateSettings({quickLinks:[]});});
-  await inspectLayout('summary-readable-after-quick-links',4);
+  await inspectLayout('summary-readable-after-quick-links',12,31);
   console.log('PASS: custom quick links can grow the header without covering dates');
 
   // Summary-specific styling must be reversible when each existing view is reopened.

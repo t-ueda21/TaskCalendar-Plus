@@ -1,223 +1,258 @@
 {
-  "recordedAt": "2026-10-23T20:41:08.666Z",
+  "recordedAt": "2026-10-23T21:54:10.469Z",
   "baseCommit": "8cba81f4945f514a3f1451a2e8ad8a73a9fa2b97",
   "branch": "codex/summary-readable-ui",
+  "userCorrection": "Restore the original arrangement while preserving the enlarged text and controls.",
   "scope": "Real renderer and Store in isolated Chromium; synthetic tasks/API/native bridge. Not native app or live integration evidence.",
   "tests": {
-    "sourceAndTestsSha256": "9f4e5b4e68398a346d7d51d0b93a468682cae60c3303188aeaa1d9a8e9230f11",
-    "nodeSuites": 47,
-    "rustPassed": 231,
-    "rustIgnored": 9,
-    "javascriptFiles": 58,
-    "clippy": "passed",
-    "passedCommands": 50,
-    "passedRequiredRecords": 280,
+    "scope": "Targeted tests after the HTML/CSS layout correction. These successful command results were observed by the implementer; no Rust rerun for this correction.",
     "commands": [
       {
-        "id": "node-test-ai-personalization.mjs",
-        "status": "passed"
+        "command": "node scripts/test-summary-readable.mjs",
+        "status": "passed",
+        "scriptSha256": "921f9be16a2e25d35e45c3ff06aea00e7edc0c423b4f28b3dca8b657d647a307"
       },
       {
-        "id": "node-test-ai-safety.mjs",
-        "status": "passed"
+        "command": "node scripts/test-summary-alignment.mjs",
+        "status": "passed",
+        "scriptSha256": "13ed534859a058d79f9e259f31bb6ef71ca13124d131da1d0e1f0ae3a45112f6"
       },
       {
-        "id": "node-test-ai-settings-guidance-20261008.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-app-updater.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-calendar-integrity.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-context-bulk-delete.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-context-bulk-tags.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-date-navigation.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-event-movement.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-event-ranges.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-holidays.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-i18n-rendering.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-i18n.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-local-ai-settings.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-markdown.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-mini-calendar.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-modern-settings.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-native-recurrence-dates.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-native-recurrence-store.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-native-recurrence-ui.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-native-recurrence.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-native-settings.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-outlook-calendar-picker.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-outlook-legacy-source.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-outlook-reference-ui.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-outlook-registration-ui.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-outlook-selection.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-outlook-sync-status.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-recurrence.js",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-release-manifest.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-save-scope.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-selection-layout.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-settings-transfer.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-summary-alignment.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-summary-model.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-summary-preferences.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-summary-readable.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-summary-ui.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-task-editor-mock.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-task-performance.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-task-selection.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-transfer-file.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-ui-colors.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-update-notes-ui.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-weather-current-day.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-weather-upgrade.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "node-test-work-time.mjs",
-        "status": "passed"
-      },
-      {
-        "id": "javascript-syntax",
-        "status": "passed"
-      },
-      {
-        "id": "rust",
-        "status": "passed"
-      },
-      {
-        "id": "clippy",
-        "status": "passed"
+        "command": "node scripts/test-summary-ui.mjs",
+        "status": "passed",
+        "scriptSha256": "67ca843abdab1a2450918e570c53aa512e5e79128d9c91baea6e9d8c773da1ae"
       }
     ],
-    "localLogs": "out/summary-readable-20261024/verified-checks"
+    "rendererSha256": "d0a0ecb95b65f472eada848ca49df7edc2fac8873a4402c06d5c389c5ac68373"
+  },
+  "priorFullVerification": {
+    "commit": "78ebede8b45c2984ed8b92f3e207f27484067325",
+    "tests": {
+      "sourceAndTestsSha256": "9f4e5b4e68398a346d7d51d0b93a468682cae60c3303188aeaa1d9a8e9230f11",
+      "nodeSuites": 47,
+      "rustPassed": 231,
+      "rustIgnored": 9,
+      "javascriptFiles": 58,
+      "clippy": "passed",
+      "passedCommands": 50,
+      "passedRequiredRecords": 280,
+      "commands": [
+        {
+          "id": "node-test-ai-personalization.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-ai-safety.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-ai-settings-guidance-20261008.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-app-updater.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-calendar-integrity.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-context-bulk-delete.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-context-bulk-tags.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-date-navigation.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-event-movement.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-event-ranges.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-holidays.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-i18n-rendering.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-i18n.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-local-ai-settings.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-markdown.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-mini-calendar.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-modern-settings.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-native-recurrence-dates.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-native-recurrence-store.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-native-recurrence-ui.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-native-recurrence.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-native-settings.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-outlook-calendar-picker.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-outlook-legacy-source.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-outlook-reference-ui.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-outlook-registration-ui.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-outlook-selection.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-outlook-sync-status.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-recurrence.js",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-release-manifest.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-save-scope.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-selection-layout.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-settings-transfer.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-summary-alignment.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-summary-model.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-summary-preferences.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-summary-readable.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-summary-ui.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-task-editor-mock.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-task-performance.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-task-selection.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-transfer-file.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-ui-colors.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-update-notes-ui.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-weather-current-day.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-weather-upgrade.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "node-test-work-time.mjs",
+          "status": "passed"
+        },
+        {
+          "id": "javascript-syntax",
+          "status": "passed"
+        },
+        {
+          "id": "rust",
+          "status": "passed"
+        },
+        {
+          "id": "clippy",
+          "status": "passed"
+        }
+      ],
+      "localLogs": "out/summary-readable-20261024/verified-checks"
+    },
+    "review": {
+      "independentReviews": 1,
+      "initialImportantFindings": 1,
+      "finding": "Responsive stacked panels overlapped",
+      "resolution": "Author observed failing pairwise collision regression, changed natural layout sizing, then passed regression and full suite. No second review.",
+      "remainingCriticalOrImportant": 0,
+      "minorFindings": 0,
+      "finalGalleryVisuallyCheckedBy": "implementer"
+    },
+    "note": "Historical full-suite result before this layout correction, not a new run."
   },
   "screenshots": {
-    "rendererSha256": "97967c2584faab6d2f8c339f4a77f3e27be830530f72e88496fd2a41d5801094",
+    "rendererSha256": "d0a0ecb95b65f472eada848ca49df7edc2fac8873a4402c06d5c389c5ac68373",
     "browser": "151.0.7922.34",
     "playwright": "1.62.1",
     "syntheticNow": "2026-10-08T01:15:00.000Z",
@@ -243,35 +278,35 @@
         "panels": [
           {
             "name": "trend",
-            "bottom": 506,
-            "right": 652,
-            "client": 244,
-            "scroll": 244
-          },
-          {
-            "name": "tags",
             "bottom": 788,
-            "right": 652,
-            "client": 268,
-            "scroll": 268
+            "right": 852,
+            "client": 526,
+            "scroll": 526
           },
           {
             "name": "numbers",
-            "bottom": 672,
+            "bottom": 757,
+            "right": 851,
+            "client": 254,
+            "scroll": 254
+          },
+          {
+            "name": "tags",
+            "bottom": 610,
             "right": 1268,
-            "client": 410,
-            "scroll": 410
+            "client": 348,
+            "scroll": 348
           },
           {
             "name": "insights",
-            "bottom": 788,
+            "bottom": 726,
             "right": 1268,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/month-10-tags.png",
-        "sha256": "a88a1d0fac4adc4d6c9d861082b594800f824d766953aaeb610d000e1953e393"
+        "sha256": "b8bc70e9bf61615f6f50a36aa432a5f57b30212f1d05a050f53388e4e316d661"
       },
       {
         "name": "month-selected-tags",
@@ -288,35 +323,35 @@
         "panels": [
           {
             "name": "trend",
-            "bottom": 474,
-            "right": 738,
-            "client": 212,
-            "scroll": 212
-          },
-          {
-            "name": "tags",
             "bottom": 756,
-            "right": 738,
-            "client": 268,
-            "scroll": 268
+            "right": 938,
+            "client": 494,
+            "scroll": 494
           },
           {
             "name": "numbers",
-            "bottom": 640,
+            "bottom": 725,
+            "right": 937,
+            "client": 254,
+            "scroll": 254
+          },
+          {
+            "name": "tags",
+            "bottom": 610,
             "right": 1354,
-            "client": 378,
-            "scroll": 378
+            "client": 348,
+            "scroll": 348
           },
           {
             "name": "insights",
-            "bottom": 756,
+            "bottom": 726,
             "right": 1354,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/month-selected-tags.png",
-        "sha256": "6f824537dd80741b9184ca107e52ae82b5d01ed537926a1c16124e7936ab5382"
+        "sha256": "a2eb5729c684269ce36ddeed9b6266f41cd6e20fd45c57f688fe54939488ed65"
       },
       {
         "name": "year",
@@ -333,35 +368,35 @@
         "panels": [
           {
             "name": "trend",
-            "bottom": 506,
-            "right": 652,
-            "client": 244,
-            "scroll": 244
-          },
-          {
-            "name": "tags",
             "bottom": 788,
-            "right": 652,
-            "client": 268,
-            "scroll": 268
+            "right": 852,
+            "client": 526,
+            "scroll": 526
           },
           {
             "name": "numbers",
-            "bottom": 672,
+            "bottom": 757,
+            "right": 851,
+            "client": 220,
+            "scroll": 220
+          },
+          {
+            "name": "tags",
+            "bottom": 610,
             "right": 1268,
-            "client": 410,
-            "scroll": 410
+            "client": 348,
+            "scroll": 348
           },
           {
             "name": "insights",
-            "bottom": 788,
+            "bottom": 726,
             "right": 1268,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/year.png",
-        "sha256": "80a07a861e69f710eaaaad3c42ae8091d90d771fc445ee59d477da01d44daac1"
+        "sha256": "f2ab0e474ce7332cf63a4f7f7aae2f348591f7d9d8dbf0228c251316581800f6"
       },
       {
         "name": "month-dark",
@@ -378,46 +413,43 @@
         "panels": [
           {
             "name": "trend",
-            "bottom": 506,
-            "right": 652,
-            "client": 244,
-            "scroll": 244
-          },
-          {
-            "name": "tags",
             "bottom": 788,
-            "right": 652,
-            "client": 268,
-            "scroll": 268
+            "right": 852,
+            "client": 526,
+            "scroll": 526
           },
           {
             "name": "numbers",
-            "bottom": 672,
+            "bottom": 757,
+            "right": 851,
+            "client": 254,
+            "scroll": 254
+          },
+          {
+            "name": "tags",
+            "bottom": 610,
             "right": 1268,
-            "client": 410,
-            "scroll": 410
+            "client": 348,
+            "scroll": 348
           },
           {
             "name": "insights",
-            "bottom": 788,
+            "bottom": 726,
             "right": 1268,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/month-dark.png",
-        "sha256": "b6f08b9d31412619dcccb37010c4310fdfbebbb8c73df5c28dc2c1bab0e68a2d"
+        "sha256": "69617b467f7b4f91f4f82dd7dd871c1d57b293557ac7a420999a79bac56fad6c"
       }
     ]
   },
   "review": {
-    "independentReviews": 1,
-    "initialImportantFindings": 1,
-    "finding": "Responsive stacked panels overlapped",
-    "resolution": "Author observed failing pairwise collision regression, changed natural layout sizing, then passed regression and full suite. No second review.",
-    "remainingCriticalOrImportant": 0,
-    "minorFindings": 0,
-    "finalGalleryVisuallyCheckedBy": "implementer"
+    "independentReviewsOfCorrection": 1,
+    "scope": "Read-only source diff, original topology, four generated images and image/source fingerprints. No test rerun or native-app verification by reviewer.",
+    "criticalOrImportantFindings": 0,
+    "visualChecks": "Implementer and independent reviewer inspected all four generated images."
   },
   "delivery": {
     "mainMerged": false,
