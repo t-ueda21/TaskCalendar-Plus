@@ -1,6 +1,6 @@
-# サマリー画面の実装報告（v3.1.0）
+# サマリー画面の実装報告（v4.0.0）
 
-承認済みの[HTMLモック](../mockups/summary-v1.html)を、アプリの予定・タグ・設定から計算する画面として実装した。対象は [Issue #31](https://github.com/t-ueda21/TaskCalendar-Plus/issues/31)、配布対象はv3.1.0。この報告と証跡JSONは公開前の実装・検証を記録しており、配布物と公開状況は[リリースページ](https://github.com/t-ueda21/TaskCalendar-Plus/releases/tag/v3.1.0)で確認できる。
+承認済みの[HTMLモック](../mockups/summary-v1.html)を、アプリの予定・タグ・設定から計算する画面として実装した。対象は [Issue #31](https://github.com/t-ueda21/TaskCalendar-Plus/issues/31)、配布対象はv4.0.0。この報告と証跡JSONは公開前の実装・検証を記録しており、配布物と公開状況は[リリースページ](https://github.com/t-ueda21/TaskCalendar-Plus/releases/tag/v4.0.0)で確認できる。
 
 ## 反映した内容
 
