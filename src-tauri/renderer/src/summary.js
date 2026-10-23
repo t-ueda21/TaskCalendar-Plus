@@ -16,6 +16,7 @@ function setStatus(key = '') {
   status.removeAttribute('data-i18n');
   status.textContent = t(key || 'summary.subtitle');
   status.classList.toggle('summaryError', Boolean(key));
+  query('notice').hidden = !key;
   query('retry').hidden = !key;
 }
 

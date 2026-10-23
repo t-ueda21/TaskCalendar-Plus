@@ -319,51 +319,50 @@
       </section>
 
       <section class="view summaryView" data-view="summary" hidden>
-        <main class="summaryScreen" aria-labelledby="summary-title">
-          <div class="summaryHeading">
-            <div><h1 id="summary-title" data-i18n="summary.title">サマリー</h1><p data-summary-status role="status" data-i18n="summary.subtitle"></p></div>
-            <div class="summaryHeadingActions">
-              <button class="btn" data-summary-retry hidden data-i18n="summary.retry"></button>
-              <div class="summarySegment" role="group" aria-label="期間" data-i18n-attrs="aria-label=summary.periodLabel">
-                <button type="button" data-summary-period="month" aria-pressed="true" data-i18n="summary.month"></button>
-                <button type="button" data-summary-period="year" aria-pressed="false" data-i18n="summary.year"></button>
-              </div>
-              <button class="btn" type="button" data-summary-config data-i18n="summary.items"></button>
-              <button class="btn summarySettings" type="button" data-settings-btn aria-label="設定" title="設定" data-i18n-attrs="aria-label=ui.0d8619aae0;title=ui.0d8619aae0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <section class="toolbar summaryToolbar" aria-label="サマリー" data-i18n-attrs="aria-label=summary.title">
+          <div class="left summaryToolbarControls">
+            <div class="summarySegment" role="group" aria-label="期間" data-i18n-attrs="aria-label=summary.periodLabel">
+              <button type="button" data-summary-period="month" aria-pressed="true" data-i18n="summary.month"></button>
+              <button type="button" data-summary-period="year" aria-pressed="false" data-i18n="summary.year"></button>
             </div>
-          </div>
-          <div class="summaryFilters">
             <div class="summaryPeriodNav">
               <button class="btn" type="button" data-summary-shift="-1" aria-label="前の期間" data-i18n-attrs="aria-label=summary.previous">‹</button>
               <strong data-summary-period-label></strong>
               <button class="btn" type="button" data-summary-shift="1" aria-label="次の期間" data-i18n-attrs="aria-label=summary.next">›</button>
               <button class="btn" type="button" data-summary-current></button>
             </div>
-            <div class="summaryTagStatus"><span data-i18n="summary.targetTags"></span><strong data-summary-tag-status></strong></div>
-            <label class="summaryFuture"><input type="checkbox" data-summary-future><span data-i18n="summary.includeFuture"></span></label>
-            <span class="summaryRange" data-summary-range></span>
+            <label class="summaryFuture" title="これからの予定も含める" data-i18n-attrs="title=summary.includeFuture"><input type="checkbox" data-summary-future aria-label="これからの予定も含める" data-i18n-attrs="aria-label=summary.includeFuture"><span data-i18n="summary.futureEvents"></span></label>
+            <button class="btn" type="button" data-summary-config data-i18n="summary.items"></button>
           </div>
+          <template data-view-template="shared-toolbar-actions" data-without-sidebar></template>
+        </section>
+        <main class="summaryScreen" aria-labelledby="summary-title">
+          <h1 class="srOnly" id="summary-title" data-i18n="summary.title">サマリー</h1>
+          <div class="summaryNotice" data-summary-notice hidden><p data-summary-status role="status"></p><button class="btn" data-summary-retry hidden data-i18n="summary.retry"></button></div>
           <div class="summaryMetrics" data-summary-metrics aria-live="polite"></div>
           <div class="summaryContent" data-summary-content>
-            <section class="summaryPanel summaryTrend" data-summary-panel="trend">
-              <div class="summaryPanelHeading"><div><h2 data-summary-chart-title></h2><p data-i18n="summary.chartHint"></p></div><div class="summaryLegend" data-summary-legend></div></div>
-              <div class="summaryChart" data-summary-chart>
-                <div class="summaryAxis" data-summary-axis aria-hidden="true"></div>
-                <div class="summaryPlot"><div class="summaryGridlines" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="summaryBars" data-summary-bars></div></div>
-                <div class="summaryEmpty" data-summary-empty hidden><strong data-i18n="summary.empty"></strong><span data-i18n="summary.emptyHint"></span></div>
-              </div>
-              <div class="summaryNumbers" data-summary-numbers><div class="summaryNumbersHeading"><h3 data-summary-numbers-title></h3><span data-summary-numbers-hint></span></div><div class="summaryNumberGrid" data-summary-number-grid></div></div>
-              <div class="summarySelected" data-summary-selected aria-live="polite"></div>
-            </section>
-            <aside class="summarySide">
-              <section class="summaryPanel summaryTags" data-summary-panel="tags">
-                <div class="summaryPanelHeading"><h2 data-i18n="summary.tagsTitle"></h2><button type="button" class="btn" data-summary-all-tags aria-pressed="true" data-i18n="summary.showAll"></button></div>
-                <p class="summaryTagsHint" data-i18n="summary.tagsHint"></p>
-                <div class="summaryTagList" data-summary-tags></div>
-                <div class="summaryTagPager" data-summary-tag-pager hidden><button type="button" class="btn" data-summary-tag-page="-1" aria-label="前のタグ" data-i18n-attrs="aria-label=summary.prevTags">‹</button><span data-summary-tag-page-label></span><button type="button" class="btn" data-summary-tag-page="1" aria-label="次のタグ" data-i18n-attrs="aria-label=summary.nextTags">›</button></div>
+            <div class="summaryColumn summaryVisual">
+              <section class="summaryPanel summaryTrend" data-summary-panel="trend">
+                <div class="summaryPanelHeading"><h2 data-summary-chart-title></h2><div class="summaryLegend" data-summary-legend></div></div>
+                <p class="summaryRange" data-summary-range></p>
+                <div class="summaryChart" data-summary-chart>
+                  <div class="summaryAxis" data-summary-axis aria-hidden="true"></div>
+                  <div class="summaryPlot"><div class="summaryGridlines" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="summaryBars" data-summary-bars></div></div>
+                  <div class="summaryEmpty" data-summary-empty hidden><strong data-i18n="summary.empty"></strong><span data-i18n="summary.emptyHint"></span></div>
+                </div>
+                <div class="summarySelected" data-summary-selected aria-live="polite"></div>
               </section>
+              <section class="summaryPanel summaryTags" data-summary-panel="tags">
+                <div class="summaryPanelHeading"><h2 data-i18n="summary.tagsTitle"></h2><div class="summaryTagPager" data-summary-tag-pager hidden><button type="button" class="btn" data-summary-tag-page="-1" aria-label="前のタグ" data-i18n-attrs="aria-label=summary.prevTags">‹</button><span data-summary-tag-page-label></span><button type="button" class="btn" data-summary-tag-page="1" aria-label="次のタグ" data-i18n-attrs="aria-label=summary.nextTags">›</button></div><button type="button" class="btn" data-summary-all-tags aria-pressed="true" data-i18n="summary.showAll"></button></div>
+                <p class="srOnly" data-i18n="summary.tagsHint"></p>
+                <div class="srOnly" aria-live="polite"><span data-i18n="summary.targetTags"></span><strong data-summary-tag-status></strong></div>
+                <div class="summaryTagList" data-summary-tags></div>
+              </section>
+            </div>
+            <div class="summaryColumn summaryDetails">
+              <section class="summaryPanel summaryNumbers" data-summary-panel="numbers" data-summary-numbers><div class="summaryNumbersHeading"><h2 data-summary-numbers-title></h2><span data-summary-numbers-hint></span></div><div class="summaryNumberGrid" data-summary-number-grid></div></section>
               <section class="summaryPanel summaryInsights" data-summary-panel="insights"><h2 data-i18n="summary.insights"></h2><div data-summary-insights></div></section>
-            </aside>
+            </div>
           </div>
         </main>
         <dialog class="dialog summaryOptions" data-summary-options aria-labelledby="summary-options-title">

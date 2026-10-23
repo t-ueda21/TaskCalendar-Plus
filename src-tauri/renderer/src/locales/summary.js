@@ -1,5 +1,8 @@
 const codes = ['ja','en','ko','zh-CN','zh-TW','es','fr','de','pt'];
 const rows = [
+  ['futureEvents','未来の予定','Future events','미래 일정','未来日程','未來行程','Eventos futuros','Événements futurs','Zukünftige Termine','Eventos futuros'],
+  ['insightOutsideCompact','時間外 {days}日 · 登録時間の{percent}%','Outside work hours: {days} days · {percent}% of total','근무 시간 외 {days}일 · 전체의 {percent}%','时间外 {days}天 · 占总时间的{percent}%','時間外 {days}天 · 佔總時間的{percent}%','Fuera de horario: {days} días · {percent}% del total','Hors horaires : {days} jours · {percent}% du total','Außerhalb: {days} Tage · {percent}% der Zeit','Fora do expediente: {days} dias · {percent}% do total'],
+  ['insightLongestCompact','最多 {date} · {total}（時間外 {overtime}）','Most on {date}: {total} · outside {overtime}','최다 {date} · {total} (시간 외 {overtime})','最多 {date} · {total}（时间外 {overtime}）','最多 {date} · {total}（時間外 {overtime}）','Máximo {date}: {total} · fuera {overtime}','Maximum {date} : {total} · hors horaires {overtime}','Maximum {date}: {total} · außerhalb {overtime}','Máximo {date}: {total} · fora {overtime}'],
   ['title','サマリー','Summary','요약','汇总','摘要','Resumen','Synthèse','Übersicht','Resumo'],
   ['periodLabel','期間','Period','기간','期间','期間','Período','Période','Zeitraum','Período'],
   ['subtitle','登録した予定の時間を、グラフと数字で振り返る。','Review scheduled time in charts and numbers.','등록한 일정 시간을 그래프와 숫자로 확인하세요.','用图表和数字回顾已登记的日程时间。','以圖表與數字回顧已登記的行程時間。','Revisa el tiempo registrado con gráficos y cifras.','Consultez les heures planifiées en graphiques et en chiffres.','Erfasste Terminzeiten als Diagramm und Zahlen betrachten.','Veja o tempo registrado em gráficos e números.'],

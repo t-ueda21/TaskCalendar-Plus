@@ -14,13 +14,16 @@ try {
       const errors=[];
       const rect=selector=>el.querySelector(selector).getBoundingClientRect();
       const same=(values,message,tolerance=1)=>{if(Math.max(...values)-Math.min(...values)>tolerance)errors.push({message,values});};
-      const controls=[...el.querySelectorAll('.summarySegment,[data-summary-config],.summarySettings')].map(n=>n.getBoundingClientRect());
+      const controls=[...el.querySelectorAll('.summarySegment,[data-summary-config],.summaryToolbar .right .btn')].map(n=>n.getBoundingClientRect());
       same(controls.map(r=>r.top),'heading control tops');same(controls.map(r=>r.bottom),'heading control bottoms');
       const grid=[...el.querySelectorAll('.summaryGridlines > i')].map(n=>n.getBoundingClientRect());
-      [...el.querySelectorAll('.summaryAxis > span')].forEach((node,i)=>{const r=node.getBoundingClientRect();same([r.y+r.height/2,grid[i].y+grid[i].height/2],'axis tick '+node.textContent);});
-      same([rect('.summaryTrend h2').x,rect('.summaryNumbersHeading').x,rect('.summarySelected > strong').x],'trend content left edges');
-      same([rect('.summaryTags h2').x,rect('.summaryTagsHint').x,rect('.summaryInsights h2').x],'right column text left edges');
-      const headings=['.summaryTrend h2','.summaryTags h2'].map(selector=>rect(selector));
+      const ticks=[...el.querySelectorAll('.summaryAxis > span')];
+      if(grid.length!==ticks.length)errors.push({message:'each tick needs a matching gridline',ticks:ticks.length,lines:grid.length});
+      ticks.forEach((node,i)=>{if(!grid[i])return;const r=node.getBoundingClientRect();same([r.y+r.height/2,grid[i].y+grid[i].height/2],'axis tick '+node.textContent);});
+      // The readable redesign places tags below the chart and numbers in the right column.
+      same([rect('.summaryTrend h2').x,rect('.summaryRange').x,rect('.summarySelected > strong').x,rect('.summaryTags h2').x],'left column content edges');
+      same([rect('.summaryNumbersHeading h2').x,rect('.summaryNumberGrid > button').x,rect('.summaryInsights h2').x],'right column content edges');
+      const headings=['.summaryTrend h2','.summaryNumbersHeading h2'].map(selector=>rect(selector));
       same(headings.map(r=>r.y+r.height/2),'panel heading centers');
       const panels=[...el.querySelectorAll('[data-summary-panel]')].map(n=>n.getBoundingClientRect());
       for(const r of panels)if(r.right>innerWidth||r.bottom>innerHeight-8)errors.push({message:'panel outside viewport'});

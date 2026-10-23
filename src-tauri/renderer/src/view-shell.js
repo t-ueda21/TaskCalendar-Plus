@@ -10,6 +10,9 @@ export function mountViewTemplates(root = document) {
       throw new Error('Shared view template is missing: ' + id);
     }
     const content = template.content.cloneNode(true);
+    if (id === 'shared-toolbar-actions' && slot.hasAttribute('data-without-sidebar')) {
+      content.querySelector('[data-sidebar-toggle]')?.remove();
+    }
     // Shared task forms must keep labels inside their own view's dialog.
     const view = slot.closest('[data-view]')?.dataset.view;
     if (view) {

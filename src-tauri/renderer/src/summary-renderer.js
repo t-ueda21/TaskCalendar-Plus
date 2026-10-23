@@ -68,10 +68,12 @@ function renderChart(root, model) {
   query(root, 'bars').style.setProperty('--summary-columns', model.groups.length);
   query(root, 'bars').innerHTML = model.groups.map(group => {
     const label = monthly ? number(Number(group.key.slice(8))) : dateText(group.key,{month:'short'});
+    const day = Number(group.key.slice(8));
+    const tick = !monthly || day === 1 || day === model.groups.length || (day % 5 === 0 && day < model.groups.length - 1);
     const future = monthly ? group.key > model.today : group.key >= model.today.slice(0,7) && model.includeFuture;
     const description = group.active ? t('summary.timeLabel', {date:groupLabel(group,model.period),total:formatDuration(group.total),overtime:formatDuration(group.overtime)}) : `${groupLabel(group,model.period)} · ${t('summary.outOfScope')}`;
     const segments = graphSegments(model,group).filter(row => row.minutes > 0).map(row => `<span style="height:${row.minutes / group.total * 100}%;background:${row.color}"></span>`).join('');
-    return `<button type="button" class="summaryBar ${future ? 'future' : ''}" data-summary-bar="${group.key}" aria-pressed="false" aria-label="${escHtml(description)}" title="${escHtml(description)}" ${group.active ? '' : 'disabled'}><span class="summaryBarStack" style="height:${group.total / scale * 100}%">${segments}</span><span class="summaryBarLabel">${escHtml(label)}</span></button>`;
+    return `<button type="button" class="summaryBar ${future ? 'future' : ''}" data-summary-bar="${group.key}" data-summary-tick="${tick}" aria-pressed="false" aria-label="${escHtml(description)}" title="${escHtml(description)}" ${group.active ? '' : 'disabled'}><span class="summaryBarStack" style="height:${group.total / scale * 100}%">${segments}</span><span class="summaryBarLabel" ${tick ? '' : 'hidden'}>${escHtml(label)}</span></button>`;
   }).join('');
   query(root, 'empty').hidden = model.total > 0;
 }
@@ -85,7 +87,8 @@ function renderNumbers(root, model) {
     const parts = timeParts(group.total);
     const description = `${groupLabel(group,model.period)} · ${group.active ? formatDuration(group.total) : t('summary.outOfScope')}`;
     const label = monthly ? `${number(Number(group.key.slice(8)))}<em>${escHtml(dateText(group.key,{weekday:'short'}))}</em>` : escHtml(dateText(group.key,{month:'short'}));
-    return `<button type="button" class="summaryDay ${group.total ? '' : 'no-time'} ${group.key === model.today ? 'today' : ''}" data-summary-day="${group.key}" aria-pressed="false" aria-label="${escHtml(description)}" title="${escHtml(description)}" ${group.active ? '' : 'disabled'}><span class="summaryDayLabel">${label}</span><span class="summaryDayHours">${group.active ? parts.hours : '—'}${group.active ? `<small>${th('summary.hours')}</small>` : ''}</span><span class="summaryDayMinutes">${group.active ? `${parts.minutes}<small>${th('summary.minutes')}</small>` : '—'}</span></button>`;
+    const duration = group.active ? `<span class="summaryDayHours">${parts.hours}<small>${th('summary.hours')}</small></span><span class="summaryDayMinutes">${parts.minutes}<small>${th('summary.minutes')}</small></span>` : '<span class="summaryDayHours">—</span>';
+    return `<button type="button" class="summaryDay ${group.total ? '' : 'no-time'} ${group.key === model.today ? 'today' : ''}" data-summary-day="${group.key}" aria-pressed="false" aria-label="${escHtml(description)}" title="${escHtml(description)}" ${group.active ? '' : 'disabled'}><span class="summaryDayLabel">${label}</span><span class="summaryDayTime">${duration}</span></button>`;
   }).join('');
 }
 
@@ -98,7 +101,7 @@ function renderTags(root, model, state) {
   query(root, 'tags').innerHTML = tags.length ? tags.map(tag => {
     const selected = Boolean(model.selectedTagIds?.includes(tag.id));
     const share = totalTagTime ? tag.total / totalTagTime * 100 : 0;
-    return `<button type="button" class="summaryTag ${model.selectedTagIds && !selected ? 'muted' : ''}" data-summary-tag="${escHtml(tag.id)}" aria-pressed="${selected}" aria-label="${th(selected ? 'summary.unselectTag' : 'summary.selectTag',{tag:tag.name})}" title="${escHtml(tag.name)}"><span class="summaryTagHead"><span class="summaryTagCheck" aria-hidden="true">${selected ? '✓' : ''}</span><span class="summaryTagDot" style="background:${color(tag)}"></span><span class="summaryTagName">${escHtml(tag.name)}</span><strong>${escHtml(formatDuration(tag.total))}</strong></span><span class="summaryTagTrack"><i style="width:${share}%;background:${color(tag)}"></i></span><span class="summaryTagShare">${number(share,1)}%</span></button>`;
+    return `<button type="button" class="summaryTag ${model.selectedTagIds && !selected ? 'muted' : ''}" data-summary-tag="${escHtml(tag.id)}" aria-pressed="${selected}" aria-label="${th(selected ? 'summary.unselectTag' : 'summary.selectTag',{tag:tag.name})}" title="${escHtml(tag.name)}"><span class="summaryTagHead"><span class="summaryTagCheck" aria-hidden="true">${selected ? '✓' : ''}</span><span class="summaryTagDot" style="background:${color(tag)}"></span><span class="summaryTagName">${escHtml(tag.name)}</span><strong title="${escHtml(formatDuration(tag.total))} (${number(share,1)}%)">${escHtml(formatDuration(tag.total))}</strong></span><span class="summaryTagTrack"><i style="width:${share}%;background:${color(tag)}"></i></span><span class="summaryTagShare">${number(share,1)}%</span></button>`;
   }).join('') : `<span class="summaryNoTags">${th('summary.noTags')}</span>`;
   query(root, 'all-tags').setAttribute('aria-pressed', String(model.selectedTagIds === null));
   query(root, 'tag-pager').hidden = pageCount <= 1;
@@ -113,11 +116,11 @@ function renderTags(root, model, state) {
 function renderInsights(root, model) {
   const longest = model.longestDay;
   const rows = [
-    {icon:'↗',title:t('summary.insightOutside',{days:number(model.overtimeDays)}),detail:t('summary.outsideShare',{percent:number(model.total ? model.overtime / model.total * 100 : 0,1)})},
-    {icon:'▥',title:longest ? t('summary.insightLongest',{date:groupLabel(longest,'month')}) : t('summary.metric.longest') + '：—',detail:longest ? `${formatDuration(longest.total)} · ${t('summary.outside')} ${formatDuration(longest.overtime)}` : ''},
-    {icon:'≋',title:t('summary.insightCount',{count:number(model.count)}),hint:t('summary.countHint')},
+    {icon:'<path d="M5 16 10 11 14 14 20 5M14 5h6v6"/>',title:t('summary.insightOutsideCompact',{days:number(model.overtimeDays),percent:number(model.total ? model.overtime / model.total * 100 : 0,1)})},
+    {icon:'<path d="M5 20V12M12 20V4M19 20V8"/>',title:longest ? t('summary.insightLongestCompact',{date:groupLabel(longest,'month'),total:formatDuration(longest.total),overtime:formatDuration(longest.overtime)}) : t('summary.metric.longest') + '：—'},
+    {icon:'<path d="M9 6h12M9 12h12M9 18h12M3 6h1M3 12h1M3 18h1"/>',title:t('summary.insightCount',{count:number(model.count)}),hint:t('summary.countHint')},
   ];
-  query(root, 'insights').innerHTML = rows.map(row => `<div class="summaryInsight" ${row.hint ? `title="${escHtml(row.hint)}"` : ''}><span class="summaryInsightIcon" aria-hidden="true">${row.icon}</span><div><p>${escHtml(row.title)}</p>${row.detail ? `<small>${escHtml(row.detail)}</small>` : ''}</div></div>`).join('');
+  query(root, 'insights').innerHTML = rows.map(row => `<div class="summaryInsight" ${row.hint ? `title="${escHtml(row.hint)}"` : ''}><span class="summaryInsightIcon" aria-hidden="true"><svg viewBox="0 0 24 24">${row.icon}</svg></span><p>${escHtml(row.title)}</p></div>`).join('');
 }
 
 export function renderSelection(root, model, state) {
@@ -127,6 +130,12 @@ export function renderSelection(root, model, state) {
       || model.groups.findLast(group => group.total > 0)?.key || model.groups[0].key;
   }
   root.querySelectorAll('[data-summary-bar],[data-summary-day]').forEach(node => node.setAttribute('aria-pressed', String((node.dataset.summaryBar || node.dataset.summaryDay) === state.selectedKey)));
+  const bars = [...root.querySelectorAll('[data-summary-bar]')];
+  const selectedIndex = bars.findIndex(node => node.dataset.summaryBar === state.selectedKey);
+  bars.forEach((node, index) => {
+    node.querySelector('.summaryBarLabel').hidden = model.period === 'month' && index !== selectedIndex
+      && (node.dataset.summaryTick !== 'true' || Math.abs(index - selectedIndex) <= 1);
+  });
   const group = model.groups.find(row => row.key === state.selectedKey);
   query(root, 'selected').innerHTML = `<strong>${escHtml(groupLabel(group,model.period))}${group.key === model.today ? ` · ${th('summary.today')}` : ''}</strong>${group.active ? `<span>${th('summary.metric.total')}<b>${escHtml(formatDuration(group.total))}</b></span><span>${th('summary.outside')}<b>${escHtml(formatDuration(group.overtime))}</b></span>` : `<span>${th('summary.outOfScope')}</span>`}`;
 }
@@ -137,7 +146,7 @@ export function renderSummary(root, model, state) {
   const focusAttribute = ['data-summary-tag','data-summary-day','data-summary-bar'].find(attribute => focused?.hasAttribute(attribute));
   const focusValue = focusAttribute && focused.getAttribute(focusAttribute);
   root.querySelectorAll('[data-summary-period]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.summaryPeriod === model.period)));
-  query(root, 'period-label').textContent = dateText(model.start, model.period === 'month' ? {year:'numeric',month:'long'} : {year:'numeric'});
+  query(root, 'period-label').textContent = dateText(model.start, model.period === 'month' ? {year:'numeric',month:'short'} : {year:'numeric'});
   query(root, 'current').textContent = t(model.period === 'month' ? 'summary.thisMonth' : 'summary.thisYear');
   root.querySelector('[data-summary-shift="-1"]').disabled = model.year === 1 && (model.period === 'year' || model.month === 1);
   root.querySelector('[data-summary-shift="1"]').disabled = model.year === 9999 && (model.period === 'year' || model.month === 12);

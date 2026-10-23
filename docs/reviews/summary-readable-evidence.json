@@ -1,0 +1,428 @@
+{
+  "recordedAt": "2026-10-23T20:41:08.666Z",
+  "baseCommit": "8cba81f4945f514a3f1451a2e8ad8a73a9fa2b97",
+  "branch": "codex/summary-readable-ui",
+  "scope": "Real renderer and Store in isolated Chromium; synthetic tasks/API/native bridge. Not native app or live integration evidence.",
+  "tests": {
+    "sourceAndTestsSha256": "9f4e5b4e68398a346d7d51d0b93a468682cae60c3303188aeaa1d9a8e9230f11",
+    "nodeSuites": 47,
+    "rustPassed": 231,
+    "rustIgnored": 9,
+    "javascriptFiles": 58,
+    "clippy": "passed",
+    "passedCommands": 50,
+    "passedRequiredRecords": 280,
+    "commands": [
+      {
+        "id": "node-test-ai-personalization.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-ai-safety.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-ai-settings-guidance-20261008.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-app-updater.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-calendar-integrity.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-context-bulk-delete.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-context-bulk-tags.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-date-navigation.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-event-movement.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-event-ranges.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-holidays.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-i18n-rendering.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-i18n.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-local-ai-settings.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-markdown.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-mini-calendar.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-modern-settings.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence-dates.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence-store.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-settings.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-calendar-picker.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-legacy-source.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-reference-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-registration-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-selection.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-sync-status.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-recurrence.js",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-release-manifest.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-save-scope.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-selection-layout.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-settings-transfer.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-alignment.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-model.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-preferences.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-readable.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-task-editor-mock.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-task-performance.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-task-selection.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-transfer-file.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-ui-colors.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-update-notes-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-weather-current-day.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-weather-upgrade.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-work-time.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "javascript-syntax",
+        "status": "passed"
+      },
+      {
+        "id": "rust",
+        "status": "passed"
+      },
+      {
+        "id": "clippy",
+        "status": "passed"
+      }
+    ],
+    "localLogs": "out/summary-readable-20261024/verified-checks"
+  },
+  "screenshots": {
+    "rendererSha256": "97967c2584faab6d2f8c339f4a77f3e27be830530f72e88496fd2a41d5801094",
+    "browser": "151.0.7922.34",
+    "playwright": "1.62.1",
+    "syntheticNow": "2026-10-08T01:15:00.000Z",
+    "tasks": 430,
+    "tags": 10,
+    "before": {
+      "file": "docs/images/summary-readable/before.png",
+      "sha256": "51f2f5cc3fb41cea8fd09b0ad7143b723086e1e3c93cf1a184dccd956c134e45"
+    },
+    "after": [
+      {
+        "name": "month-10-tags",
+        "viewport": [
+          1280,
+          800
+        ],
+        "document": [
+          1280,
+          800
+        ],
+        "chartVisible": true,
+        "numbersVisible": true,
+        "panels": [
+          {
+            "name": "trend",
+            "bottom": 506,
+            "right": 652,
+            "client": 244,
+            "scroll": 244
+          },
+          {
+            "name": "tags",
+            "bottom": 788,
+            "right": 652,
+            "client": 268,
+            "scroll": 268
+          },
+          {
+            "name": "numbers",
+            "bottom": 672,
+            "right": 1268,
+            "client": 410,
+            "scroll": 410
+          },
+          {
+            "name": "insights",
+            "bottom": 788,
+            "right": 1268,
+            "client": 102,
+            "scroll": 102
+          }
+        ],
+        "file": "docs/images/summary-readable/month-10-tags.png",
+        "sha256": "a88a1d0fac4adc4d6c9d861082b594800f824d766953aaeb610d000e1953e393"
+      },
+      {
+        "name": "month-selected-tags",
+        "viewport": [
+          1366,
+          768
+        ],
+        "document": [
+          1366,
+          768
+        ],
+        "chartVisible": true,
+        "numbersVisible": true,
+        "panels": [
+          {
+            "name": "trend",
+            "bottom": 474,
+            "right": 738,
+            "client": 212,
+            "scroll": 212
+          },
+          {
+            "name": "tags",
+            "bottom": 756,
+            "right": 738,
+            "client": 268,
+            "scroll": 268
+          },
+          {
+            "name": "numbers",
+            "bottom": 640,
+            "right": 1354,
+            "client": 378,
+            "scroll": 378
+          },
+          {
+            "name": "insights",
+            "bottom": 756,
+            "right": 1354,
+            "client": 102,
+            "scroll": 102
+          }
+        ],
+        "file": "docs/images/summary-readable/month-selected-tags.png",
+        "sha256": "6f824537dd80741b9184ca107e52ae82b5d01ed537926a1c16124e7936ab5382"
+      },
+      {
+        "name": "year",
+        "viewport": [
+          1280,
+          800
+        ],
+        "document": [
+          1280,
+          800
+        ],
+        "chartVisible": true,
+        "numbersVisible": true,
+        "panels": [
+          {
+            "name": "trend",
+            "bottom": 506,
+            "right": 652,
+            "client": 244,
+            "scroll": 244
+          },
+          {
+            "name": "tags",
+            "bottom": 788,
+            "right": 652,
+            "client": 268,
+            "scroll": 268
+          },
+          {
+            "name": "numbers",
+            "bottom": 672,
+            "right": 1268,
+            "client": 410,
+            "scroll": 410
+          },
+          {
+            "name": "insights",
+            "bottom": 788,
+            "right": 1268,
+            "client": 102,
+            "scroll": 102
+          }
+        ],
+        "file": "docs/images/summary-readable/year.png",
+        "sha256": "80a07a861e69f710eaaaad3c42ae8091d90d771fc445ee59d477da01d44daac1"
+      },
+      {
+        "name": "month-dark",
+        "viewport": [
+          1280,
+          800
+        ],
+        "document": [
+          1280,
+          800
+        ],
+        "chartVisible": true,
+        "numbersVisible": true,
+        "panels": [
+          {
+            "name": "trend",
+            "bottom": 506,
+            "right": 652,
+            "client": 244,
+            "scroll": 244
+          },
+          {
+            "name": "tags",
+            "bottom": 788,
+            "right": 652,
+            "client": 268,
+            "scroll": 268
+          },
+          {
+            "name": "numbers",
+            "bottom": 672,
+            "right": 1268,
+            "client": 410,
+            "scroll": 410
+          },
+          {
+            "name": "insights",
+            "bottom": 788,
+            "right": 1268,
+            "client": 102,
+            "scroll": 102
+          }
+        ],
+        "file": "docs/images/summary-readable/month-dark.png",
+        "sha256": "b6f08b9d31412619dcccb37010c4310fdfbebbb8c73df5c28dc2c1bab0e68a2d"
+      }
+    ]
+  },
+  "review": {
+    "independentReviews": 1,
+    "initialImportantFindings": 1,
+    "finding": "Responsive stacked panels overlapped",
+    "resolution": "Author observed failing pairwise collision regression, changed natural layout sizing, then passed regression and full suite. No second review.",
+    "remainingCriticalOrImportant": 0,
+    "minorFindings": 0,
+    "finalGalleryVisuallyCheckedBy": "implementer"
+  },
+  "delivery": {
+    "mainMerged": false,
+    "releaseCreated": false,
+    "versionChanged": false,
+    "installedAppExecuted": false
+  }
+}

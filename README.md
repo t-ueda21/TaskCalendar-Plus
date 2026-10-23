@@ -1,6 +1,6 @@
 # TaskCalendar+
 
-> このブランチは **v4.0.0** のソースです。[更新内容](docs/releases/v4.0.0.md)、[サマリーの実装内容と画面](docs/reviews/summary-screen.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)を確認できます。
+> このブランチは **v4.0.0をベースにした開発中のソース**です。サマリーの文字・配置と操作バーを見直した変更は未リリースです。[変更前後の画面](docs/reviews/summary-readable.md)、[公開済みv4.0.0の更新内容](docs/releases/v4.0.0.md)を確認できます。
 
 [v3.0.4の更新画面とリファクタリングの前後比較](docs/reviews/v3.0.4.md)も掲載しています。
 

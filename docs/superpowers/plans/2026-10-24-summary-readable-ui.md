@@ -1,0 +1,45 @@
+# Readable Summary UI Implementation Plan
+
+> **For agentic workers:** Implement the coordinated changes with focused delegated test work and one fresh final review. Preserve the current checkout on `codex/summary-readable-ui`; never stage private untracked attachments.
+
+**Goal:** Rebuild the Summary screen at a readable scale and restore the upper page tabs and shared application action bar.
+
+**Architecture:** Keep the existing Store aggregation and state behavior. Reuse the shared toolbar template without the sidebar action on Summary. Scope larger typography and shell adjustments to the active Summary view; other views retain their present sizing. Use a left chart/tag column and a right numeric/insight column.
+
+**Tech Stack:** Existing vanilla HTML/CSS/JavaScript, nine locale catalogs and isolated Chromium harness.
+
+**Spec / user authority:** The user requested larger text/UI, restored bars and an overall rebuild, then clarified on 2026-10-24: upper page tabs plus acquisition/update/settings bar; Summary screen only. Their earlier simultaneous chart/numbers and multi-tag requirements remain. Prior release authorization was completed with v4.0.0; this new UI work is not a release request.
+
+## Design choices
+
+- Use 16px for primary Summary text/actions, at least 14px for supporting text, axis labels, weekdays and time units; use 30px metric values and 18px section headings. These are implementation choices proposed in conversation, not user-specified exact dimensions.
+- Replace the cramped 16-column numeric layout with four columns for all 28–31 dates and three columns for all 12 months. Keep hours and minutes explicit. Dates remain selectable and annual cells still open the selected month.
+- Put the graph above tag filters in the left column; numeric dates above the derived insights on the right. Keep all four components visible at the standard desktop targets with 10 tags. Use concise localized insight sentences to retain the existing facts without tiny secondary text.
+- Restore shared Outlook acquisition, update and settings actions, with one working settings trigger. Omit the sidebar toggle because the user selected upper bars rather than a left sidebar.
+- Retain the existing four navigation tabs and enlarge them only while Summary is active. Avoid global changes to other views or global settings dialogs.
+- Aim for no page scrolling at 1280×800 and 1366×768, standard CSS scale. For smaller/zoomed windows allow scrolling rather than hide controls or reduce text below the stated floor.
+
+## Constraints
+
+- No aggregation changes, new AI calls, live Outlook calls, native app/WebView2/Edge launch, schema migration, version bump, release, or main merge.
+- No change to task data. Use synthetic data/API/native bridge for UI tests and screenshots.
+- Keep month/year modes, future inclusion, tag paging, errors/retry, metric selection, preference persistence, keyboard focus, empty states and nine locales.
+- Do not reintroduce all-time mode, a daily detail table, or the removed aggregation-help button.
+- Use existing theme tokens and shared icons. Keep long labels safe, with readable tooltips/accessible names for intentional truncation.
+
+## Review focus
+
+1. Restored toolbar actions must actually work, with no duplicate settings handlers or no-op sidebar button.
+2. 31 dates, 10 tags, four metrics and long durations must fit with visible time units at the typography floor.
+3. Long translations and multiple selected tag names must not collide with period controls or application actions.
+4. Leaving Summary must restore the shared header's original sizing and preserve other views' appearance/behavior.
+5. Larger controls must preserve graph/day synchronization, keyboard focus, tag paging, errors and settings persistence.
+
+## Tasks
+
+- [x] Record failing font/toolbar acceptance tests before changing the production UI. Existing v4 baseline screenshots are in `out/ui-rebuild-20261023/before`; take a same-fixture summary gallery for comparison.
+- [x] Rebuild `assets/app.html` Summary markup and `assets/summary.css`. Add optional `data-without-sidebar` support for the shared toolbar slot in `src/view-shell.js`; defaults unchanged.
+- [x] Update `src/summary-renderer.js` numeric-cell structure and concise insights. Keep aggregation in `summary-model.js` untouched. Update nine-language strings and generated JSON as necessary.
+- [x] Add/adjust `scripts/test-summary-readable.mjs`, `test-summary-ui.mjs` and `test-summary-alignment.mjs` for the intentional new layout while retaining functional checks and recording superseded layout expectations.
+- [x] Verify standard viewports, all locales, light/dark, 10+ tags, long values, keyboard actions and return to existing views. Inspect actual rendered screenshots, not only rectangle containment.
+- [x] Run the complete safe suite, obtain one fresh review, address material findings, save before/after report. Delivery after commit: create a draft PR; do not merge or publish.
