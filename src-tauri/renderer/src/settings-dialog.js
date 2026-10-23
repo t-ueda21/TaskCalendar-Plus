@@ -1,5 +1,5 @@
 /**
- * settings-dialog.js — 設定ダイアログ(カレンダー・タスク一覧・AIモードの3画面で共有)
+ * settings-dialog.js — 各画面で共有する設定ダイアログ
  *
  * store.js を import しない(Store は呼び出し側から引数で受け取る)。
  */
@@ -35,7 +35,7 @@ import { wireOutlookSync as wireOutlookSyncV3 } from "./outlook-settings.js";
 import { wireTransferUi } from "./transfer-ui.js";
 import { showAppAlert, showAppConfirm } from './app-dialogs.js';
 
-// ── 設定ダイアログ共通ヘルパー(3画面(calendar/tasks/ai-mode)で共用) ──
+// ── 設定ダイアログ共通ヘルパー ──
 /**
  * 設定の時刻セレクト用の選択肢(15分刻み等)を生成する。
  */

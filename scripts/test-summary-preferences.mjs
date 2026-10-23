@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+const module=await import('../src-tauri/renderer/src/summary-preferences.js').catch(error=>{if(error.code!=='ERR_MODULE_NOT_FOUND')throw error;return {}});
+assert.equal(typeof module.normalizeSummaryPreferences,'function','summary preferences must normalize imported/stored values');
+const {normalizeSummaryPreferences}=module;
+const defaults={metrics:['total','average','overtime','days'],averageBase:'recorded'};
+assert.deepEqual(normalizeSummaryPreferences(),defaults);
+assert.deepEqual(normalizeSummaryPreferences({metrics:['longest','total','total','unknown','average','days','overtimeDays'],averageBase:'business'}),{metrics:['longest','total','average','days'],averageBase:'business'});
+assert.deepEqual(normalizeSummaryPreferences({metrics:[],averageBase:'bad',tasks:['private']}),defaults);
+assert.deepEqual(normalizeSummaryPreferences({metrics:'total',averageBase:null}),defaults);
+const first=normalizeSummaryPreferences();first.metrics.pop();assert.deepEqual(normalizeSummaryPreferences(),defaults);
+console.log('PASS: bounded metric choices, valid denominator, fallback and isolated preference values');
