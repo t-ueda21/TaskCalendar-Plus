@@ -1,12 +1,12 @@
 # TaskCalendar+
 
-> このブランチは **v3.0.4をベースにした開発中のソース**です。サマリー画面は未リリースです。[公開済みv3.0.4の修正内容](docs/releases/v3.0.4.md)、[サマリーの実装内容と画面](docs/reviews/summary-screen.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)を確認できます。
+> このブランチは **v3.1.0** のソースです。[更新内容](docs/releases/v3.1.0.md)、[サマリーの実装内容と画面](docs/reviews/summary-screen.md)、[Issue別の実施報告](docs/reviews/v3.0.0-issues.md)を確認できます。
 
 [v3.0.4の更新画面とリファクタリングの前後比較](docs/reviews/v3.0.4.md)も掲載しています。
 
 **予定を入れる。作業時間を見渡す。日報にまとめる。**
 
-v3.0.4は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.4/TaskCalendar%2B_3.0.4_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.0.4/TaskCalendar%2B_3.0.4_x64-setup.zip)から取得できます。ZIPは展開後にインストーラーを実行します。通常のアプリ内更新にも対応します。
+v3.1.0は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.1.0/TaskCalendar%2B_3.1.0_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v3.1.0/TaskCalendar%2B_3.1.0_x64-setup.zip)から取得できます。ZIPは展開後にインストーラーを実行します。通常のアプリ内更新にも対応します。
 
 TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windows アプリです。案件や作業の種類ごとにタグを付けると、一日・一か月の工数を集計できます。
 
@@ -31,13 +31,13 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 | **カレンダー** | 日・週の予定を見ながら、追加・移動・時間調整 |
 | **タスク一覧** | 一日の記録を一覧で確認し、タグ別の時間を日報へコピー |
 | **AIモード** | 記録について質問したり、予定の追加・変更を依頼 |
-| **サマリー（未リリース）** | 月間・年間の登録時間をグラフと数字で同時に確認。タグを複数選んで絞り込み |
+| **サマリー** | 月間・年間の登録時間をグラフと数字で同時に確認。タグを複数選んで絞り込み |
 | **サイド** | 左のミニカレンダーと集計欄を表示・非表示 |
 | **取得** | Outlookの取り込み設定を開く |
 | **更新** | 新しいバージョンと更新内容をアプリ内で確認。見出し・箇条書き・リンクを整えて表示 |
 | **設定** | 勤務時間、タグ、見た目、連携、バックアップを設定 |
 
-## サマリー（開発中・未リリース）
+## サマリー
 
 AIモードの次にある「サマリー」で、月間・年間の登録時間を確認できます。グラフと日別・月別の時間を同時に表示し、数字は時間・分まで読めます。
 
@@ -47,7 +47,7 @@ AIモードの次にある「サマリー」で、月間・年間の登録時間
 
 登録済みの予定を集計する機能です。タグ付きの時間がある予定を対象に、休憩を除き、同じ時刻の重複を合算せずに計算します。「時間外」は設定した勤務時間帯の外です。右下の要約は登録データから計算した内容で、AIへ送信しません。
 
-<a href="docs/images/summary-preview/month-10-tags.png"><img src="docs/images/summary-preview/month-10-tags.png" alt="未リリースのサマリー画面。日別グラフと時間・分の数字、10個のタグ、集計要約を同時表示" width="800" height="500"></a>
+<a href="docs/images/summary-preview/month-10-tags.png"><img src="docs/images/summary-preview/month-10-tags.png" alt="サマリー画面。日別グラフと時間・分の数字、10個のタグ、集計要約を同時表示" width="800" height="500"></a>
 
 > 画像は実際の画面コードを隔離したChromiumで表示し、架空の予定・API・ネイティブ応答を使って撮影しています。1280×800と1366×768ではページスクロールなしを確認しています。小さい画面や拡大表示では、操作を隠さずスクロールできます。インストール版・実Outlookとの接続試験を示す画像ではありません。[年間・複数タグ・ダークテーマの画面と検証範囲](docs/reviews/summary-screen.md)も掲載しています。
 
