@@ -1,17 +1,17 @@
 {
   "feature": "Summary screen, unreleased",
   "baseCommit": "3baa3a257a7a86b8968e8572d255f64bf3af0820",
-  "recordedAt": "2026-10-22T16:29:50.925Z",
+  "recordedAt": "2026-10-23T01:32:52.777Z",
   "scope": "Local tests and actual renderer with synthetic data; no installed application or live Outlook/AI verification",
   "tests": {
-    "sourceAndTestsSha256": "6f27000c367c76092e231b153f62d66405ab88403c42b7f13c7f9cae077f7a57",
-    "nodeSuites": 45,
+    "sourceAndTestsSha256": "359adec4552dcf393e27ebf3c2c37a6d1599d2539515d0518d7cdae576abf9c7",
+    "nodeSuites": 46,
     "rustPassed": 231,
     "rustIgnored": 9,
     "javascriptFiles": 58,
     "clippy": "passed",
-    "passedCommands": 48,
-    "passedRequiredChecks": 278,
+    "passedCommands": 49,
+    "passedRequiredChecks": 279,
     "commands": [
       {
         "id": "node-test-ai-personalization.mjs",
@@ -146,6 +146,10 @@
         "status": "passed"
       },
       {
+        "id": "node-test-summary-alignment.mjs",
+        "status": "passed"
+      },
+      {
         "id": "node-test-summary-model.mjs",
         "status": "passed"
       },
@@ -206,10 +210,10 @@
         "status": "passed"
       }
     ],
-    "localLogs": "out/summary-implementation/verified-final"
+    "localLogs": "out/summary-alignment-20261023/checks"
   },
   "screenshots": {
-    "rendererSha256": "ef38295f387f297a356c2dd4d88c305b7323b546c08b3483a4e7a91a61ad35d5",
+    "rendererSha256": "ab62f9909b67b5c8f2b802eb2f072c2edb57af45cdd0ea46b7f3aa6e97f41ab6",
     "browser": "151.0.7922.34",
     "playwright": "1.62.1",
     "syntheticNow": "2026-10-08T01:15:00.000Z",
@@ -238,21 +242,21 @@
           },
           {
             "name": "tags",
-            "bottom": 625.625,
+            "bottom": 624.21875,
             "right": 1267.984375,
-            "client": 335,
-            "scroll": 335
+            "client": 333,
+            "scroll": 333
           },
           {
             "name": "insights",
             "bottom": 788,
             "right": 1267.984375,
-            "client": 150,
-            "scroll": 150
+            "client": 152,
+            "scroll": 152
           }
         ],
         "file": "docs/images/summary-preview/month-10-tags.png",
-        "sha256": "0f56d8a81c1e1c339c00085af25f69dbcb4023ffd6c6e555721ef29106fad244"
+        "sha256": "51f2f5cc3fb41cea8fd09b0ad7143b723086e1e3c93cf1a184dccd956c134e45"
       },
       {
         "name": "month-selected-tags",
@@ -276,21 +280,21 @@
           },
           {
             "name": "tags",
-            "bottom": 593.625,
+            "bottom": 592.21875,
             "right": 1354,
-            "client": 303,
-            "scroll": 303
+            "client": 301,
+            "scroll": 301
           },
           {
             "name": "insights",
             "bottom": 756,
             "right": 1354,
-            "client": 150,
-            "scroll": 150
+            "client": 152,
+            "scroll": 152
           }
         ],
         "file": "docs/images/summary-preview/month-selected-tags.png",
-        "sha256": "c94e7d00a7a56761b23e3ef9701a6cee4afac1fb36c64a1748e96f87cac736c1"
+        "sha256": "51f390e3429469fd1f1d82c8370b744e2bee71e36a9fd979fba6cf0fbf812515"
       },
       {
         "name": "year",
@@ -314,21 +318,21 @@
           },
           {
             "name": "tags",
-            "bottom": 625.625,
+            "bottom": 624.21875,
             "right": 1267.984375,
-            "client": 335,
-            "scroll": 335
+            "client": 333,
+            "scroll": 333
           },
           {
             "name": "insights",
             "bottom": 788,
             "right": 1267.984375,
-            "client": 150,
-            "scroll": 150
+            "client": 152,
+            "scroll": 152
           }
         ],
         "file": "docs/images/summary-preview/year.png",
-        "sha256": "f7dfa3b069750a409393bcc3d8857b82669a703967c2d5ed80c1383727436e21"
+        "sha256": "79997670af8e8223996f6c7cc7bbf54e972dbb9d85959bd5289d4330b92db55c"
       },
       {
         "name": "month-dark",
@@ -352,21 +356,21 @@
           },
           {
             "name": "tags",
-            "bottom": 625.625,
+            "bottom": 624.21875,
             "right": 1267.984375,
-            "client": 335,
-            "scroll": 335
+            "client": 333,
+            "scroll": 333
           },
           {
             "name": "insights",
             "bottom": 788,
             "right": 1267.984375,
-            "client": 150,
-            "scroll": 150
+            "client": 152,
+            "scroll": 152
           }
         ],
         "file": "docs/images/summary-preview/month-dark.png",
-        "sha256": "c5f0f7b58c59c96e7b45a567273bb5fb29ba95b9b102bcd7dc738195ee6d1010"
+        "sha256": "de603870a002300213f3d64fcb913586b4459d9c47df80ed3747ad5f60c73ea7"
       }
     ]
   },
@@ -377,11 +381,47 @@
       "Static translation keys",
       "Localized period and tag pagination accessible names"
     ],
-    "visualFix": "Yearly axis unit stays on one line; failure reproduced before the fix"
+    "visualFix": "Yearly axis unit stays on one line; failure reproduced before the fix",
+    "scopeCommit": "d1692dbe4ae6cea1c1051564fa7a975e43282f94"
   },
   "delivery": {
     "releaseCreated": false,
     "mainMerged": false,
     "versionChanged": false
+  },
+  "previousEvidenceCommit": "d1692dbe4ae6cea1c1051564fa7a975e43282f94",
+  "alignmentFollowup": {
+    "basis": "Measured actual renderer rectangles and visually compared identical synthetic scenes; self verification, not another independent review",
+    "before": {
+      "maxAxisCenterOffset": 9.25,
+      "headingControlHeights": [
+        37.5,
+        35.546875,
+        34
+      ],
+      "panelHeadingCenters": [
+        313.59375,
+        312.59375
+      ],
+      "trendHeadingAndNumberLeftDifference": 3
+    },
+    "after": {
+      "maxAxisCenterOffset": 0.5,
+      "headingControlHeights": [
+        36,
+        36,
+        36
+      ],
+      "panelHeadingCenters": [
+        313.59375,
+        313.59375
+      ],
+      "trendHeadingAndNumberLeftDifference": 0
+    },
+    "regression": "scripts/test-summary-alignment.mjs",
+    "beforeScreenshot": {
+      "file": "docs/images/summary-preview/before-alignment.png",
+      "sha256": "0f56d8a81c1e1c339c00085af25f69dbcb4023ffd6c6e555721ef29106fad244"
+    }
   }
 }

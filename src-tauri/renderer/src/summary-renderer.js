@@ -64,7 +64,7 @@ function renderChart(root, model) {
   query(root, 'legend').innerHTML = legend.join('');
   const unit = monthly ? 120 : 1200;
   const scale = Math.max(unit * 5, Math.ceil(Math.max(...model.groups.map(group => group.total), 0) / (unit * 5)) * unit * 5);
-  query(root, 'axis').innerHTML = [5,4,3,2,1,0].map(index => `<span>${number(scale / 60 * index / 5)}${index === 5 ? escHtml(t('summary.hours')) : ''}</span>`).join('');
+  query(root, 'axis').innerHTML = [5,4,3,2,1,0].map(index => `<span style="top:${(5 - index) * 20}%">${number(scale / 60 * index / 5)}${index === 5 ? escHtml(t('summary.hours')) : ''}</span>`).join('');
   query(root, 'bars').style.setProperty('--summary-columns', model.groups.length);
   query(root, 'bars').innerHTML = model.groups.map(group => {
     const label = monthly ? number(Number(group.key.slice(8))) : dateText(group.key,{month:'short'});
