@@ -80,8 +80,30 @@ function selectTag(id) {
   if (state.selectedTagIds === null) state.selectedTagIds = [id];
   else if (state.selectedTagIds.includes(id)) state.selectedTagIds = state.selectedTagIds.filter(value => value !== id);
   else state.selectedTagIds = [...state.selectedTagIds, id];
-  if (!state.selectedTagIds.length || state.selectedTagIds.length === Store.getAllTags().length) state.selectedTagIds = null;
+  if (!state.selectedTagIds.length) state.selectedTagIds = null;
   render();
+}
+
+function handleDateKey(event) {
+  if (event.ctrlKey || event.altKey || event.metaKey) return;
+  const button = event.target.closest('[data-summary-day]');
+  if (!button || !root.contains(button) || button.disabled) return;
+  const grid = query('number-grid');
+  const buttons = [...grid.querySelectorAll('[data-summary-day]:not(:disabled)')];
+  const index = buttons.indexOf(button);
+  const columns = getComputedStyle(grid).gridTemplateColumns.split(/\s+/).length;
+  const offsets = {ArrowLeft:-1,ArrowRight:1,ArrowUp:-columns,ArrowDown:columns};
+  let next;
+  if (event.key === 'Home') next = 0;
+  else if (event.key === 'End') next = buttons.length - 1;
+  else if (Object.hasOwn(offsets,event.key)) next = index + offsets[event.key];
+  else return;
+  event.preventDefault();
+  event.stopPropagation();
+  if (next < 0 || next >= buttons.length) return;
+  state.selectedKey = buttons[next].dataset.summaryDay;
+  renderSelection(root,model(),state);
+  buttons[next].focus();
 }
 
 function handleClick(event) {
@@ -100,6 +122,7 @@ function handleClick(event) {
     const key = button.dataset.summaryDay;
     state.year = Number(key.slice(0,4)); state.month = Number(key.slice(5,7));
     changePeriod('month');
+    root.querySelector('[data-summary-day][aria-pressed="true"]')?.focus();
   } else if (button.hasAttribute('data-summary-day') || button.hasAttribute('data-summary-bar')) {
     state.selectedKey = button.dataset.summaryDay || button.dataset.summaryBar;
     renderSelection(root, model(), state);
@@ -114,6 +137,7 @@ export function init(rootElement) {
     includeFuture:false,selectedTagIds:null,selectedKey:null,tagPage:0,refreshError:false,
     preferences:normalizeSummaryPreferences(Store.getSettings().summaryPreferences) };
   root.addEventListener('click', handleClick);
+  root.addEventListener('keydown', handleDateKey);
   query('future').addEventListener('change', event => { state.includeFuture = event.target.checked; render(); });
   for (const channel of ['tasks','tags']) Store.subscribe(channel, () => { invalidate(); render(); });
   Store.subscribe('settings', () => {

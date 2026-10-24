@@ -1,42 +1,233 @@
 {
-  "recordedAt": "2026-10-24T03:58:39.019Z",
+  "recordedAt": "2026-10-24T04:19:05.655Z",
   "baseCommit": "8cba81f4945f514a3f1451a2e8ad8a73a9fa2b97",
   "branch": "codex/summary-readable-ui",
-  "userCorrection": "Reduce the unusually wide vertical section gaps to the same6px as existing toolbar/content spacing; retain12px horizontal grid gaps.",
+  "userCorrection": "Remove the redundant period caption, limit daily numbers to11 per row, and improve concrete interaction problems found during focused UX review.",
   "scope": "Real renderer and Store in isolated Chromium; synthetic tasks/API/native bridge. Not native app or live integration evidence.",
   "tests": {
-    "scope": "Three targeted suites after CSS spacing correction; no full Node/Rust/native rerun.",
-    "rendererSha256": "9fb37efdca4c229b341cfd40da56d0203414956b326d4a81d4e8e8d2a0bfe4c0",
+    "scope": "Full safe renderer Node suites and syntax check; no native/live or Rust run.",
+    "sourceAndTestsSha256": "3bd9dbe3fbdb160c9d4b593cdce82ff6842b89d285a6032b4a76e8561b7591b9",
+    "nodeSuites": 51,
+    "javascriptFiles": 58,
+    "passedCommands": 52,
     "commands": [
       {
-        "command": "node scripts/test-summary-alignment.mjs",
-        "status": "passed",
-        "scriptSha256": "b157e4743ec06484230266f7e99cd63e1216f9019e2cf64d9cf06c92b6803f7f"
+        "id": "node-test-ai-personalization.mjs",
+        "status": "passed"
       },
       {
-        "command": "node scripts/test-summary-current-period.mjs",
-        "status": "passed",
-        "scriptSha256": "c016678d3dbb1dad351fd06b80dee81fefe220c0d6376fe7c0907b96b9b18779"
+        "id": "node-test-ai-safety.mjs",
+        "status": "passed"
       },
       {
-        "command": "node scripts/test-summary-readable.mjs",
-        "status": "passed",
-        "scriptSha256": "ee5f7f48cf3771eab7670dd024e8be215aeddc75fb6604c1b67d2713d6da328e"
+        "id": "node-test-ai-settings-guidance-20261008.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-app-updater.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-calendar-integrity.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-context-bulk-delete.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-context-bulk-tags.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-date-navigation.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-event-movement.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-event-ranges.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-holidays.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-i18n-rendering.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-i18n.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-local-ai-settings.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-markdown.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-mini-calendar.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-modern-settings.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence-dates.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence-store.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-settings.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-calendar-picker.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-legacy-source.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-reference-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-registration-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-selection.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-sync-status.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-recurrence.js",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-release-manifest.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-save-scope.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-selection-layout.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-settings-control-consistency.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-settings-transfer.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-alignment.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-current-period.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-interactions.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-model.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-preferences.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-readable.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-task-editor-mock.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-task-performance.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-task-selection.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-transfer-file.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-ui-colors.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-ui-consistency.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-update-notes-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-weather-current-day.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-weather-upgrade.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-work-time.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "javascript-syntax",
+        "status": "passed"
       }
     ],
-    "regression": {
-      "before": {
-        "toolbarToMetrics": 6,
-        "metricsToPanels": 12,
-        "tagsToInsights": 12
-      },
-      "after": {
-        "toolbarToMetrics": 6,
-        "metricsToPanels": 6,
-        "tagsToInsights": 6
-      },
-      "coverage": "3/10 tags x3desktop widths xmonth/year; horizontal boundaries, fonts and current-period overflow retained"
-    }
+    "localLogs": "out/summary-eleven-days-20261024/checks",
+    "regression": [
+      "Period caption is absent while emphasized month/year stays18px",
+      "Daily grid11 columns at desktop including1920px; maximum11 at narrow widths; year6 columns retained",
+      "All explicitly selected tags retain checks and tag-colored legends until reset",
+      "Annual-to-monthly drilldown focuses the selected day",
+      "One date-grid Tab stop; arrows follow11/6/10 columns; Home/End, disabled future dates, future exclusion and modifiers behave correctly"
+    ]
   },
   "priorFullVerification": {
     "commit": "78ebede8b45c2984ed8b92f3e207f27484067325",
@@ -265,7 +456,7 @@
     "note": "Historical full-suite result before this layout correction, not a new run."
   },
   "screenshots": {
-    "rendererSha256": "9fb37efdca4c229b341cfd40da56d0203414956b326d4a81d4e8e8d2a0bfe4c0",
+    "rendererSha256": "37f57c6e5068162a66c006550ded59390623568c55d16254b8695e7780a36ef8",
     "browser": "151.0.7922.34",
     "playwright": "1.62.1",
     "syntheticNow": "2026-10-08T01:15:00.000Z",
@@ -319,7 +510,7 @@
           }
         ],
         "file": "docs/images/summary-readable/month-10-tags.png",
-        "sha256": "1e4c860b0568577930ce1658de055869fcfb5f55a3e9fd0d92fbc926a2548d2c"
+        "sha256": "1ec66a6e2ba7d83d18c1f4b3d33e155a5e497382c62ff133fd1abd84f2c64a16"
       },
       {
         "name": "month-selected-tags",
@@ -364,7 +555,7 @@
           }
         ],
         "file": "docs/images/summary-readable/month-selected-tags.png",
-        "sha256": "df8693b214bc8b150d9e81bbecf4eb7ab50d50e2f1f294f56bbc3150da1bcf62"
+        "sha256": "4386b48897ab28da292e9e509e587eabff405880b95e1545aa6900e274b02a0f"
       },
       {
         "name": "year",
@@ -409,7 +600,7 @@
           }
         ],
         "file": "docs/images/summary-readable/year.png",
-        "sha256": "03dff1c84c3114d107aefc0bfb47b71fc4e221dc36375d8f01fae0b1f18a0553"
+        "sha256": "3dc241777f5c42d421fdb9cb1cf2ca2787fa05acb1e5d3d5e520ef3245afa83c"
       },
       {
         "name": "month-dark",
@@ -454,25 +645,25 @@
           }
         ],
         "file": "docs/images/summary-readable/month-dark.png",
-        "sha256": "658d0b908343b9216021843c31f8fbb73f309f1974c7247478c58b4e35a8847e"
+        "sha256": "abab13e9f9a22dc993c013d2064a0f92926f5e7e2236e1a55dd8ef5ad6e576e5"
       }
     ],
     "currentPeriod": {
       "scope": "real renderer with synthetic HTTP API, synthetic native bridge and synthetic weather; not native application E2E",
       "fixedNow": "2026-10-08T01:15:00.000Z",
-      "sourceSha256": "9fb37efdca4c229b341cfd40da56d0203414956b326d4a81d4e8e8d2a0bfe4c0",
+      "sourceSha256": "37f57c6e5068162a66c006550ded59390623568c55d16254b8695e7780a36ef8",
       "layout": {
         "clientHeight": 603,
         "scrollHeight": 603
       },
       "file": "docs/images/summary-readable/current-month.png",
-      "sha256": "83cbfc6a1860f69b39699a47a8cc90b1657c3e30e6062f5cf079e61a4e4334c3",
+      "sha256": "f11b9cc0879ab386a24613c7577b0bb99af0ca24af12dbd998cff0c39c8e97a4",
       "tasks": 31,
       "tags": 10
     },
     "alignedColumns": {
       "scope": "real renderer with synthetic HTTP API, synthetic native bridge and synthetic weather; not native application E2E",
-      "sourceSha256": "9fb37efdca4c229b341cfd40da56d0203414956b326d4a81d4e8e8d2a0bfe4c0",
+      "sourceSha256": "37f57c6e5068162a66c006550ded59390623568c55d16254b8695e7780a36ef8",
       "fixedNow": "2026-10-08T01:15:00.000Z",
       "viewport": [
         1422,
@@ -486,14 +677,15 @@
         "insightsLeft": 952
       },
       "file": "docs/images/summary-readable/aligned-columns.png",
-      "sha256": "332e84f6d1916d35a25caf06518096fa819b75c7b3dd3f81bccc4c33a79b84bd",
+      "sha256": "76585aee85244436f846774230255bef15420348571658c968ceac18a24cb8e8",
       "tasks": 3,
       "tags": 3
     }
   },
   "review": {
-    "scope": "Implementer inspected final synthetic image and source; spacing regression was written separately by another agent.",
-    "freshIndependentCodeReview": false
+    "independentReviewsOfCorrection": 1,
+    "criticalOrImportantFindings": 0,
+    "scope": "Fresh reviewer inspected source and ran13 interaction regression cases successfully in isolated Chromium. Implementer checked final images. No native, screen-reader or live-data verification."
   },
   "delivery": {
     "mainMerged": false,
@@ -507,7 +699,8 @@
     "findingsFixed": 6,
     "settingsProof": "out/summary-six-20261024/settings-proof",
     "sourceScope": "Synthetic API/native/weather in isolated Chromium",
-    "latestCorrection": "Period control consistency and tag heading whitespace corrected after further user feedback; removed metric configuration UI."
+    "latestCorrection": "Period control consistency and tag heading whitespace corrected after further user feedback; removed metric configuration UI.",
+    "interactionReview": "out/summary-ux-audit-20261024: observed lost drilldown focus, implicit all-tag reset, and60 duplicated Tab stops; all addressed."
   },
   "priorNativeDebugLaunch": {
     "ProcessId": 34232,

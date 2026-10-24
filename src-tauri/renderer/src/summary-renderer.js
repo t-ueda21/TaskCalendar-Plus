@@ -88,7 +88,7 @@ function renderNumbers(root, model) {
     const description = `${groupLabel(group,model.period)} · ${group.active ? formatDuration(group.total) : t('summary.outOfScope')}`;
     const label = monthly ? `${number(Number(group.key.slice(8)))}<em>${escHtml(dateText(group.key,{weekday:'short'}))}</em>` : escHtml(dateText(group.key,{month:'short'}));
     const duration = group.active ? `<span class="summaryDayHours">${parts.hours}<small>${th('summary.hours')}</small></span><span class="summaryDayMinutes">${parts.minutes}<small>${th('summary.minutes')}</small></span>` : '<span class="summaryDayHours">—</span>';
-    return `<button type="button" class="summaryDay ${group.total ? '' : 'no-time'} ${group.key === model.today ? 'today' : ''}" data-summary-day="${group.key}" aria-pressed="false" aria-label="${escHtml(description)}" title="${escHtml(description)}" ${group.active ? '' : 'disabled'}><span class="summaryDayLabel">${label}</span><span class="summaryDayTime">${duration}</span></button>`;
+    return `<button type="button" class="summaryDay ${group.total ? '' : 'no-time'} ${group.key === model.today ? 'today' : ''}" data-summary-day="${group.key}" aria-pressed="false" aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End" aria-label="${escHtml(description)}" title="${escHtml(description)}" ${group.active ? '' : 'disabled'}><span class="summaryDayLabel">${label}</span><span class="summaryDayTime">${duration}</span></button>`;
   }).join('');
 }
 
@@ -126,12 +126,18 @@ function renderInsights(root, model) {
 }
 
 export function renderSelection(root, model, state) {
-  if (!model.groups.some(group => group.key === state.selectedKey)) {
+  if (!model.groups.some(group => group.key === state.selectedKey && group.active)) {
     const currentKey = model.period === 'year' ? model.today.slice(0,7) : model.today;
-    state.selectedKey = model.groups.find(group => group.key === currentKey)?.key
-      || model.groups.findLast(group => group.total > 0)?.key || model.groups[0].key;
+    state.selectedKey = model.groups.find(group => group.key === currentKey && group.active)?.key
+      || model.groups.findLast(group => group.total > 0 && group.active)?.key
+      || model.groups.find(group => group.active)?.key || model.groups[0].key;
   }
-  root.querySelectorAll('[data-summary-bar],[data-summary-day]').forEach(node => node.setAttribute('aria-pressed', String((node.dataset.summaryBar || node.dataset.summaryDay) === state.selectedKey)));
+  root.querySelectorAll('[data-summary-bar],[data-summary-day]').forEach(node => {
+    const selected = (node.dataset.summaryBar || node.dataset.summaryDay) === state.selectedKey;
+    node.setAttribute('aria-pressed',String(selected));
+    // The numeric grid is the keyboard entry point for the same chart selection.
+    node.tabIndex = node.hasAttribute('data-summary-day') && selected && !node.disabled ? 0 : -1;
+  });
   const bars = [...root.querySelectorAll('[data-summary-bar]')];
   const selectedIndex = bars.findIndex(node => node.dataset.summaryBar === state.selectedKey);
   bars.forEach((node, index) => {

@@ -247,10 +247,10 @@ try {
   assert.equal(await root.locator('[data-summary-tag]').count(), 10);
   assert.equal(await root.locator('[data-summary-metric]').count(), 6);
 
-  for (const viewport of [{ width: 1280, height: 800 }, { width: 1366, height: 768 }]) {
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 1366, height: 768 }, { width: 1920, height: 1080 }]) {
     await h.page.setViewportSize(viewport);
     await root.locator('[data-summary-period="month"]').click();
-    await inspectLayout(`summary-readable-month-${viewport.width}`, 12, 31);
+    await inspectLayout(`summary-readable-month-${viewport.width}`, 11, 31);
     const day = root.locator('[data-summary-day="2026-10-06"]');
     const visibleText = (await day.innerText()).replace(/\s/g, '');
     assert.ok(visibleText.includes('23時間59分'), `Long daily value must retain exact visible units: ${visibleText}`);
@@ -267,7 +267,7 @@ try {
     await root.locator('[data-summary-day="2026-10"]').click();
     assert.equal(await root.locator('[data-summary-day]').count(), 31, 'Selecting an annual cell must open that month');
   }
-  console.log('PASS: Summary content uses 16px primary text, 14px supporting text and 40px actions, with 10 tags and exact long durations at both desktop sizes');
+  console.log('PASS: Summary content uses 16px primary text, 14px supporting text and 40px actions, with 11 daily columns, 10 tags and exact long durations at three desktop sizes');
 
   // Translated labels must satisfy the same visible-text and geometry rules.
   // Include the narrower desktop width for three locales with long toolbar labels.
@@ -281,7 +281,7 @@ try {
     if (['de', 'fr', 'pt'].includes(locale)) viewports.push({ width: 1280, height: 800 });
     for (const viewport of viewports) {
       await h.page.setViewportSize(viewport);
-      for (const [period, columns, dayCount] of [['month', 12, 31], ['year', 6, 12]]) {
+      for (const [period, columns, dayCount] of [['month', 11, 31], ['year', 6, 12]]) {
         await root.locator(`[data-summary-period="${period}"]`).click();
         try { await inspectLayout(`summary-readable-${locale}-${period}-${viewport.width}`, columns, dayCount); }
         catch (error) { localeFailures.push(error.message); }
@@ -351,10 +351,23 @@ try {
   assert.equal(await root.locator('[data-summary-bar="2026-10-31"]').getAttribute('aria-pressed'), 'true');
   await root.locator('[data-summary-retry]').click();
   await root.locator('[data-summary-retry]').waitFor({ state: 'hidden' });
-  await inspectLayout('summary-readable-after-retry', 12, 31);
+  await inspectLayout('summary-readable-after-retry', 11, 31);
 
   for (const viewport of [{ width: 1024, height: 640 }, { width: 1000, height: 800 }, { width: 800, height: 600 }]) {
     await h.page.setViewportSize(viewport);
+    const dailyRows = await root.locator('[data-summary-day]').evaluateAll(nodes => {
+      const rows = [];
+      for (const node of nodes) {
+        const top = node.getBoundingClientRect().top;
+        let row = rows.find(row => Math.abs(row.top - top) < 1);
+        if (!row) rows.push(row = {top, count:0});
+        row.count++;
+      }
+      return {count:nodes.length, columns:rows.map(row => row.count)};
+    });
+    assert.equal(dailyRows.count,31, 'Narrow monthly layouts must retain every date');
+    assert.ok(dailyRows.columns.every(count => count <= 11),
+      `${viewport.width}×${viewport.height}: daily rows must never exceed 11 columns (${dailyRows.columns.join(',')})`);
     const collisions = await root.evaluate(el => {
       const panels = [...el.querySelectorAll('[data-summary-panel]')].map(node => ({ node, name: node.dataset.summaryPanel, r: node.getBoundingClientRect() }));
       const overlaps = [];
@@ -380,7 +393,7 @@ try {
     assert.ok(await lastDay.locator('small').first().evaluate(el => parseFloat(getComputedStyle(el).fontSize)) >= 14);
   }
   await h.page.setViewportSize({ width: 1366, height: 768 });
-  await inspectLayout('summary-readable-restored-desktop', 12, 31);
+  await inspectLayout('summary-readable-restored-desktop', 11, 31);
   console.log('PASS: readable error recovery and smaller-window scrolling without obscured dates');
 
   await h.page.evaluate(async () => {
@@ -393,7 +406,7 @@ try {
   await root.locator('[data-summary-day="2026-10-31"]').scrollIntoViewIfNeeded();
   await root.locator('[data-summary-day="2026-10-31"]').click();
   await h.page.evaluate(async()=>{await(await import('/src/store.js')).updateSettings({quickLinks:[]});});
-  await inspectLayout('summary-readable-after-quick-links',12,31);
+  await inspectLayout('summary-readable-after-quick-links',11,31);
   console.log('PASS: custom quick links can grow the header without covering dates');
 
   // Summary-specific styling must be reversible when each existing view is reopened.

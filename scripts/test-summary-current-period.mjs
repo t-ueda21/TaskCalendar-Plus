@@ -60,8 +60,7 @@ async function noOverflow(label) {
 
 async function periodDisplay(expected) {
   const caption = root.locator('[data-i18n="summary.viewingPeriod"]');
-  assert.equal(await caption.innerText(), '表示中');
-  assert.equal(await caption.isVisible(), true);
+  assert.equal(await caption.count(), 0, 'The redundant viewing-period caption must be removed from the DOM');
   assert.equal(await root.locator(PERIOD).innerText(), expected);
   const display = await root.locator(PERIOD).evaluate(node => {
     const s = getComputedStyle(node), r = node.getBoundingClientRect();
