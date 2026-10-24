@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "run_id": "refactor-summary-offline-20261024",
+  "source_root": ".",
+  "output_root": "out/refactor-summary-offline-20261024",
+  "allowed_product_changes": ["src-tauri/renderer/src/summary-renderer.js", "src-tauri/renderer/src/summary-format.js"],
+  "locales": ["ja", "en", "ko", "zh-CN", "zh-TW", "es", "fr", "de", "pt"],
+  "renderer_invariant_suffix": "function metricDetails(model, preferences) {",
+  "fixed_today": "2026-10-08",
+  "seed": 241024,
+  "runtime": "Node 24.18.0 / V8 Intl / --experimental-vm-modules",
+  "measurement": {"warmup": 2, "samples": 7, "iterations": 240, "tolerance_percent": 20, "tolerance_absolute_ms": 5},
+  "safety": {
+    "allowed": ["local source reads", "local evidence writes", "read-only git metadata", "audited Node builtin modules", "isolated VM source execution"],
+    "prohibited": ["application launch", "browser/WebView/Outlook", "network/listening socket", "fetch", "gh", "cargo", "credentials/accounts", "real user data", ".codex-remote-attachments", "dependency installation"],
+    "vm_modules": ["summary-renderer.js", "summary-format.js", "summary-preferences.js", "summary-model.js", "event-fields.js", "work-time.js", "holidays.js", "company-holidays.js", "i18n.js", "locales/catalogs.js", "locales/generated.js", "locales/batch-followup.js", "locales/settings-followup.js", "locales/editor-followup.js", "locales/summary.js"],
+    "ui_utils": "Only the exact escHtml and normalizeHexColor function source and DEFAULT_TAG_COLOR are evaluated; the ui-utils module and its imports are not loaded.",
+    "vm_globals": "Native language builtins, instrumented Intl, inert fake document, structuredClone, capture-only console. No process, require, fetch, timers, filesystem or network interfaces are provided to product modules."
+  },
+  "not_run": [
+    {"id":"UI-PIXELS","required":false,"status":"not-run","reason":"No native application/browser/WebView launch under current lockout safety scope. Generated markup equality is not pixel/layout/accessibility/live-event proof."},
+    {"id":"FULL-BROWSER-SUITE","required":false,"status":"not-run","reason":"Existing browser/native harnesses may launch applications or servers and are excluded."},
+    {"id":"PREFERENCES-STORE-INTEGRATION","required":false,"status":"not-run","reason":"Existing test-summary-preferences.mjs imports settings-model and its UI graph. The pure normalizeSummaryPreferences contract is tested separately; Store integration is not executed."},
+    {"id":"NATIVE-BUILD-OUTLOOK","required":false,"status":"not-run","reason":"Cargo, native execution, real data and Outlook are outside the authorized offline scope."}
+  ]
+}

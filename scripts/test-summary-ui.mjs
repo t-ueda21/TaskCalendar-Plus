@@ -6,7 +6,10 @@ import { openHarness } from './refactor-20261008-harness.mjs';
 const output=process.env.TCPLUS_SUMMARY_EVIDENCE;
 if(output)fs.mkdirSync(output,{recursive:true});
 const h=await openHarness();
+h.page.setDefaultTimeout(5000);
+const allMetrics=['total','average','overtime','days','overtimeDays','longest'];
 try {
+  await h.page.request.put(h.origin+'/api/settings',{data:{...h.state().settings,summaryPreferences:{version:2,metrics:['longest','total'],averageBase:'recorded'}}});
   for(let index=0;index<8;index++) await h.page.request.post(h.origin+'/api/tags',{data:{id:'extra-'+index,
     name:index===0?'<img src=x onerror="window.summaryUnsafe=true">':index===1?'とても長い名前のタグでも選択した対象を確認できること'.repeat(2):'追加タグ '+index,
     color:'#4e8a72'}});
@@ -21,6 +24,8 @@ try {
   const value=id=>root.locator(`[data-summary-metric="${id}"] [data-metric-value]`).innerText();
   const expectTotal=async expected=>{await h.page.waitForFunction(text=>document.querySelector('[data-view="summary"] [data-summary-metric="total"] [data-metric-value]')?.textContent.replace(/\s/g,'')===text,expected);};
   await expectTotal('4時間30分');
+  assert.deepEqual(await root.locator('[data-summary-metric]').evaluateAll(nodes=>nodes.map(node=>node.dataset.summaryMetric)),allMetrics,'stored custom subset must show all six metrics on opening Summary');
+  assert.equal(await root.locator('[data-summary-config],[data-summary-options]').count(),0,'metric configuration button and dialog are removed');
   assert.equal((await value('overtime')).replace(/\s/g,''),'1時間0分');
   assert.equal(await root.locator('[data-summary-chart]').isVisible(),true);
   assert.equal(await root.locator('[data-summary-numbers]').isVisible(),true);
@@ -32,6 +37,40 @@ try {
   assert.equal(await root.locator('[data-summary-period]').count(),2);
   assert.ok(!(await root.innerText()).includes('これまで'));
   assert.ok(!(await root.innerText()).includes('集計の見方'));
+
+  async function periodActions(previous,next) {
+    for(const [shift,label,icon] of [[-1,previous,'◀'],[1,next,'▶']]) {
+      const button=root.locator(`[data-summary-shift="${shift}"]`);
+      assert.equal((await button.innerText()).replace(/\s/g,''),shift<0?icon+label:label+icon,'period navigation exposes its action and shared directional icon');
+      assert.equal(await button.locator('[aria-hidden="true"]').innerText(),icon,'decorative arrow must be hidden from assistive technology');
+      assert.ok((await button.getAttribute('aria-label'))?.includes(label),`period button accessible name includes ${label}`);
+    }
+  }
+  await periodActions('前月','翌月');
+  await root.locator('[data-summary-shift="-1"]').focus();await h.page.keyboard.press('Enter');
+  assert.match(await root.locator('[data-summary-period-label]').innerText(),/2026.*9/);await expectTotal('1時間0分');
+  assert.equal(await h.page.evaluate(()=>document.activeElement?.getAttribute('data-summary-shift')),'-1','period navigation preserves keyboard focus');
+  await root.locator('[data-summary-shift="1"]').focus();await h.page.keyboard.press('Space');await expectTotal('4時間30分');
+  for(let i=0;i<3;i++)await root.locator('[data-summary-shift="1"]').click();
+  assert.match(await root.locator('[data-summary-period-label]').innerText(),/2027.*1/,'month navigation crosses the year boundary');
+  await root.locator('[data-summary-shift="-1"]').click();
+  assert.match(await root.locator('[data-summary-period-label]').innerText(),/2026.*12/,'previous month crosses back over the year boundary');
+  await root.locator('[data-summary-current]').click();await expectTotal('4時間30分');
+  const boundaryControls=await root.evaluate(async el=>{
+    const {buildSummary}=await import('/src/summary-model.js');
+    const {renderSummary}=await import('/src/summary-renderer.js');
+    const {getSettings}=await import('/src/store.js');
+    return [['month',1,1],['month',9999,12],['year',1,1],['year',9999,12]].map(([period,year,month])=>{
+      const copy=el.cloneNode(true),state={period,year,month,includeFuture:false,selectedTagIds:null,selectedKey:null,tagPage:0,preferences:{averageBase:'recorded'}};
+      const model=buildSummary({...state,today:'2026-10-08',tags:[],settings:getSettings(),getTasksByDate:()=>[]});
+      renderSummary(copy,model,state);
+      return {period,year,previous:copy.querySelector('[data-summary-shift="-1"]').disabled,next:copy.querySelector('[data-summary-shift="1"]').disabled};
+    });
+  });
+  assert.deepEqual(boundaryControls,[
+    {period:'month',year:1,previous:true,next:false},{period:'month',year:9999,previous:false,next:true},
+    {period:'year',year:1,previous:true,next:false},{period:'year',year:9999,previous:false,next:true},
+  ],'period controls retain supported year boundaries');
 
   async function layout(label,width,height) {
     await h.page.setViewportSize({width,height});
@@ -50,15 +89,20 @@ try {
   await root.locator('[data-summary-tag="tag-meeting"]').click();await expectTotal('4時間30分');
   assert.equal(await root.locator('[data-summary-tag][aria-pressed="true"]').count(),2);
   await root.locator('[data-summary-period="year"]').click();await expectTotal('5時間30分');
+  await periodActions('前年','翌年');
+  await root.locator('[data-summary-shift="-1"]').focus();await h.page.keyboard.press('Enter');
+  assert.match(await root.locator('[data-summary-period-label]').innerText(),/2025/);
+  await root.locator('[data-summary-shift="1"]').focus();await h.page.keyboard.press('Space');await expectTotal('5時間30分');
   assert.equal(await root.locator('[data-summary-day]').count(),12);
   assert.equal(await root.locator('[data-summary-axis] > span').first().evaluate(el=>{
     const range=document.createRange();range.selectNodeContents(el);return range.getClientRects().length;
   }),1,'yearly hours axis label must remain on one line');
   assert.equal(await root.locator('[data-summary-tag][aria-pressed="true"]').count(),2);
   await root.locator('[data-summary-day="2026-10"]').click();await expectTotal('4時間30分');
+  await periodActions('前月','翌月');
   await root.locator('[data-summary-all-tags]').click();
-  await root.locator('[data-summary-future]').check();await expectTotal('6時間30分');
-  await root.locator('[data-summary-future]').uncheck();await expectTotal('4時間30分');
+  await root.locator('.uiToggle:has([data-summary-future])').click();await expectTotal('6時間30分');
+  await root.locator('.uiToggle:has([data-summary-future])').click();await expectTotal('4時間30分');
   console.log('PASS: single/multiple tags, year drilldown, preserved selection and future inclusion');
 
   await h.page.evaluate(async()=>{const S=await import('/src/store.js');await S.createTask({id:'summary-new',date:'2026-10-08',title:'new',tagId:'tag-design',startTime:'18:30',endTime:'19:00',recurrence:{type:'none'}});});
@@ -74,30 +118,17 @@ try {
   await root.locator('[data-summary-all-tags]').click();await expectTotal('4時間30分');
   console.log('PASS: task/settings changes and deleted selections keep data and scope correct');
 
-  await root.locator('[data-summary-config]').click();
-  const modal=root.locator('[data-summary-options]');
-  await modal.locator('[value="overtimeDays"]').check();assert.equal(await modal.locator('[data-summary-apply]').isEnabled(),false);
-  await modal.locator('[data-summary-cancel]').click();assert.equal(await root.locator('[data-summary-metric]').count(),4);
-  await root.locator('[data-summary-config]').click();
-  await modal.locator('[data-summary-average-base]').selectOption('business');await modal.locator('[data-summary-apply]').click();
+  await h.page.evaluate(async()=>{await(await import('/src/store.js')).updateSettings({summaryPreferences:{version:2,metrics:['average'],averageBase:'business'}});});
   await h.page.waitForFunction(()=>document.querySelector('[data-summary-metric="average"] [data-metric-value]').textContent.replace(/\s/g,'')==='0時間45分');
-  console.log('PASS: metric limit, cancel and configured average denominator');
-
-  await root.locator('[data-summary-config]').click();
-  await modal.locator('[data-summary-average-base]').selectOption('recorded');
-  h.failNext('PUT','/api/settings',500);
-  await modal.locator('[data-summary-apply]').click();await modal.locator('[data-summary-save-error]').waitFor({state:'visible'});
-  assert.equal(await modal.evaluate(el=>el.open),true);
-  assert.equal((await value('average')).replace(/\s/g,''),'0時間45分','failed save must not apply the pending choice');
-  await modal.locator('[data-summary-apply]').click();await modal.waitFor({state:'hidden'});
-  assert.equal(h.state().settings.summaryPreferences.averageBase,'recorded');
+  assert.deepEqual(await root.locator('[data-summary-metric]').evaluateAll(nodes=>nodes.map(node=>node.dataset.summaryMetric)),allMetrics,'stored custom subset must not hide fixed six metrics');
+  console.log('PASS: six fixed metrics with no configuration UI and existing average denominator preserved');
 
   await h.page.waitForLoadState('networkidle');h.failNext('GET','/api/tasks',500);
   await h.page.locator('nav [data-nav-target="calendar"]').click();
   await h.page.locator('nav [data-nav-target="summary"]').click();
   await root.locator('[data-summary-retry]').waitFor({state:'visible'});await expectTotal('4時間30分');
   await root.locator('[data-summary-retry]').click();await root.locator('[data-summary-retry]').waitFor({state:'hidden'});
-  console.log('PASS: failed preference save and data refresh preserve state and support retry');
+  console.log('PASS: failed data refresh preserves state and supports retry');
 
   await h.page.evaluate(async()=>{const S=await import('/src/store.js');for(let i=0;i<3;i++)await S.createTag({id:'page-'+i,name:'ページ用タグ '+i,color:'#528b70'});});
   await root.locator('[data-summary-tag-page="1"]').click();
@@ -124,17 +155,20 @@ try {
   }
   await h.page.evaluate(async()=>{document.documentElement.dataset.theme='dark';const S=await import('/src/store.js');(await import('/src/ui-color-picker.js')).applyUiColor(S.getSettings().uiAccentColor);});
   await layout('summary-dark',1366,768);
-  await root.locator('[data-summary-config]').click();
-  await modal.locator('[value="days"]').uncheck();await modal.locator('[value="overtimeDays"]').check();
-  await modal.locator('[data-summary-average-base]').selectOption('business');await modal.locator('[data-summary-apply]').click();await modal.waitFor({state:'hidden'});
   await h.page.reload();await h.page.locator('[data-view="calendar"]:not([hidden])').waitFor();
   await h.page.locator('nav [data-nav-target="summary"]').click();await expectTotal('4時間30分');
-  assert.equal(await root.locator('[data-summary-metric="overtimeDays"]').count(),1);
-  assert.equal((await value('average')).replace(/\s/g,''),'0時間45分','saved metrics and denominator must survive reloading');
+  assert.deepEqual(await root.locator('[data-summary-metric]').evaluateAll(nodes=>nodes.map(node=>node.dataset.summaryMetric)),allMetrics,'stored subset still renders all six after reload');
+  assert.equal((await value('average')).replace(/\s/g,''),'0時間45分','saved denominator must survive reloading');
+  const customOrder=['longest','total','average'];
+  await h.page.evaluate(async metrics=>{await(await import('/src/store.js')).updateSettings({summaryPreferences:{version:2,metrics,averageBase:'recorded'}});},customOrder);
+  await h.page.reload();await h.page.locator('[data-view="calendar"]:not([hidden])').waitFor();
+  await h.page.locator('nav [data-nav-target="summary"]').click();await expectTotal('4時間30分');
+  assert.deepEqual(await root.locator('[data-summary-metric]').evaluateAll(nodes=>nodes.map(node=>node.dataset.summaryMetric)),allMetrics,'imported subset/order does not change six-card presentation');
+  assert.equal((await value('average')).replace(/\s/g,''),'4時間30分','recorded-days denominator remains supported');
   h.setTasks([]);await h.page.evaluate(async()=>{await (await import('/src/store.js')).refreshTasks();});await expectTotal('0時間0分');
   assert.equal(await root.locator('[data-summary-empty]').isVisible(),true);
   assert.equal(await root.locator('[data-summary-day]').count(),31);
   assert.deepEqual(h.pageErrors,[]);
   assert.deepEqual(h.unexpectedRequests,[]);
-  console.log('PASS: nine languages, dark theme, persisted preferences, empty state and no unexpected renderer errors');
+  console.log('PASS: nine languages, dark theme, six fixed metrics, persisted average, empty state and no unexpected renderer errors');
 } finally { await h.close(); }

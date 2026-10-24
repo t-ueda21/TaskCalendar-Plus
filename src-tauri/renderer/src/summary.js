@@ -1,12 +1,12 @@
 import * as Store from './store.js';
 import { buildSummary, todayInJst } from './summary-model.js';
 import { normalizeSummaryPreferences } from './summary-preferences.js';
-import { populateMetricOptions, renderSummary, renderSelection } from './summary-renderer.js';
+import { renderSummary, renderSelection } from './summary-renderer.js';
 import { wireSettingsDialog } from './settings-dialog.js';
 import { getWeatherLocationOptions } from './weather.js';
 import { t } from './i18n.js';
 
-let root, state, cachedModel, cacheKey = '', pendingRefresh = null, saving = false;
+let root, state, cachedModel, cacheKey = '', pendingRefresh = null;
 const query = key => root.querySelector(`[data-summary-${key}]`);
 
 function invalidate() { cachedModel = null; cacheKey = ''; }
@@ -16,6 +16,7 @@ function setStatus(key = '') {
   status.removeAttribute('data-i18n');
   status.textContent = t(key || 'summary.subtitle');
   status.classList.toggle('summaryError', Boolean(key));
+  query('notice').hidden = !key;
   query('retry').hidden = !key;
 }
 
@@ -79,37 +80,30 @@ function selectTag(id) {
   if (state.selectedTagIds === null) state.selectedTagIds = [id];
   else if (state.selectedTagIds.includes(id)) state.selectedTagIds = state.selectedTagIds.filter(value => value !== id);
   else state.selectedTagIds = [...state.selectedTagIds, id];
-  if (!state.selectedTagIds.length || state.selectedTagIds.length === Store.getAllTags().length) state.selectedTagIds = null;
+  if (!state.selectedTagIds.length) state.selectedTagIds = null;
   render();
 }
 
-function selectedMetrics() {
-  return [...query('options').querySelectorAll('[data-summary-metric-option]:checked')].map(input => input.value);
-}
-
-function updateMetricChoice() {
-  const count = selectedMetrics().length;
-  query('choice-status').textContent = count >= 1 && count <= 4 ? t('summary.chosen',{count}) : t('summary.chooseLimit');
-  query('apply').disabled = saving || count < 1 || count > 4;
-  query('cancel').disabled = saving;
-}
-
-async function savePreferences() {
-  const metrics = selectedMetrics();
-  if (saving || metrics.length < 1 || metrics.length > 4) return;
-  saving = true;
-  updateMetricChoice();
-  query('save-error').hidden = true;
-  try {
-    const preferences = normalizeSummaryPreferences({metrics,averageBase:query('average-base').value});
-    await Store.updateSettings({summaryPreferences:preferences});
-    state.preferences = preferences;
-    query('options').close();
-    render();
-  } catch {
-    query('save-error').textContent = t('summary.saveError');
-    query('save-error').hidden = false;
-  } finally { saving = false; updateMetricChoice(); }
+function handleDateKey(event) {
+  if (event.ctrlKey || event.altKey || event.metaKey) return;
+  const button = event.target.closest('[data-summary-day]');
+  if (!button || !root.contains(button) || button.disabled) return;
+  const grid = query('number-grid');
+  const buttons = [...grid.querySelectorAll('[data-summary-day]:not(:disabled)')];
+  const index = buttons.indexOf(button);
+  const columns = getComputedStyle(grid).gridTemplateColumns.split(/\s+/).length;
+  const offsets = {ArrowLeft:-1,ArrowRight:1,ArrowUp:-columns,ArrowDown:columns};
+  let next;
+  if (event.key === 'Home') next = 0;
+  else if (event.key === 'End') next = buttons.length - 1;
+  else if (Object.hasOwn(offsets,event.key)) next = index + offsets[event.key];
+  else return;
+  event.preventDefault();
+  event.stopPropagation();
+  if (next < 0 || next >= buttons.length) return;
+  state.selectedKey = buttons[next].dataset.summaryDay;
+  renderSelection(root,model(),state);
+  buttons[next].focus();
 }
 
 function handleClick(event) {
@@ -128,17 +122,11 @@ function handleClick(event) {
     const key = button.dataset.summaryDay;
     state.year = Number(key.slice(0,4)); state.month = Number(key.slice(5,7));
     changePeriod('month');
+    root.querySelector('[data-summary-day][aria-pressed="true"]')?.focus();
   } else if (button.hasAttribute('data-summary-day') || button.hasAttribute('data-summary-bar')) {
     state.selectedKey = button.dataset.summaryDay || button.dataset.summaryBar;
     renderSelection(root, model(), state);
-  } else if (button.hasAttribute('data-summary-config')) {
-    populateMetricOptions(query('options'), state.preferences);
-    query('save-error').hidden = true;
-    updateMetricChoice();
-    query('options').showModal();
-  } else if (button.hasAttribute('data-summary-cancel')) query('options').close();
-  else if (button.hasAttribute('data-summary-apply')) void savePreferences();
-  else if (button.hasAttribute('data-summary-retry')) { render(); void refresh(); }
+  } else if (button.hasAttribute('data-summary-retry')) { render(); void refresh(); }
 }
 
 export function init(rootElement) {
@@ -149,9 +137,8 @@ export function init(rootElement) {
     includeFuture:false,selectedTagIds:null,selectedKey:null,tagPage:0,refreshError:false,
     preferences:normalizeSummaryPreferences(Store.getSettings().summaryPreferences) };
   root.addEventListener('click', handleClick);
+  root.addEventListener('keydown', handleDateKey);
   query('future').addEventListener('change', event => { state.includeFuture = event.target.checked; render(); });
-  query('options').addEventListener('change', updateMetricChoice);
-  query('options').addEventListener('cancel', event => { if (saving) event.preventDefault(); });
   for (const channel of ['tasks','tags']) Store.subscribe(channel, () => { invalidate(); render(); });
   Store.subscribe('settings', () => {
     state.preferences = normalizeSummaryPreferences(Store.getSettings().summaryPreferences);

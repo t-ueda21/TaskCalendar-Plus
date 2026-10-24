@@ -82,11 +82,14 @@ dialog.settingsDialog.settingsPages[open] { display: grid; }
 .settingsPages .settingsAppearanceControls .themeToggle { position: static; margin: 0; }
 .settingsPages .settingsAppearanceControls .uiColorPicker { margin: 0; justify-self: end; justify-content: flex-end; }
 .settingsPages .settingsSection > .uiToggle,
-.settingsPages .settingsAppearanceControls > .uiToggle { display: flex; justify-content: space-between; width: 100%; padding: 7px 0; gap: 16px; border-radius: 0; }
+.settingsPages .settingsAppearanceControls > .uiToggle,
+.settingsPages .settingsPreferenceLine > [data-setting-toggle] { display: flex; justify-content: space-between; width: 100%; padding: 7px 0; gap: 16px; border-radius: 0; }
 .settingsPages .settingsSection > .uiToggle .themeToggleTrack,
-.settingsPages .settingsAppearanceControls > .uiToggle .themeToggleTrack { order: 2; flex-shrink: 0; }
+.settingsPages .settingsAppearanceControls > .uiToggle .themeToggleTrack,
+.settingsPages [data-setting-toggle] .themeToggleTrack { order: 2; flex-shrink: 0; }
 .settingsPages .settingsSection > .uiToggle .themeToggleLabel,
-.settingsPages .settingsAppearanceControls > .uiToggle .themeToggleLabel { order: 1; text-align: left; }
+.settingsPages .settingsAppearanceControls > .uiToggle .themeToggleLabel,
+.settingsPages [data-setting-toggle] .themeToggleLabel { order: 1; text-align: left; }
 .settingsPages .settingsTagHint { margin: 0; line-height: 1.6; }
 .settingsPages .settingsFooter { grid-column: 1 / -1; padding: 14px 24px; background: var(--settings-chrome); }
 .settingsPages .settingsFooter .btn { min-width: 90px; justify-content: center; }
@@ -103,6 +106,12 @@ dialog.settingsDialog.settingsPages[open] { display: grid; }
 .settingsPages .settingsFeatureCard { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 8px 0; }
 .settingsPages input, .settingsPages select, .settingsPages textarea { max-width: 100%; }
 .settingsPages :is(select, textarea, input[type="text"], input[type="url"], input[type="number"], input[type="date"], input[type="time"]) { border-color: var(--border-strong); }
+@media (max-width: 700px) {
+  .settingsPages .settingsTagRow { display: flex; flex-wrap: wrap; }
+  .settingsPages .settingsTagRow .settingsTagInput { flex: 1 1 calc(100% - 68px); min-width: 0; width: auto; }
+  .settingsPages .settingsTagRow .settingsTagBudgetInput { flex: 0 0 72px; width: 72px; }
+  .settingsPages .settingsTagRow .settingsDeleteBtn { margin-left: auto; }
+}
 @media (max-width: 760px) {
   .settingsDialog.settingsPages { grid-template-columns: 162px minmax(0, 1fr); }
   .settingsPages .settingsTabPanel.isActive { padding: 18px; }

@@ -2034,7 +2034,7 @@ dialog.settingsDialog[open] {
 
 @media (max-width: 760px) {
   .nav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
   .header { padding: 10px 12px; gap: 8px; }
   .headerNavigation { flex: 1; }
@@ -3684,7 +3684,7 @@ button:focus-visible,
 .saveScopeDialog button { min-height:40px; }
 /* Compact task-editor mock: aligned date/time columns and an all-day group header. */
 [data-task-dialog] { width:min(600px,calc(100vw - 32px)); border-radius:14px; font-family:'Segoe UI','Meiryo',sans-serif; }
-[data-task-dialog] > header { padding:18px 24px 14px; border-bottom:1px solid var(--border); }
+[data-task-dialog] > header { padding:18px 24px 14px; border-bottom:1px solid var(--border); background:var(--panel); }
 [data-task-dialog] > header h2 { margin:0; font-size:18px; font-weight:600; }
 [data-task-dialog] [data-editor-context] { margin:4px 0 0; font-size:12px; font-weight:400; color:var(--muted); }
 [data-task-dialog] > form.taskEditorForm { padding:18px 24px; gap:14px; background:var(--panel); }
@@ -3713,8 +3713,8 @@ button:focus-visible,
 [data-task-dialog] .taskEditorMeeting .formRow > span { flex-shrink:0; color:var(--muted); }
 [data-task-dialog] .taskEditorMeeting .formRow > div { min-width:0; white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; font-weight:400; }
 [data-task-dialog] .taskEditorMeeting[hidden] { display:none; }
-[data-task-dialog] > footer { padding:14px 24px; }
-[data-task-dialog] > footer .btn { min-height:40px; }
+[data-task-dialog] > footer { padding:14px 24px; background:var(--panel2); }
+[data-task-dialog] > footer .btn { min-height:40px; min-width:90px; }
 [data-task-dialog] textarea[name=memo] { height:86px; min-height:86px; }
 @media(max-width:420px) {
   [data-task-dialog] > form.taskEditorForm { padding:18px; }
