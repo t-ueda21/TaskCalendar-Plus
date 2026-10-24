@@ -96,6 +96,8 @@ function renderTags(root, model, state) {
   const pageCount = Math.max(1, Math.ceil(model.tags.length / TAGS_PER_PAGE));
   state.tagPage = Math.max(0, Math.min(state.tagPage, pageCount - 1));
   const tags = model.tags.slice(state.tagPage * TAGS_PER_PAGE, (state.tagPage + 1) * TAGS_PER_PAGE);
+  query(root, 'tags').style.setProperty('--summary-tag-rows',Math.max(1,Math.ceil(tags.length / 2)));
+  query(root, 'tags').style.setProperty('--summary-tag-count',Math.max(1,tags.length));
   query(root, 'tags').classList.toggle('many', model.tags.length > 4);
   const totalTagTime = model.tags.reduce((sum, tag) => sum + tag.total, 0);
   query(root, 'tags').innerHTML = tags.length ? tags.map(tag => {

@@ -1,5 +1,6 @@
 const codes = ['ja','en','ko','zh-CN','zh-TW','es','fr','de','pt'];
 const rows = [
+  ['viewingPeriod','表示中','Showing','표시 중','当前显示','目前顯示','Mostrando','Période affichée','Angezeigt','Em exibição'],
   ['futureEvents','未来の予定','Future events','미래 일정','未来日程','未來行程','Eventos futuros','Événements futurs','Zukünftige Termine','Eventos futuros'],
   ['insightOutsideCompact','時間外 {days}日 · 登録時間の{percent}%','Outside work hours: {days} days · {percent}% of total','근무 시간 외 {days}일 · 전체의 {percent}%','时间外 {days}天 · 占总时间的{percent}%','時間外 {days}天 · 佔總時間的{percent}%','Fuera de horario: {days} días · {percent}% del total','Hors horaires : {days} jours · {percent}% du total','Außerhalb: {days} Tage · {percent}% der Zeit','Fora do expediente: {days} dias · {percent}% do total'],
   ['insightLongestCompact','最多 {date} · {total}（時間外 {overtime}）','Most on {date}: {total} · outside {overtime}','최다 {date} · {total} (시간 외 {overtime})','最多 {date} · {total}（时间外 {overtime}）','最多 {date} · {total}（時間外 {overtime}）','Máximo {date}: {total} · fuera {overtime}','Maximum {date} : {total} · hors horaires {overtime}','Maximum {date}: {total} · außerhalb {overtime}','Máximo {date}: {total} · fora {overtime}'],
