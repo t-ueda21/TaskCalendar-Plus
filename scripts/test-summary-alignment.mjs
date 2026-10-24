@@ -49,8 +49,9 @@ try {
   await root.locator('[data-summary-period="year"]').click();await inspect('year, ten tags, 1366 x 768');
   await h.page.evaluate(async()=>{const S=await import('/src/store.js');await S.updateSettings({uiLanguage:'de'});document.documentElement.dataset.theme='dark';(await import('/src/ui-color-picker.js')).applyUiColor(S.getSettings().uiAccentColor);});
   await inspect('year, German, dark');
-  for(const metrics of [['total'],['total','average'],['total','average','days'],['total','average','overtime','days']]){
-    await h.page.evaluate(async metrics=>{await(await import('/src/store.js')).updateSettings({summaryPreferences:{metrics,averageBase:'recorded'}});},metrics);
+  for(const metrics of [['total'],['total','average'],['total','average','days'],['total','average','overtime','days'],['total','average','overtime','days','overtimeDays'],['total','average','overtime','days','overtimeDays','longest']]){
+    await h.page.evaluate(async metrics=>{await(await import('/src/store.js')).updateSettings({summaryPreferences:{version:2,metrics,averageBase:'recorded'}});},metrics);
+    assert.equal(await root.locator('[data-summary-metric]').count(),metrics.length);
     const gap=await root.locator('[data-summary-metrics]').evaluate(el=>el.getBoundingClientRect().right-el.lastElementChild.getBoundingClientRect().right);
     assert.ok(Math.abs(gap)<=1,`${metrics.length} metric cards must use the available row width (${gap}px unused)`);
   }

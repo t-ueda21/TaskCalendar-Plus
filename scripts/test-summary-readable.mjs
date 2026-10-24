@@ -97,10 +97,17 @@ async function inspectLayout(label, columns, dayCount) {
       if (actual < size) fail(`${name(node)} font ${actual}px < ${size}px`);
     };
     for (const node of el.querySelectorAll('.summaryTagName')) if (visible(node)) floor(node, 16);
+    const metricCards = [...el.querySelectorAll('[data-summary-metric]')];
+    const valueBoxes = metricCards.map(node => node.querySelector('[data-metric-value]').getBoundingClientRect());
+    for (const node of el.querySelectorAll('[data-metric-value]')) floor(node, 30);
+    if (metricCards.length !== 6 || metricCards.some(node => Math.abs(node.getBoundingClientRect().top - metricCards[0].getBoundingClientRect().top) > 1)) {
+      fail('all six metrics must be present in the desktop metric row');
+    }
+    if (valueBoxes.some(box => Math.abs(box.top - valueBoxes[0].top) > 1)) fail('metric values must share a baseline when labels wrap');
     const actions = [...el.querySelectorAll('button:not([data-summary-bar]):not([data-summary-day])')]
       .filter(node => !node.closest('dialog') && visible(node));
     for (const node of actions) {
-      if (!node.closest('.summaryScreen, .summaryOptions')) continue;
+      if (!node.closest('.summaryScreen, .summaryOptionsBody')) continue;
       floor(node, 16);
       if (node.getBoundingClientRect().height < 39.5) fail(`${name(node)} target height ${node.getBoundingClientRect().height}px < 40px`);
     }
@@ -118,7 +125,7 @@ async function inspectLayout(label, columns, dayCount) {
     while ((textNode = walker.nextNode())) {
       const node = textNode.parentElement;
       if (!textNode.textContent.trim() || !visible(node) || node.closest('dialog, svg, [aria-hidden="true"].summaryTagCheck, .summaryInsightIcon')) continue;
-      const summaryContent = node.closest('.summaryScreen, .summaryOptions');
+      const summaryContent = node.closest('.summaryScreen, .summaryOptionsBody');
       if (summaryContent) floor(node, 14);
       const action = node.closest('button:not([data-summary-bar]):not([data-summary-day]):not([data-summary-tag])');
       if (summaryContent && action && !node.closest('small')) floor(node, 16);
@@ -130,15 +137,19 @@ async function inspectLayout(label, columns, dayCount) {
         // Detect hidden content even when its outer panel still fits the viewport.
         for (let ancestor = node; ancestor && ancestor !== el.parentElement; ancestor = ancestor.parentElement) {
           const style = getComputedStyle(ancestor), box = ancestor.getBoundingClientRect();
+          // Supplementary metric text intentionally uses the app's ellipsis + full-title pattern.
+          // Only its own horizontal clipping is allowed; numeric values and parent clipping still fail.
+          const titledDetail = ancestor === node && node.classList.contains('summaryMetricDetail')
+            && style.textOverflow === 'ellipsis' && node.title === node.textContent;
           if (['hidden', 'clip', 'auto', 'scroll'].includes(style.overflowX)
-            && (r.left < box.left - 2 || r.right > box.right + 2)) fail(`${name(node)} text clipped horizontally by ${name(ancestor)}`);
+            && (r.left < box.left - 2 || r.right > box.right + 2) && !titledDetail) fail(`${name(node)} text clipped horizontally by ${name(ancestor)}`);
           if (['hidden', 'clip', 'auto', 'scroll'].includes(style.overflowY)
             && (r.top < box.top - 2 || r.bottom > box.bottom + 2)) fail(`${name(node)} text clipped vertically by ${name(ancestor)}`);
         }
       }
     }
     const panels = [...el.querySelectorAll('[data-summary-panel]')].filter(visible);
-    for (const node of [...panels, ...el.querySelectorAll('[data-summary-chart], [data-summary-numbers], [data-summary-tag], [data-summary-day]')]) {
+    for (const node of [...panels, ...el.querySelectorAll('[data-summary-metric], [data-summary-chart], [data-summary-numbers], [data-summary-tag], [data-summary-day]')]) {
       const r = node.getBoundingClientRect();
       if (!visible(node) || r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) fail(`${name(node)} outside viewport`);
       if (node.scrollHeight > node.clientHeight + 2 || node.scrollWidth > node.clientWidth + 2) {
@@ -223,7 +234,8 @@ try {
   for (const view of ['calendar', 'tasks', 'ai']) { await go(view); before[view] = await viewGeometry(view); }
   await go('summary');
   await root.locator('[data-summary-tag]').first().waitFor();
-  await root.locator('[data-summary-future]').check();
+  await root.locator('.uiToggle:has([data-summary-future])').click();
+  assert.equal(await root.locator('[data-summary-future]').isChecked(), true);
   await total('68時間59分');
 
   // Catch missing/duplicate shared actions and a no-op sidebar action on Summary.
@@ -233,7 +245,7 @@ try {
   }
   assert.equal(await root.locator('[data-sidebar-toggle]:visible').count(), 0, 'Summary must not expose a sidebar toggle');
   assert.equal(await root.locator('[data-summary-tag]').count(), 10);
-  assert.equal(await root.locator('[data-summary-metric]').count(), 4);
+  assert.equal(await root.locator('[data-summary-metric]').count(), 6);
 
   for (const viewport of [{ width: 1280, height: 800 }, { width: 1366, height: 768 }]) {
     await h.page.setViewportSize(viewport);
@@ -282,6 +294,26 @@ try {
   await root.locator('[data-summary-period="month"]').click();
   assert.deepEqual(localeFailures, [], 'Translated Summary layouts must retain readability and fit');
   console.log('PASS: eight additional locales in month/year at 1366×768, plus German/French/Portuguese at 1280×800');
+
+  // Six cards must retain complete hour/minute values even for a full year of near-24h days.
+  const originalTasks = h.state().tasks;
+  h.setTasks(Array.from({length:365}, (_,index) => ({id:'annual-'+index,title:'年間の桁数確認',
+    date:new Date(Date.UTC(2026,0,index+1)).toISOString().slice(0,10),tagId:tagIds[index%tagIds.length],
+    startTime:'00:00',endTime:'23:59',isAllDay:false,recurrence:{type:'none'}})));
+  await h.page.evaluate(async()=>{await(await import('/src/store.js')).refreshTasks();});
+  await root.locator('[data-summary-period="year"]').click();
+  await total('8,753時間55分');
+  await h.page.setViewportSize({width:1280,height:800});
+  for(const locale of ['ja','de']) {
+    await h.page.evaluate(async locale=>{await(await import('/src/store.js')).updateSettings({uiLanguage:locale});},locale);
+    await inspectLayout('summary-six-large-year-'+locale,6,12);
+  }
+  h.setTasks(originalTasks);
+  await h.page.evaluate(async()=>{const S=await import('/src/store.js');await S.refreshTasks();await S.updateSettings({uiLanguage:'ja'});});
+  await root.locator('[data-summary-period="month"]').click();
+  await h.page.setViewportSize({width:1366,height:768});
+  await total('68時間59分');
+  console.log('PASS: six cards preserve 8,753 hours 55 minutes at the narrow desktop width');
 
   // Exercise the mounted shared handlers, without requesting native Outlook/update work.
   const settings = h.page.locator('[data-settings-dialog]');

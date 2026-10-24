@@ -1,6 +1,6 @@
 import * as Store from './store.js';
 import { buildSummary, todayInJst } from './summary-model.js';
-import { normalizeSummaryPreferences } from './summary-preferences.js';
+import { SUMMARY_METRICS, SUMMARY_PREFERENCES_VERSION, normalizeSummaryPreferences } from './summary-preferences.js';
 import { populateMetricOptions, renderSummary, renderSelection } from './summary-renderer.js';
 import { wireSettingsDialog } from './settings-dialog.js';
 import { getWeatherLocationOptions } from './weather.js';
@@ -85,24 +85,25 @@ function selectTag(id) {
 }
 
 function selectedMetrics() {
-  return [...query('options').querySelectorAll('[data-summary-metric-option]:checked')].map(input => input.value);
+  const checked = [...query('options').querySelectorAll('[data-summary-metric-option]:checked')].map(input => input.value);
+  return [...new Set([...state.preferences.metrics,...checked])].filter(id => checked.includes(id));
 }
 
 function updateMetricChoice() {
   const count = selectedMetrics().length;
-  query('choice-status').textContent = count >= 1 && count <= 4 ? t('summary.chosen',{count}) : t('summary.chooseLimit');
-  query('apply').disabled = saving || count < 1 || count > 4;
+  query('choice-status').textContent = count >= 1 && count <= SUMMARY_METRICS.length ? t('summary.chosen',{count}) : t('summary.chooseLimit');
+  query('apply').disabled = saving || count < 1 || count > SUMMARY_METRICS.length;
   query('cancel').disabled = saving;
 }
 
 async function savePreferences() {
   const metrics = selectedMetrics();
-  if (saving || metrics.length < 1 || metrics.length > 4) return;
+  if (saving || metrics.length < 1 || metrics.length > SUMMARY_METRICS.length) return;
   saving = true;
   updateMetricChoice();
   query('save-error').hidden = true;
   try {
-    const preferences = normalizeSummaryPreferences({metrics,averageBase:query('average-base').value});
+    const preferences = normalizeSummaryPreferences({version:SUMMARY_PREFERENCES_VERSION,metrics,averageBase:query('average-base').value});
     await Store.updateSettings({summaryPreferences:preferences});
     state.preferences = preferences;
     query('options').close();

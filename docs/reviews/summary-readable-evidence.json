@@ -1,33 +1,224 @@
 {
-  "recordedAt": "2026-10-24T02:48:26.019Z",
+  "recordedAt": "2026-10-24T03:02:59.070Z",
   "baseCommit": "8cba81f4945f514a3f1451a2e8ad8a73a9fa2b97",
   "branch": "codex/summary-readable-ui",
-  "userCorrection": "Use existing shared header, tabs and toolbar dimensions in all views; enlarge only Summary content and its options dialog.",
+  "userCorrection": "Audit and unify existing UI across views and settings, show six Summary metrics; no release.",
   "scope": "Real renderer and Store in isolated Chromium; synthetic tasks/API/native bridge. Not native app or live integration evidence.",
   "tests": {
-    "scope": "Successful targeted command results observed after shared-shell correction; Rust was not rerun.",
+    "scope": "All safe renderer Node suites and JavaScript syntax after UI/preferences changes; no Rust or native/live integration test run.",
+    "sourceAndTestsSha256": "533608cc1a0d64ce7f6a68b9496831a32536ab6473e1840750732c411a35d701",
+    "nodeSuites": 49,
+    "javascriptFiles": 58,
+    "passedCommands": 50,
     "commands": [
       {
-        "command": "node scripts/test-summary-readable.mjs",
-        "status": "passed",
-        "scriptSha256": "e76a8bc5af63236a52fb04a125650250266ce7be41b78ca9f4b491f77066798b"
+        "id": "node-test-ai-personalization.mjs",
+        "status": "passed"
       },
       {
-        "command": "node scripts/test-summary-alignment.mjs",
-        "status": "passed",
-        "scriptSha256": "13ed534859a058d79f9e259f31bb6ef71ca13124d131da1d0e1f0ae3a45112f6"
+        "id": "node-test-ai-safety.mjs",
+        "status": "passed"
       },
       {
-        "command": "node scripts/test-summary-ui.mjs",
-        "status": "passed",
-        "scriptSha256": "67ca843abdab1a2450918e570c53aa512e5e79128d9c91baea6e9d8c773da1ae"
+        "id": "node-test-ai-settings-guidance-20261008.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-app-updater.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-calendar-integrity.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-context-bulk-delete.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-context-bulk-tags.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-date-navigation.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-event-movement.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-event-ranges.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-holidays.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-i18n-rendering.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-i18n.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-local-ai-settings.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-markdown.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-mini-calendar.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-modern-settings.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence-dates.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence-store.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-recurrence.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-native-settings.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-calendar-picker.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-legacy-source.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-reference-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-registration-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-selection.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-outlook-sync-status.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-recurrence.js",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-release-manifest.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-save-scope.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-selection-layout.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-settings-control-consistency.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-settings-transfer.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-alignment.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-model.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-preferences.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-readable.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-summary-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-task-editor-mock.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-task-performance.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-task-selection.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-transfer-file.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-ui-colors.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-ui-consistency.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-update-notes-ui.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-weather-current-day.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-weather-upgrade.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "node-test-work-time.mjs",
+        "status": "passed"
+      },
+      {
+        "id": "javascript-syntax",
+        "status": "passed"
       }
     ],
-    "regression": {
-      "before": "failed: Summary nav 520 vs420, tab16px vs13px, toolbar56 vs62, shared action40 vs34",
-      "after": "passed: shared dimensions/padding/fonts match calendar, tasks and AI at1366,1280,1000 widths"
-    },
-    "rendererSha256": "74c1b9fd5c86a244eaf36d7a83f1fdf14991e9ddb80ab6cda4c231605995331d"
+    "localLogs": "out/summary-six-20261024/final-checks",
+    "regression": [
+      "Six defaults and version2 migration preserve custom choices/order and explicit four-metric selection after reload",
+      "Four tabs remain on one row at720px; switches and dialog chrome reuse shared parts",
+      "Settings switches use consistent label order; narrow tag budgets retain72px readable fields",
+      "Six cards share numeric baselines and preserve8,753h55min at1280px; full tooltip required for ellipsized supplementary text"
+    ]
   },
   "priorFullVerification": {
     "commit": "78ebede8b45c2984ed8b92f3e207f27484067325",
@@ -256,7 +447,7 @@
     "note": "Historical full-suite result before this layout correction, not a new run."
   },
   "screenshots": {
-    "rendererSha256": "74c1b9fd5c86a244eaf36d7a83f1fdf14991e9ddb80ab6cda4c231605995331d",
+    "rendererSha256": "044d0de6597c3445747d5d7c27cfa75f2ce1375d7f1c675a3511ec454de222f4",
     "browser": "151.0.7922.34",
     "playwright": "1.62.1",
     "syntheticNow": "2026-10-08T01:15:00.000Z",
@@ -310,7 +501,7 @@
           }
         ],
         "file": "docs/images/summary-readable/month-10-tags.png",
-        "sha256": "5c2a2b2d8ad33b703f4bb408b7f42f3c59bfd10c0f0526bb0ff15bdac4053c89"
+        "sha256": "9316105a1ac5b215a61b33eda6f5be1f4da7f20723460c8e4a7c5122d550fe9e"
       },
       {
         "name": "month-selected-tags",
@@ -355,7 +546,7 @@
           }
         ],
         "file": "docs/images/summary-readable/month-selected-tags.png",
-        "sha256": "29b16c1f1e5b05cd15735794c2cc3b84ec8d7ddf92ded65588e659ec45fa05cf"
+        "sha256": "fdfa3a4cdf3554ca15c3f640c82864511a27a1f51329d8ce40c8d41a9aecbc53"
       },
       {
         "name": "year",
@@ -400,7 +591,7 @@
           }
         ],
         "file": "docs/images/summary-readable/year.png",
-        "sha256": "999bab2f92e717d2cd4babd5ade8552b37627f76b118f498a79f416253a5d077"
+        "sha256": "aa4dd08afdd2936ed47dc2b6ece37039ec9001e63af480266f339d68b7e7cb0a"
       },
       {
         "name": "month-dark",
@@ -445,30 +636,41 @@
           }
         ],
         "file": "docs/images/summary-readable/month-dark.png",
-        "sha256": "40c489f3f27f75101492a9ae9fdef8dca2b3b5f38c5f804a89a39d9f6703d266"
+        "sha256": "1825a1bd4762e0f015f80dfaa632b146256f53105640395a584e683cd0693109"
       }
-    ]
+    ],
+    "options": {
+      "file": "docs/images/summary-readable/options.png",
+      "sha256": "4946edc325ee2aa785428f638dafe06dd50c71e62461dfc65d7d410b5dde655f"
+    }
   },
   "review": {
     "independentReviewsOfCorrection": 1,
-    "scope": "Read-only source diff and generated monthly screenshot, source fingerprints; no reviewer test rerun or native UI check",
-    "criticalOrImportantFindings": 0
+    "criticalOrImportantFindings": 0,
+    "scope": "Read-only code/test and final image review. Additional isolated long-year-value checks at1200,1220,1280px. No native/live validation."
   },
   "delivery": {
     "mainMerged": false,
     "releaseCreated": false,
-    "versionChanged": false,
-    "installedAppExecuted": false,
-    "nativeDebugLaunch": {
-      "ProcessId": 34232,
-      "Title": "TaskCalendar+",
-      "WindowHandle": 8193094,
-      "Responding": true,
-      "RendererMatchesCheckout": true,
-      "NoSummaryHeaderOverrides": true,
-      "CapturedAt": "2026-10-24T11:48:25.0686862+09:00",
-      "Scope": "Process, window handle and HTTP stylesheet verification; no native screenshot or interaction verification"
-    },
-    "nativeUIVisuallyVerified": false
+    "applicationVersionChanged": false,
+    "nativeUIVisuallyVerified": false,
+    "note": "An earlier development process remains open; the current six-metric UI was verified in isolated Chromium, not refreshed or driven in that native window."
+  },
+  "audit": {
+    "scope": "Four views, editing/bulk/delete/update/metric dialogs, all11 settings pages at normal width; representative narrow/dark states.",
+    "localReport": "out/summary-six-20261024/ui-audit.md",
+    "findingsFixed": 6,
+    "settingsProof": "out/summary-six-20261024/settings-proof",
+    "sourceScope": "Synthetic API/native/weather in isolated Chromium"
+  },
+  "priorNativeDebugLaunch": {
+    "ProcessId": 34232,
+    "Title": "TaskCalendar+",
+    "WindowHandle": 8193094,
+    "Responding": true,
+    "RendererMatchesCheckout": true,
+    "NoSummaryHeaderOverrides": true,
+    "CapturedAt": "2026-10-24T11:48:25.0686862+09:00",
+    "Scope": "Process, window handle and HTTP stylesheet verification; no native screenshot or interaction verification"
   }
 }

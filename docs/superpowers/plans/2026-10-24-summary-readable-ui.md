@@ -4,7 +4,7 @@
 
 **Goal:** Rebuild the Summary screen at a readable scale and restore the upper page tabs and shared application action bar.
 
-**Architecture:** Keep the existing Store aggregation and state behavior. Reuse the shared toolbar template without the sidebar action on Summary. Use existing shared shell styles for all views; larger typography belongs only to Summary content and its options dialog. Preserve the original arrangement: chart and numeric dates in one panel on the left, tags above insights on the right.
+**Architecture:** Keep the existing Store aggregation and state behavior. Reuse the shared toolbar template without the sidebar action on Summary. Use existing shared shell styles for all views; larger typography belongs only to Summary content and its options dialog body. Preserve the original arrangement: chart and numeric dates in one panel on the left, tags above insights on the right.
 
 **Tech Stack:** Existing vanilla HTML/CSS/JavaScript, nine locale catalogs and isolated Chromium harness.
 
@@ -25,7 +25,9 @@
 
 **Subsequent correction:** User: 「上のタブ切り替えボタンの大きさがほかのタブと変わったらダメ」「ツールバーについてもそう」. The former Summary-only shell enlargement is superseded. Preserve the shared shell while enlarging only the screen content. Test dimensions during Summary activation, not merely after leaving it.
 
-- No aggregation changes, new AI calls, live Outlook calls, native app/WebView2/Edge launch, schema migration, version bump, release, or main merge.
+**Full audit and six metrics:** User: 「他にも既存のUIと統一できてないところがないか、全体を見直して修正して。まだリリースしないで。表示項目は６つおけるでしょ。おいて」. Audit four views, common dialogs and all settings pages. Show all six existing metrics by default and allow1–6 selections. Upgrade only the unversioned canonical old four-metric default; preserve custom subsets/order and explicit subsequent four-metric choices with display-preference version2. Standard desktop widths keep six cards on one row; long translated labels align numeric baselines and numeric values retain full units. Reuse the shared toggle, selected-state colors and task-dialog chrome; correct narrow four-tab wrapping and settings input/switch inconsistencies found by audit.
+
+- No aggregation changes, new AI calls, live Outlook calls, DB schema migration, application version bump, release, or main merge. Native launch was separately authorized and performed before the six-metric correction; the current audit uses isolated Chromium.
 - No change to task data. Use synthetic data/API/native bridge for UI tests and screenshots.
 - Keep month/year modes, future inclusion, tag paging, errors/retry, metric selection, preference persistence, keyboard focus, empty states and nine locales.
 - Do not reintroduce all-time mode, a daily detail table, or the removed aggregation-help button.
@@ -34,7 +36,7 @@
 ## Review focus
 
 1. Restored toolbar actions must actually work, with no duplicate settings handlers or no-op sidebar button.
-2. 31 dates, 10 tags, four metrics and long durations must fit with visible time units at the typography floor.
+2. 31 dates, 10 tags, six metrics and long durations must fit with visible time units at the typography floor.
 3. Long translations and multiple selected tag names must not collide with period controls or application actions.
 4. Shared header/navigation/toolbar dimensions must remain identical while Summary is active and after leaving it. Preserve other views' appearance/behavior.
 5. Larger controls must preserve graph/day synchronization, keyboard focus, tag paging, errors and settings persistence.
