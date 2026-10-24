@@ -38,7 +38,7 @@ function metricDetails(model, preferences) {
 
 function renderMetrics(root, model, preferences) {
   const details = metricDetails(model, preferences);
-  query(root, 'metrics').innerHTML = preferences.metrics.map(id => {
+  query(root, 'metrics').innerHTML = SUMMARY_METRICS.map(id => {
     const metric = details[id];
     return `<article class="summaryMetric" data-summary-metric="${id}"><div class="summaryMetricLabel">${th(metricKeys[id])}</div><div class="summaryMetricValue" data-metric-value>${metric.value}</div><div class="summaryMetricDetail" title="${escHtml(metric.detail)}">${escHtml(metric.detail)}</div></article>`;
   }).join('');
@@ -148,6 +148,12 @@ export function renderSummary(root, model, state) {
   root.querySelectorAll('[data-summary-period]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.summaryPeriod === model.period)));
   query(root, 'period-label').textContent = dateText(model.start, model.period === 'month' ? {year:'numeric',month:'short'} : {year:'numeric'});
   query(root, 'current').textContent = t(model.period === 'month' ? 'summary.thisMonth' : 'summary.thisYear');
+  for (const [shift,direction] of [[-1,'previous'],[1,'next']]) {
+    const button = root.querySelector(`[data-summary-shift="${shift}"]`);
+    const label = t(`calendar.${direction}.${model.period === 'month' ? 'days' : 'months'}`);
+    button.querySelector('[data-nav-label]').textContent = label;
+    button.setAttribute('aria-label',label);
+  }
   root.querySelector('[data-summary-shift="-1"]').disabled = model.year === 1 && (model.period === 'year' || model.month === 1);
   root.querySelector('[data-summary-shift="1"]').disabled = model.year === 9999 && (model.period === 'year' || model.month === 12);
   query(root, 'future').checked = state.includeFuture;
@@ -160,9 +166,4 @@ export function renderSummary(root, model, state) {
   renderSelection(root, model, state);
   if (focusAttribute && !focused.isConnected) [...root.querySelectorAll(`[${focusAttribute}]`)]
     .find(node => node.getAttribute(focusAttribute) === focusValue)?.focus({preventScroll:true});
-}
-
-export function populateMetricOptions(dialog, preferences) {
-  query(dialog, 'metric-options').innerHTML = SUMMARY_METRICS.map(id => `<label><input type="checkbox" data-summary-metric-option value="${id}" ${preferences.metrics.includes(id) ? 'checked' : ''}><span>${th(metricKeys[id])}</span></label>`).join('');
-  query(dialog, 'average-base').value = preferences.averageBase;
 }

@@ -14,8 +14,8 @@ try {
       const errors=[];
       const rect=selector=>el.querySelector(selector).getBoundingClientRect();
       const same=(values,message,tolerance=1)=>{if(Math.max(...values)-Math.min(...values)>tolerance)errors.push({message,values});};
-      const controls=[...el.querySelectorAll('.summarySegment,[data-summary-config],.summaryToolbar .right .btn')].map(n=>n.getBoundingClientRect());
-      same(controls.map(r=>r.top),'heading control tops');same(controls.map(r=>r.bottom),'heading control bottoms');
+      const controls=[...el.querySelectorAll('.summarySegment,[data-summary-shift],.summaryToolbar .right .btn')].map(n=>n.getBoundingClientRect());
+      same(controls.map(r=>r.y+r.height/2),'heading control vertical centers');
       const grid=[...el.querySelectorAll('.summaryGridlines > i')].map(n=>n.getBoundingClientRect());
       const ticks=[...el.querySelectorAll('.summaryAxis > span')];
       if(grid.length!==ticks.length)errors.push({message:'each tick needs a matching gridline',ticks:ticks.length,lines:grid.length});
@@ -25,6 +25,12 @@ try {
       same([rect('.summaryTags h2').x,rect('.summaryInsights h2').x],'right column content edges');
       const headings=['.summaryTrend h2','.summaryTags h2'].map(selector=>rect(selector));
       same(headings.map(r=>r.y+r.height/2),'panel heading centers');
+      const tagPanel=rect('.summaryTags'),tagHeading=rect('.summaryTags .summaryPanelHeading'),showAll=rect('[data-summary-all-tags]');
+      const tagPadding=parseFloat(getComputedStyle(el.querySelector('.summaryTags .summaryPanelHeading')).paddingTop);
+      if(tagPadding<12)errors.push({message:'tag heading needs at least 12px top padding',actual:tagPadding});
+      if(showAll.top-tagPanel.top<12)errors.push({message:'show all control must have at least 12px space above it',actual:showAll.top-tagPanel.top});
+      if(rect('.summaryTags h2').top-tagPanel.top<12)errors.push({message:'tag heading must have at least 12px space above it'});
+      if(tagHeading.bottom>rect('.summaryTagList').top+1)errors.push({message:'tag header must not overlap tag list'});
       const left=el.querySelector('.summaryTrend'),chart=el.querySelector('[data-summary-chart]'),numbers=el.querySelector('[data-summary-numbers]');
       const side=el.querySelector('.summarySide'),tags=el.querySelector('[data-summary-panel="tags"]'),insights=el.querySelector('[data-summary-panel="insights"]');
       if(!left.contains(chart)||!left.contains(numbers))errors.push({message:'chart and numbers must share the left panel'});
@@ -33,7 +39,7 @@ try {
       if(tags.getBoundingClientRect().left<left.getBoundingClientRect().right-1)errors.push({message:'tags must be right of chart and numbers'});
       if(insights.getBoundingClientRect().top<tags.getBoundingClientRect().bottom-1)errors.push({message:'insights must be below tags'});
       const panels=[...el.querySelectorAll('[data-summary-panel]')];
-      for(const panel of panels){const r=panel.getBoundingClientRect();if(r.right>innerWidth||r.bottom>innerHeight-8)errors.push({message:'panel outside viewport'});}
+      for(const panel of panels){const r=panel.getBoundingClientRect();if(r.right>innerWidth||r.bottom>innerHeight-8)errors.push({message:'panel outside viewport',panel:panel.dataset.summaryPanel,right:r.right,bottom:r.bottom,viewport:[innerWidth,innerHeight]});}
       for(let i=0;i<panels.length;i++)for(let j=i+1;j<panels.length;j++){
         if(panels[i].contains(panels[j])||panels[j].contains(panels[i]))continue;
         const a=panels[i].getBoundingClientRect(),b=panels[j].getBoundingClientRect();
@@ -51,9 +57,9 @@ try {
   await inspect('year, German, dark');
   for(const metrics of [['total'],['total','average'],['total','average','days'],['total','average','overtime','days'],['total','average','overtime','days','overtimeDays'],['total','average','overtime','days','overtimeDays','longest']]){
     await h.page.evaluate(async metrics=>{await(await import('/src/store.js')).updateSettings({summaryPreferences:{version:2,metrics,averageBase:'recorded'}});},metrics);
-    assert.equal(await root.locator('[data-summary-metric]').count(),metrics.length);
+    assert.equal(await root.locator('[data-summary-metric]').count(),6,'legacy custom subsets still display six fixed metrics');
     const gap=await root.locator('[data-summary-metrics]').evaluate(el=>el.getBoundingClientRect().right-el.lastElementChild.getBoundingClientRect().right);
-    assert.ok(Math.abs(gap)<=1,`${metrics.length} metric cards must use the available row width (${gap}px unused)`);
+    assert.ok(Math.abs(gap)<=1,`six metric cards must use the available row width (${gap}px unused)`);
   }
   assert.deepEqual(h.pageErrors,[]);
   console.log('PASS: axis/grid alignment, controls, panel insets, metric widths and desktop fit');

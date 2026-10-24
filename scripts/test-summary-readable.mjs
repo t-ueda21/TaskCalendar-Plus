@@ -107,7 +107,7 @@ async function inspectLayout(label, columns, dayCount) {
     const actions = [...el.querySelectorAll('button:not([data-summary-bar]):not([data-summary-day])')]
       .filter(node => !node.closest('dialog') && visible(node));
     for (const node of actions) {
-      if (!node.closest('.summaryScreen, .summaryOptionsBody')) continue;
+      if (!node.closest('.summaryScreen')) continue;
       floor(node, 16);
       if (node.getBoundingClientRect().height < 39.5) fail(`${name(node)} target height ${node.getBoundingClientRect().height}px < 40px`);
     }
@@ -125,7 +125,7 @@ async function inspectLayout(label, columns, dayCount) {
     while ((textNode = walker.nextNode())) {
       const node = textNode.parentElement;
       if (!textNode.textContent.trim() || !visible(node) || node.closest('dialog, svg, [aria-hidden="true"].summaryTagCheck, .summaryInsightIcon')) continue;
-      const summaryContent = node.closest('.summaryScreen, .summaryOptionsBody');
+      const summaryContent = node.closest('.summaryScreen');
       if (summaryContent) floor(node, 14);
       const action = node.closest('button:not([data-summary-bar]):not([data-summary-day]):not([data-summary-tag])');
       if (summaryContent && action && !node.closest('small')) floor(node, 16);

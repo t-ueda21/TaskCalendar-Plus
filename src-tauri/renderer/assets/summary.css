@@ -1,6 +1,6 @@
 /* Larger typography belongs to Summary content, not the shared application shell. */
 .summaryView { --summary-inset: 12px; }
-.summaryScreen, .summaryOptionsBody { --font-body: 16px; --font-caption: 14px; --font-section: 18px; font-size: 16px; line-height: 1.4; }
+.summaryScreen { --font-body: 16px; --font-caption: 14px; --font-section: 18px; font-size: 16px; line-height: 1.4; }
 .summaryView:not([hidden]) { display: contents; }
 .summaryView, .summaryView * { box-sizing: border-box; }
 .summaryView [hidden] { display: none !important; }
@@ -11,7 +11,6 @@
 .summarySegment button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong); }
 .summaryPeriodNav { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .summaryPeriodNav > strong { min-width: 120px; text-align: center; white-space: nowrap; }
-.summaryScreen input[type="checkbox"], .summaryOptions input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); margin: 0; flex-shrink: 0; }
 .summaryScreen { grid-row: 3; margin-top: 6px; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
 .summaryScreen:has(.summaryNotice:not([hidden])) .summaryContent { flex: 0 0 auto; min-height: 520px; }
 .summaryNotice { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border: 1px solid var(--danger); border-radius: 8px; background: var(--panel); flex-shrink: 0; }
@@ -28,7 +27,7 @@
 .summaryPanelHeading, .summaryNumbersHeading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px var(--summary-inset); flex-shrink: 0; }
 .summaryPanelHeading h2, .summaryNumbersHeading h2, .summaryInsights h2 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; }
 .summaryTrend { display: flex; flex-direction: column; flex: 1; min-height: 210px; }
-.summaryTrend > .summaryPanelHeading { min-height: 44px; padding-top: 2px; padding-bottom: 2px; }
+.summaryTrend > .summaryPanelHeading { min-height: 58px; padding-top: 12px; padding-bottom: 6px; }
 .summaryLegend { display: flex; align-items: center; justify-content: flex-end; gap: 10px; max-width: 55%; min-width: 0; font-size: 14px; line-height: 20px; color: var(--muted); }
 .summaryLegend span { display: inline-flex; align-items: center; gap: 5px; max-width: 145px; min-width: 0; }
 .summaryLegend b { font-size: 14px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -57,7 +56,7 @@
 .summarySelected > span { color: var(--muted); }
 .summarySelected b { margin-left: 5px; color: var(--text); font-weight: 600; }
 .summaryTags { flex-shrink: 0; }
-.summaryTags .summaryPanelHeading { min-height: 44px; padding-top: 2px; padding-bottom: 2px; }
+.summaryTags .summaryPanelHeading { min-height: 58px; padding-top: 12px; padding-bottom: 6px; }
 .summaryTags [data-summary-all-tags][aria-pressed="true"] { color: var(--accent-strong); border-color: var(--accent-strong); background: var(--accent-soft); }
 .summaryTagList { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-rows: 56px; gap: 4px 8px; padding: 0 var(--summary-inset) 8px; }
 .summaryTag { min-width: 0; height: 56px; padding: 4px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--panel2); color: var(--text); cursor: pointer; text-align: left; font: inherit; }
@@ -98,14 +97,6 @@
 .summaryInsightIcon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .summaryInsight p { margin: 0; font-size: 16px; line-height: 22px; }
 .summaryInsight small { font-size: 14px; }
-.summaryOptions { width: min(520px,calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; border-radius: 14px; }
-.summaryOptions header p { margin: 6px 0 0; font-size: 14px; line-height: 21px; color: var(--muted); font-weight: 400; }
-.summaryOptionsBody { padding: 18px 24px; }
-.summaryOptionsBody [data-summary-metric-options] { display: grid; gap: 8px; }
-.summaryOptionsBody label { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 16px; }
-.summaryAverageOption { margin-top: 16px; justify-content: space-between; flex-wrap: wrap; }
-.summaryAverageOption select { min-height: 40px; max-width: 100%; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: 6px; color: var(--text); background: var(--panel2); font-size: 16px; }
-.summaryOptionsBody p { font-size: 14px; line-height: 21px; margin: 12px 0 0; }
 .summaryError { color: var(--danger) !important; }
 /* Smaller or magnified windows retain readable text and accessible controls. */
 @media (max-width:1199px), (max-height:739px) {

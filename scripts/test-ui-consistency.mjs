@@ -42,6 +42,7 @@ try {
   const calendarToggle = view('calendar').locator('.uiToggle').filter({ has: page.locator('[data-businessdays-only]') });
   const referenceTrack = await style(calendarToggle.locator('.themeToggleTrack'));
   const referenceThumb = await style(calendarToggle.locator('.themeToggleThumb'));
+  const referencePeriodButton = await style(view('calendar').locator('[data-shift-prev]'));
   await go('summary');
   const futureInput = view('summary').locator('[data-summary-future]');
   assert.equal(await futureInput.getAttribute('role'), 'switch', 'future filtering uses the shared switch semantics');
@@ -60,35 +61,26 @@ try {
   assert.equal(await futureInput.isChecked(), futureBefore, 'shared switch supports keyboard toggling');
   assert.ok(await futureInput.evaluate(el => el.matches(':focus-visible')), 'keyboard switch focus remains visible');
 
-  await go('tasks');
-  await view('tasks').locator('[data-task-id="task-plan"] [data-edit]').click();
-  const taskDialog = view('tasks').locator('[data-task-dialog]');
-  const taskHeading = await style(taskDialog.locator('header h2'));
-  const taskFooter = await style(taskDialog.locator('footer'));
-  const taskCancel = await style(taskDialog.locator('[data-cancel]'));
-  await taskDialog.locator('[data-cancel]').click();
-  await go('summary');
-  await view('summary').locator('[data-summary-config]').click();
-  const options = view('summary').locator('[data-summary-options]');
-  const summaryHeading = await style(options.locator('header h2'));
-  const summaryFooter = await style(options.locator('footer'));
-  const summaryCancel = await style(options.locator('[data-summary-cancel]'));
-  assert.equal(summaryHeading.fontSize, taskHeading.fontSize, 'dialog title size follows the task editor');
-  for (const key of ['paddingLeft', 'paddingRight', 'background']) {
-    assert.equal(summaryFooter[key], taskFooter[key], `dialog footer ${key} follows the task editor`);
+  assert.equal(await view('summary').locator('[data-summary-config],[data-summary-options]').count(), 0,
+    'removed metric configuration must not leave a button or dialog');
+  assert.equal(await view('summary').locator('[data-summary-metric]').count(), 6, 'all six metrics are shown');
+  for (const period of ['month', 'year']) {
+    await view('summary').locator(`[data-summary-period="${period}"]`).click();
+    const labels = period === 'month' ? ['前月', '翌月'] : ['前年', '翌年'];
+    for (const [index, shift] of [-1, 1].entries()) {
+      const button = view('summary').locator(`[data-summary-shift="${shift}"]`);
+      assert.ok(await button.evaluate(el => el.classList.contains('titleNavBtn')), 'period navigation uses shared titleNavBtn');
+      const current = await style(button);
+      for (const key of ['width', 'height', 'fontSize', 'paddingLeft', 'paddingRight', 'borderRadius']) {
+        assert.equal(current[key], referencePeriodButton[key], `Summary ${period} shift ${shift} ${key} matches existing date navigation`);
+      }
+      assert.equal(await button.locator('[data-nav-label]').innerText(), labels[index], 'action is visibly described');
+      assert.equal(await button.locator('[aria-hidden="true"]').innerText(), shift < 0 ? '◀' : '▶', 'same decorative direction icon');
+    }
   }
-  assert.equal(summaryCancel.fontSize, taskCancel.fontSize, 'shared dialog action text size');
-  assert.equal(summaryCancel.height, taskCancel.height, 'shared dialog action height');
-  assert.ok(summaryCancel.width >= 90, 'dialog cancel keeps the common minimum width');
-  const bodyFont = await options.locator('.summaryOptionsBody').evaluate(el => parseFloat(getComputedStyle(el).fontSize));
-  assert.equal(bodyFont, 16, 'intentional larger Summary content remains readable');
-  await options.locator('[data-summary-cancel]').click();
-  await view('summary').locator('[data-summary-config]').click();
-  await page.keyboard.press('Escape');
-  await options.waitFor({ state: 'hidden' });
   assert.deepEqual(h.pageErrors, [], 'no renderer runtime errors');
   assert.deepEqual(h.unexpectedRequests, [], 'no unexpected synthetic API calls');
-  console.log('PASS UI consistency: four navigation tabs, shared filter switch, shared dialog chrome, keyboard/cancel');
+  console.log('PASS UI consistency: four navigation tabs, shared filter switch, six fixed metrics, shared period icons/text/dimensions');
 } finally {
   await h.close();
 }

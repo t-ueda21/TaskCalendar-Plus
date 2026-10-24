@@ -1,12 +1,12 @@
 {
-  "recordedAt": "2026-10-24T03:02:59.070Z",
+  "recordedAt": "2026-10-24T03:16:28.728Z",
   "baseCommit": "8cba81f4945f514a3f1451a2e8ad8a73a9fa2b97",
   "branch": "codex/summary-readable-ui",
-  "userCorrection": "Audit and unify existing UI across views and settings, show six Summary metrics; no release.",
+  "userCorrection": "Remove metric configuration button, show six metrics continuously, reuse existing labeled period navigation, and add top space above tag heading/Show all.",
   "scope": "Real renderer and Store in isolated Chromium; synthetic tasks/API/native bridge. Not native app or live integration evidence.",
   "tests": {
-    "scope": "All safe renderer Node suites and JavaScript syntax after UI/preferences changes; no Rust or native/live integration test run.",
-    "sourceAndTestsSha256": "533608cc1a0d64ce7f6a68b9496831a32536ab6473e1840750732c411a35d701",
+    "scope": "All safe renderer Node suites and JavaScript syntax after button/dialog removal, shared period controls and heading spacing; no Rust or native/live tests.",
+    "sourceAndTestsSha256": "98dfdb7998c600ecc60fb515cd719cf7663994e085bf8b40b18f2e33dce2994c",
     "nodeSuites": 49,
     "javascriptFiles": 58,
     "passedCommands": 50,
@@ -212,12 +212,13 @@
         "status": "passed"
       }
     ],
-    "localLogs": "out/summary-six-20261024/final-checks",
+    "localLogs": "out/summary-toolbar-20261024/verified-checks",
     "regression": [
-      "Six defaults and version2 migration preserve custom choices/order and explicit four-metric selection after reload",
-      "Four tabs remain on one row at720px; switches and dialog chrome reuse shared parts",
-      "Settings switches use consistent label order; narrow tag budgets retain72px readable fields",
-      "Six cards share numeric baselines and preserve8,753h55min at1280px; full tooltip required for ellipsized supplementary text"
+      "No metric configuration button/dialog; six fixed metrics with saved averageBase preserved",
+      "Previous/next month/year use existing titleNavBtn dimensions, visible labels and decorative direction icons",
+      "Keyboard, year rollover and boundary disabled states preserved",
+      "Tag heading top inset at least12px with8px desktop bottom clearance; chart heading stays aligned",
+      "Nine locales, six cards, ten tags and full hour/minute values remain readable"
     ]
   },
   "priorFullVerification": {
@@ -447,7 +448,7 @@
     "note": "Historical full-suite result before this layout correction, not a new run."
   },
   "screenshots": {
-    "rendererSha256": "044d0de6597c3445747d5d7c27cfa75f2ce1375d7f1c675a3511ec454de222f4",
+    "rendererSha256": "95e1549e169cf3c9932321871e423a4dcf5692dd595e59b3900636b69cd8c255",
     "browser": "151.0.7922.34",
     "playwright": "1.62.1",
     "syntheticNow": "2026-10-08T01:15:00.000Z",
@@ -487,21 +488,21 @@
           },
           {
             "name": "tags",
-            "bottom": 607.5,
+            "bottom": 621.5,
             "right": 1268,
-            "client": 348,
-            "scroll": 348
+            "client": 362,
+            "scroll": 362
           },
           {
             "name": "insights",
-            "bottom": 723.5,
+            "bottom": 737.5,
             "right": 1268,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/month-10-tags.png",
-        "sha256": "9316105a1ac5b215a61b33eda6f5be1f4da7f20723460c8e4a7c5122d550fe9e"
+        "sha256": "80778f673e328f248e2b4687f7160de7838428fc3afcd355ed48ed31002d5f70"
       },
       {
         "name": "month-selected-tags",
@@ -532,21 +533,21 @@
           },
           {
             "name": "tags",
-            "bottom": 607.5,
+            "bottom": 621.5,
             "right": 1354,
-            "client": 348,
-            "scroll": 348
+            "client": 362,
+            "scroll": 362
           },
           {
             "name": "insights",
-            "bottom": 723.5,
+            "bottom": 737.5,
             "right": 1354,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/month-selected-tags.png",
-        "sha256": "fdfa3a4cdf3554ca15c3f640c82864511a27a1f51329d8ce40c8d41a9aecbc53"
+        "sha256": "8fd49598e65471eee1ecfa97a4d91b0f71ecac15e4133daa5b827dd4428cba92"
       },
       {
         "name": "year",
@@ -577,21 +578,21 @@
           },
           {
             "name": "tags",
-            "bottom": 607.5,
+            "bottom": 621.5,
             "right": 1268,
-            "client": 348,
-            "scroll": 348
+            "client": 362,
+            "scroll": 362
           },
           {
             "name": "insights",
-            "bottom": 723.5,
+            "bottom": 737.5,
             "right": 1268,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/year.png",
-        "sha256": "aa4dd08afdd2936ed47dc2b6ece37039ec9001e63af480266f339d68b7e7cb0a"
+        "sha256": "b1ae7ea95bb0c1a16ffd1be31200e6e89c543198f16384d1cc9e341fb32e5e32"
       },
       {
         "name": "month-dark",
@@ -622,46 +623,43 @@
           },
           {
             "name": "tags",
-            "bottom": 607.5,
+            "bottom": 621.5,
             "right": 1268,
-            "client": 348,
-            "scroll": 348
+            "client": 362,
+            "scroll": 362
           },
           {
             "name": "insights",
-            "bottom": 723.5,
+            "bottom": 737.5,
             "right": 1268,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/month-dark.png",
-        "sha256": "1825a1bd4762e0f015f80dfaa632b146256f53105640395a584e683cd0693109"
+        "sha256": "57abd317f2c8c89fc184f9857d05f23c4469d8311cf2cae3b44a1ec08b98a81e"
       }
-    ],
-    "options": {
-      "file": "docs/images/summary-readable/options.png",
-      "sha256": "4946edc325ee2aa785428f638dafe06dd50c71e62461dfc65d7d410b5dde655f"
-    }
+    ]
   },
   "review": {
     "independentReviewsOfCorrection": 1,
     "criticalOrImportantFindings": 0,
-    "scope": "Read-only code/test and final image review. Additional isolated long-year-value checks at1200,1220,1280px. No native/live validation."
+    "scope": "Read-only source/test and final monthly/yearly image review; an EOF blank-line finding was corrected before the verified suite. No native/live validation."
   },
   "delivery": {
     "mainMerged": false,
     "releaseCreated": false,
     "applicationVersionChanged": false,
     "nativeUIVisuallyVerified": false,
-    "note": "An earlier development process remains open; the current six-metric UI was verified in isolated Chromium, not refreshed or driven in that native window."
+    "note": "Current application renderer verified in isolated Chromium. The browser URL summary-v1.html was separately confirmed to serve the older mockup."
   },
   "audit": {
     "scope": "Four views, editing/bulk/delete/update/metric dialogs, all11 settings pages at normal width; representative narrow/dark states.",
     "localReport": "out/summary-six-20261024/ui-audit.md",
     "findingsFixed": 6,
     "settingsProof": "out/summary-six-20261024/settings-proof",
-    "sourceScope": "Synthetic API/native/weather in isolated Chromium"
+    "sourceScope": "Synthetic API/native/weather in isolated Chromium",
+    "latestCorrection": "Period control consistency and tag heading whitespace corrected after further user feedback; removed metric configuration UI."
   },
   "priorNativeDebugLaunch": {
     "ProcessId": 34232,

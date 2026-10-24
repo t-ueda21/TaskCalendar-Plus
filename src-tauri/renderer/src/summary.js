@@ -1,12 +1,12 @@
 import * as Store from './store.js';
 import { buildSummary, todayInJst } from './summary-model.js';
-import { SUMMARY_METRICS, SUMMARY_PREFERENCES_VERSION, normalizeSummaryPreferences } from './summary-preferences.js';
-import { populateMetricOptions, renderSummary, renderSelection } from './summary-renderer.js';
+import { normalizeSummaryPreferences } from './summary-preferences.js';
+import { renderSummary, renderSelection } from './summary-renderer.js';
 import { wireSettingsDialog } from './settings-dialog.js';
 import { getWeatherLocationOptions } from './weather.js';
 import { t } from './i18n.js';
 
-let root, state, cachedModel, cacheKey = '', pendingRefresh = null, saving = false;
+let root, state, cachedModel, cacheKey = '', pendingRefresh = null;
 const query = key => root.querySelector(`[data-summary-${key}]`);
 
 function invalidate() { cachedModel = null; cacheKey = ''; }
@@ -84,36 +84,6 @@ function selectTag(id) {
   render();
 }
 
-function selectedMetrics() {
-  const checked = [...query('options').querySelectorAll('[data-summary-metric-option]:checked')].map(input => input.value);
-  return [...new Set([...state.preferences.metrics,...checked])].filter(id => checked.includes(id));
-}
-
-function updateMetricChoice() {
-  const count = selectedMetrics().length;
-  query('choice-status').textContent = count >= 1 && count <= SUMMARY_METRICS.length ? t('summary.chosen',{count}) : t('summary.chooseLimit');
-  query('apply').disabled = saving || count < 1 || count > SUMMARY_METRICS.length;
-  query('cancel').disabled = saving;
-}
-
-async function savePreferences() {
-  const metrics = selectedMetrics();
-  if (saving || metrics.length < 1 || metrics.length > SUMMARY_METRICS.length) return;
-  saving = true;
-  updateMetricChoice();
-  query('save-error').hidden = true;
-  try {
-    const preferences = normalizeSummaryPreferences({version:SUMMARY_PREFERENCES_VERSION,metrics,averageBase:query('average-base').value});
-    await Store.updateSettings({summaryPreferences:preferences});
-    state.preferences = preferences;
-    query('options').close();
-    render();
-  } catch {
-    query('save-error').textContent = t('summary.saveError');
-    query('save-error').hidden = false;
-  } finally { saving = false; updateMetricChoice(); }
-}
-
 function handleClick(event) {
   const button = event.target.closest('button');
   if (!button || !root.contains(button) || button.disabled) return;
@@ -133,14 +103,7 @@ function handleClick(event) {
   } else if (button.hasAttribute('data-summary-day') || button.hasAttribute('data-summary-bar')) {
     state.selectedKey = button.dataset.summaryDay || button.dataset.summaryBar;
     renderSelection(root, model(), state);
-  } else if (button.hasAttribute('data-summary-config')) {
-    populateMetricOptions(query('options'), state.preferences);
-    query('save-error').hidden = true;
-    updateMetricChoice();
-    query('options').showModal();
-  } else if (button.hasAttribute('data-summary-cancel')) query('options').close();
-  else if (button.hasAttribute('data-summary-apply')) void savePreferences();
-  else if (button.hasAttribute('data-summary-retry')) { render(); void refresh(); }
+  } else if (button.hasAttribute('data-summary-retry')) { render(); void refresh(); }
 }
 
 export function init(rootElement) {
@@ -152,8 +115,6 @@ export function init(rootElement) {
     preferences:normalizeSummaryPreferences(Store.getSettings().summaryPreferences) };
   root.addEventListener('click', handleClick);
   query('future').addEventListener('change', event => { state.includeFuture = event.target.checked; render(); });
-  query('options').addEventListener('change', updateMetricChoice);
-  query('options').addEventListener('cancel', event => { if (saving) event.preventDefault(); });
   for (const channel of ['tasks','tags']) Store.subscribe(channel, () => { invalidate(); render(); });
   Store.subscribe('settings', () => {
     state.preferences = normalizeSummaryPreferences(Store.getSettings().summaryPreferences);

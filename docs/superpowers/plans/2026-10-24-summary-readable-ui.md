@@ -4,7 +4,7 @@
 
 **Goal:** Rebuild the Summary screen at a readable scale and restore the upper page tabs and shared application action bar.
 
-**Architecture:** Keep the existing Store aggregation and state behavior. Reuse the shared toolbar template without the sidebar action on Summary. Use existing shared shell styles for all views; larger typography belongs only to Summary content and its options dialog body. Preserve the original arrangement: chart and numeric dates in one panel on the left, tags above insights on the right.
+**Architecture:** Keep the existing Store aggregation and state behavior. Reuse the shared toolbar template without the sidebar action on Summary. Use existing shared shell styles for all views; larger typography belongs only to Summary content. Preserve the original arrangement: chart and numeric dates in one panel on the left, tags above insights on the right.
 
 **Tech Stack:** Existing vanilla HTML/CSS/JavaScript, nine locale catalogs and isolated Chromium harness.
 
@@ -27,9 +27,11 @@
 
 **Full audit and six metrics:** User: 「他にも既存のUIと統一できてないところがないか、全体を見直して修正して。まだリリースしないで。表示項目は６つおけるでしょ。おいて」. Audit four views, common dialogs and all settings pages. Show all six existing metrics by default and allow1–6 selections. Upgrade only the unversioned canonical old four-metric default; preserve custom subsets/order and explicit subsequent four-metric choices with display-preference version2. Standard desktop widths keep six cards on one row; long translated labels align numeric baselines and numeric values retain full units. Reuse the shared toggle, selected-state colors and task-dialog chrome; correct narrow four-tab wrapping and settings input/switch inconsistencies found by audit.
 
+**Latest correction supersedes selection UI:** User removes the 「表示項目」 button, requests text plus icon for previous/next month/year like existing controls, and says tag heading/Show all are crowded against the top. Remove the button, its dialog and unused handlers/styles/translations. Always render all six metrics while preserving saved preferences and existing averageBase. Reuse calendar titleNavBtn and calendar navigation labels with ◀/▶. Set tag and chart heading top padding to12px, maintaining aligned headings and desktop bottom clearance. No release.
+
 - No aggregation changes, new AI calls, live Outlook calls, DB schema migration, application version bump, release, or main merge. Native launch was separately authorized and performed before the six-metric correction; the current audit uses isolated Chromium.
 - No change to task data. Use synthetic data/API/native bridge for UI tests and screenshots.
-- Keep month/year modes, future inclusion, tag paging, errors/retry, metric selection, preference persistence, keyboard focus, empty states and nine locales.
+- Keep month/year modes, future inclusion, tag paging, errors/retry, saved average denominator, keyboard focus, empty states and nine locales. Metric selection UI is intentionally removed by the latest correction.
 - Do not reintroduce all-time mode, a daily detail table, or the removed aggregation-help button.
 - Use existing theme tokens and shared icons. Keep long labels safe, with readable tooltips/accessible names for intentional truncation.
 

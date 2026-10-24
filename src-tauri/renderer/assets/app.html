@@ -326,13 +326,12 @@
               <button class="btn" type="button" data-summary-period="year" aria-pressed="false" data-i18n="summary.year"></button>
             </div>
             <div class="summaryPeriodNav">
-              <button class="btn" type="button" data-summary-shift="-1" aria-label="前の期間" data-i18n-attrs="aria-label=summary.previous">‹</button>
+              <button class="btn titleNavBtn" type="button" data-summary-shift="-1"><span aria-hidden="true">◀</span><span data-nav-label></span></button>
               <strong data-summary-period-label></strong>
-              <button class="btn" type="button" data-summary-shift="1" aria-label="次の期間" data-i18n-attrs="aria-label=summary.next">›</button>
+              <button class="btn titleNavBtn" type="button" data-summary-shift="1"><span data-nav-label></span><span aria-hidden="true">▶</span></button>
               <button class="btn" type="button" data-summary-current></button>
             </div>
             <label class="uiToggle" title="これからの予定も含める" data-i18n-attrs="title=summary.includeFuture"><input class="uiToggleInput" type="checkbox" role="switch" data-summary-future aria-label="これからの予定も含める" data-i18n-attrs="aria-label=summary.includeFuture"><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel" data-i18n="summary.futureEvents"></span></label>
-            <button class="btn" type="button" data-summary-config data-i18n="summary.items"></button>
           </div>
           <template data-view-template="shared-toolbar-actions" data-without-sidebar></template>
         </section>
@@ -363,15 +362,6 @@
             </aside>
           </div>
         </main>
-        <dialog class="dialog summaryOptions" data-summary-options aria-labelledby="summary-options-title">
-          <header><h2 id="summary-options-title" data-i18n="summary.items"></h2><p data-i18n="summary.itemsHint"></p></header>
-          <div class="summaryOptionsBody">
-            <div data-summary-metric-options></div>
-            <label class="summaryAverageOption"><span data-i18n="summary.averageBase"></span><select data-summary-average-base><option value="recorded" data-i18n="summary.recordedOption"></option><option value="business" data-i18n="summary.businessOption"></option></select></label>
-            <p data-summary-choice-status role="status"></p><p class="summaryError" data-summary-save-error role="alert" hidden></p>
-          </div>
-          <footer><button class="btn" type="button" data-summary-cancel data-i18n="common.cancel"></button><button class="btn primary" type="button" data-summary-apply data-i18n="dialog.apply"></button></footer>
-        </dialog>
       </section>
     </div>
 
