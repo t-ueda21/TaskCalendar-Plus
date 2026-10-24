@@ -1,27 +1,16 @@
 import { t, th, getLocale, formatDuration } from './i18n.js';
 import { escHtml, normalizeHexColor } from './ui-utils.js';
 import { SUMMARY_METRICS } from './summary-preferences.js';
+import { createSummaryFormatting } from './summary-format.js';
 
 export const TAGS_PER_PAGE = 10;
 const metricKeys = Object.freeze({ total:'summary.metric.total', average:'summary.metric.average', overtime:'summary.metric.overtime',
   days:'summary.metric.days', overtimeDays:'summary.metric.overtimeDays', longest:'summary.metric.longest' });
 const comparisonKeys = Object.freeze({ month:'summary.comparison.month', year:'summary.comparison.year', businessDays:'summary.comparison.businessDays' });
 const query = (root, key) => root.querySelector(`[data-summary-${key}]`);
-const number = (value, digits = 0) => new Intl.NumberFormat(getLocale(), { maximumFractionDigits:digits }).format(value);
-const dateObject = key => new Date(`${key.length === 7 ? key + '-01' : key}T00:00:00Z`);
-const dateText = (key, options) => new Intl.DateTimeFormat(getLocale(), { timeZone:'Asia/Tokyo', ...options }).format(dateObject(key));
-const groupLabel = (group, period) => dateText(group.key, period === 'year'
-  ? {year:'numeric',month:'long'} : {month:'numeric',day:'numeric',weekday:'short'});
+const { number, dateText, groupLabel, timeParts, timeMarkup } = createSummaryFormatting(getLocale, th);
 const color = tag => normalizeHexColor(tag.color);
 
-function timeParts(minutes) {
-  const rounded = Math.max(0, Math.round(minutes || 0));
-  return { hours:number(Math.floor(rounded / 60)), minutes:number(rounded % 60) };
-}
-function timeMarkup(minutes) {
-  const parts = timeParts(minutes);
-  return `${parts.hours}<small>${th('summary.hours')}</small>${parts.minutes}<small>${th('summary.minutes')}</small>`;
-}
 function metricDetails(model, preferences) {
   const denominator = preferences.averageBase === 'business' ? model.businessDays : model.registeredDays;
   let comparison = t('summary.noComparison');

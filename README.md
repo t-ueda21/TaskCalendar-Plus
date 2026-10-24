@@ -1,12 +1,12 @@
 # TaskCalendar+
 
-> このブランチは **v4.0.0をベースにした開発中のソース**です。サマリーの文字・配置と操作バーを見直した変更は未リリースです。[変更前後の画面](docs/reviews/summary-readable.md)、[公開済みv4.0.0の更新内容](docs/releases/v4.0.0.md)を確認できます。
+> **v4.0.1**では、サマリーの文字・配置と共通操作バーを見直しました。[変更前後の画面](docs/reviews/summary-readable.md)、[更新内容](docs/releases/v4.0.1.md)、[整形処理のリファクタリング結果](docs/reviews/summary-format-refactor.md)を確認できます。
 
 [v3.0.4の更新画面とリファクタリングの前後比較](docs/reviews/v3.0.4.md)も掲載しています。
 
 **予定を入れる。作業時間を見渡す。日報にまとめる。**
 
-v4.0.0は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v4.0.0/TaskCalendar%2B_4.0.0_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v4.0.0/TaskCalendar%2B_4.0.0_x64-setup.zip)から取得できます。ZIPは展開後にインストーラーを実行します。通常のアプリ内更新にも対応します。
+v4.0.1は[EXE](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v4.0.1/TaskCalendar%2B_4.0.1_x64-setup.exe)／[インストーラー入りZIP](https://github.com/t-ueda21/TaskCalendar-Plus/releases/download/v4.0.1/TaskCalendar%2B_4.0.1_x64-setup.zip)から取得できます。ZIPは展開後にインストーラーを実行します。通常のアプリ内更新にも対応します。
 
 TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windows アプリです。案件や作業の種類ごとにタグを付けると、一日・一か月の工数を集計できます。
 
