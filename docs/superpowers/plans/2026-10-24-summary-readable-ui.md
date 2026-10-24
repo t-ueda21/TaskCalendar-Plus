@@ -33,6 +33,8 @@
 
 **Vertical alignment from screenshot:** User marks the boundary near metric4/5 with a red line. Use the same six equal tracks and12px gap for metrics and lower content: chart/numbers span4, tags/insights span2. Match chart right to metric4 right and tags/insights left to metric5 left at every desktop width. Preserve small-screen stacking, typography, period caption and the current-month overflow fix.
 
+**Section spacing correction:** User marks the excessive horizontal band between the metric cards and lower panels. Match the existing toolbar/content6px vertical spacing through one Summary section-gap variable: toolbar-to-content margin, metric-to-panel gap, tag-to-insight gap, and stacked responsive rows. Keep horizontal grid gaps12px and all text sizes. Verify actual rectangles at3/10tags, three desktop widths and month/year.
+
 - No aggregation changes, new AI calls, live Outlook calls, DB schema migration, application version bump, release, or main merge. Native launch was separately authorized and performed before the six-metric correction; the current audit uses isolated Chromium.
 - No change to task data. Use synthetic data/API/native bridge for UI tests and screenshots.
 - Keep month/year modes, future inclusion, tag paging, errors/retry, saved average denominator, keyboard focus, empty states and nine locales. Metric selection UI is intentionally removed by the latest correction.

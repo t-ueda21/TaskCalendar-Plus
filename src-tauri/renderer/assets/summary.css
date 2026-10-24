@@ -1,5 +1,5 @@
 /* Larger typography belongs to Summary content, not the shared application shell. */
-.summaryView { --summary-inset: 12px; }
+.summaryView { --summary-inset: 12px; --summary-section-gap: 6px; }
 .summaryScreen { --font-body: 16px; --font-caption: 14px; --font-section: 18px; font-size: 16px; line-height: 1.4; }
 .summaryView:not([hidden]) { display: contents; }
 .summaryView, .summaryView * { box-sizing: border-box; }
@@ -13,12 +13,12 @@
 .summaryPeriodDisplay { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 136px; padding: 0 8px; text-align: center; white-space: nowrap; }
 .summaryPeriodDisplay > span { font-size: var(--font-caption); line-height: 16px; color: var(--muted); }
 .summaryPeriodDisplay > strong { font-size: 18px; line-height: 24px; color: var(--accent-strong); }
-.summaryScreen { grid-row: 3; margin-top: 6px; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+.summaryScreen { grid-row: 3; margin-top: var(--summary-section-gap); min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--summary-section-gap); overflow-y: auto; }
 .summaryScreen:has(.summaryNotice:not([hidden])) .summaryContent { flex: 0 0 auto; min-height: 520px; }
 .summaryNotice { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border: 1px solid var(--danger); border-radius: 8px; background: var(--panel); flex-shrink: 0; }
 .summaryNotice p { font-size: 16px; margin: 0; }
 /* Both rows share six equal tracks, so the four/two split stays aligned at any width. */
-.summaryMetrics, .summaryContent { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 12px; }
+.summaryMetrics, .summaryContent { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: var(--summary-section-gap) 12px; }
 .summaryMetrics { flex-shrink: 0; }
 .summaryMetric { display: flex; flex-direction: column; min-width: 0; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--panel); }
 .summaryMetricLabel { flex: 1; font-size: 14px; line-height: 20px; color: var(--muted); }
@@ -26,7 +26,7 @@
 .summaryMetricValue small { font-size: 14px; line-height: 20px; font-weight: 500; margin: 0 4px; color: var(--muted); }
 .summaryMetricDetail { font-size: 14px; line-height: 20px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .summaryContent { flex: 1; min-width: 0; min-height: 476px; }
-.summarySide { grid-column: span 2; display: flex; flex-direction: column; gap: 12px; min-width: 0; min-height: 0; }
+.summarySide { grid-column: span 2; display: flex; flex-direction: column; gap: var(--summary-section-gap); min-width: 0; min-height: 0; }
 .summaryPanel { min-width: 0; border: 1px solid var(--border-strong); border-radius: var(--radius-lg); background: var(--panel); box-shadow: var(--shadow-sm); }
 .summaryPanelHeading, .summaryNumbersHeading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px var(--summary-inset); flex-shrink: 0; }
 .summaryPanelHeading h2, .summaryNumbersHeading h2, .summaryInsights h2 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; }

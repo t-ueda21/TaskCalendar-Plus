@@ -47,6 +47,11 @@ try {
         const panelGutter=tagPanel.left-chartPanel.right;
         same([...metricGutters,panelGutter],'metric and lower-panel gutters');
         same([panelGutter,12],'shared gutter stays 12px');
+        const toolbarToMetrics=rect('.summaryMetrics').top-rect('.summaryToolbar').bottom;
+        const metricsBottom=rect('.summaryMetrics').bottom;
+        same([toolbarToMetrics,6],'toolbar and metrics vertical gap stays 6px');
+        same([chartPanel.top-metricsBottom,tagPanel.top-metricsBottom,6],'metrics and lower panels vertical gap stays 6px');
+        same([insightPanel.top-tagPanel.bottom,6],'tags and insights vertical gap stays 6px');
       }
       if(!left.contains(chart)||!left.contains(numbers))errors.push({message:'chart and numbers must share the left panel'});
       if(!side?.contains(tags)||!side?.contains(insights))errors.push({message:'tags and insights must share the right column'});
