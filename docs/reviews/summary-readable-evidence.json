@@ -1,16 +1,16 @@
 {
-  "recordedAt": "2026-10-23T21:54:10.469Z",
+  "recordedAt": "2026-10-24T02:48:26.019Z",
   "baseCommit": "8cba81f4945f514a3f1451a2e8ad8a73a9fa2b97",
   "branch": "codex/summary-readable-ui",
-  "userCorrection": "Restore the original arrangement while preserving the enlarged text and controls.",
+  "userCorrection": "Use existing shared header, tabs and toolbar dimensions in all views; enlarge only Summary content and its options dialog.",
   "scope": "Real renderer and Store in isolated Chromium; synthetic tasks/API/native bridge. Not native app or live integration evidence.",
   "tests": {
-    "scope": "Targeted tests after the HTML/CSS layout correction. These successful command results were observed by the implementer; no Rust rerun for this correction.",
+    "scope": "Successful targeted command results observed after shared-shell correction; Rust was not rerun.",
     "commands": [
       {
         "command": "node scripts/test-summary-readable.mjs",
         "status": "passed",
-        "scriptSha256": "921f9be16a2e25d35e45c3ff06aea00e7edc0c423b4f28b3dca8b657d647a307"
+        "scriptSha256": "e76a8bc5af63236a52fb04a125650250266ce7be41b78ca9f4b491f77066798b"
       },
       {
         "command": "node scripts/test-summary-alignment.mjs",
@@ -23,7 +23,11 @@
         "scriptSha256": "67ca843abdab1a2450918e570c53aa512e5e79128d9c91baea6e9d8c773da1ae"
       }
     ],
-    "rendererSha256": "d0a0ecb95b65f472eada848ca49df7edc2fac8873a4402c06d5c389c5ac68373"
+    "regression": {
+      "before": "failed: Summary nav 520 vs420, tab16px vs13px, toolbar56 vs62, shared action40 vs34",
+      "after": "passed: shared dimensions/padding/fonts match calendar, tasks and AI at1366,1280,1000 widths"
+    },
+    "rendererSha256": "74c1b9fd5c86a244eaf36d7a83f1fdf14991e9ddb80ab6cda4c231605995331d"
   },
   "priorFullVerification": {
     "commit": "78ebede8b45c2984ed8b92f3e207f27484067325",
@@ -252,7 +256,7 @@
     "note": "Historical full-suite result before this layout correction, not a new run."
   },
   "screenshots": {
-    "rendererSha256": "d0a0ecb95b65f472eada848ca49df7edc2fac8873a4402c06d5c389c5ac68373",
+    "rendererSha256": "74c1b9fd5c86a244eaf36d7a83f1fdf14991e9ddb80ab6cda4c231605995331d",
     "browser": "151.0.7922.34",
     "playwright": "1.62.1",
     "syntheticNow": "2026-10-08T01:15:00.000Z",
@@ -280,8 +284,8 @@
             "name": "trend",
             "bottom": 788,
             "right": 852,
-            "client": 526,
-            "scroll": 526
+            "client": 529,
+            "scroll": 529
           },
           {
             "name": "numbers",
@@ -292,21 +296,21 @@
           },
           {
             "name": "tags",
-            "bottom": 610,
+            "bottom": 607.5,
             "right": 1268,
             "client": 348,
             "scroll": 348
           },
           {
             "name": "insights",
-            "bottom": 726,
+            "bottom": 723.5,
             "right": 1268,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/month-10-tags.png",
-        "sha256": "b8bc70e9bf61615f6f50a36aa432a5f57b30212f1d05a050f53388e4e316d661"
+        "sha256": "5c2a2b2d8ad33b703f4bb408b7f42f3c59bfd10c0f0526bb0ff15bdac4053c89"
       },
       {
         "name": "month-selected-tags",
@@ -325,8 +329,8 @@
             "name": "trend",
             "bottom": 756,
             "right": 938,
-            "client": 494,
-            "scroll": 494
+            "client": 497,
+            "scroll": 497
           },
           {
             "name": "numbers",
@@ -337,21 +341,21 @@
           },
           {
             "name": "tags",
-            "bottom": 610,
+            "bottom": 607.5,
             "right": 1354,
             "client": 348,
             "scroll": 348
           },
           {
             "name": "insights",
-            "bottom": 726,
+            "bottom": 723.5,
             "right": 1354,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/month-selected-tags.png",
-        "sha256": "a2eb5729c684269ce36ddeed9b6266f41cd6e20fd45c57f688fe54939488ed65"
+        "sha256": "29b16c1f1e5b05cd15735794c2cc3b84ec8d7ddf92ded65588e659ec45fa05cf"
       },
       {
         "name": "year",
@@ -370,8 +374,8 @@
             "name": "trend",
             "bottom": 788,
             "right": 852,
-            "client": 526,
-            "scroll": 526
+            "client": 529,
+            "scroll": 529
           },
           {
             "name": "numbers",
@@ -382,21 +386,21 @@
           },
           {
             "name": "tags",
-            "bottom": 610,
+            "bottom": 607.5,
             "right": 1268,
             "client": 348,
             "scroll": 348
           },
           {
             "name": "insights",
-            "bottom": 726,
+            "bottom": 723.5,
             "right": 1268,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/year.png",
-        "sha256": "f2ab0e474ce7332cf63a4f7f7aae2f348591f7d9d8dbf0228c251316581800f6"
+        "sha256": "999bab2f92e717d2cd4babd5ade8552b37627f76b118f498a79f416253a5d077"
       },
       {
         "name": "month-dark",
@@ -415,8 +419,8 @@
             "name": "trend",
             "bottom": 788,
             "right": 852,
-            "client": 526,
-            "scroll": 526
+            "client": 529,
+            "scroll": 529
           },
           {
             "name": "numbers",
@@ -427,34 +431,44 @@
           },
           {
             "name": "tags",
-            "bottom": 610,
+            "bottom": 607.5,
             "right": 1268,
             "client": 348,
             "scroll": 348
           },
           {
             "name": "insights",
-            "bottom": 726,
+            "bottom": 723.5,
             "right": 1268,
             "client": 102,
             "scroll": 102
           }
         ],
         "file": "docs/images/summary-readable/month-dark.png",
-        "sha256": "69617b467f7b4f91f4f82dd7dd871c1d57b293557ac7a420999a79bac56fad6c"
+        "sha256": "40c489f3f27f75101492a9ae9fdef8dca2b3b5f38c5f804a89a39d9f6703d266"
       }
     ]
   },
   "review": {
     "independentReviewsOfCorrection": 1,
-    "scope": "Read-only source diff, original topology, four generated images and image/source fingerprints. No test rerun or native-app verification by reviewer.",
-    "criticalOrImportantFindings": 0,
-    "visualChecks": "Implementer and independent reviewer inspected all four generated images."
+    "scope": "Read-only source diff and generated monthly screenshot, source fingerprints; no reviewer test rerun or native UI check",
+    "criticalOrImportantFindings": 0
   },
   "delivery": {
     "mainMerged": false,
     "releaseCreated": false,
     "versionChanged": false,
-    "installedAppExecuted": false
+    "installedAppExecuted": false,
+    "nativeDebugLaunch": {
+      "ProcessId": 34232,
+      "Title": "TaskCalendar+",
+      "WindowHandle": 8193094,
+      "Responding": true,
+      "RendererMatchesCheckout": true,
+      "NoSummaryHeaderOverrides": true,
+      "CapturedAt": "2026-10-24T11:48:25.0686862+09:00",
+      "Scope": "Process, window handle and HTTP stylesheet verification; no native screenshot or interaction verification"
+    },
+    "nativeUIVisuallyVerified": false
   }
 }

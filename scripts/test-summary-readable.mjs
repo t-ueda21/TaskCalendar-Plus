@@ -45,6 +45,40 @@ function sameGeometry(actual, expected, label) {
   }
 }
 
+// Shared chrome keeps the existing app's rendered scale while Summary is active.
+async function sharedChromeGeometry(view) {
+  return h.page.evaluate(view => {
+    const screen = document.querySelector(`[data-view="${view}"]`);
+    const entries = [...['.header', '.header h1', '.header .nav', '.header .clock'].map(selector => [selector, document.querySelector(selector)]),
+      ...['calendar', 'tasks', 'ai', 'summary'].map(id => [`tab:${id}`, document.querySelector(`nav.nav [data-nav-target="${id}"]`)]),
+      ['toolbar', screen.querySelector('.toolbar')], ['toolbar actions', screen.querySelector('.toolbarActions')],
+      ...['outlook-open', 'update-open', 'settings-btn'].map(id => [id, screen.querySelector(`[data-${id}]`)])];
+    return entries.map(([name, node]) => {
+      const r = node.getBoundingClientRect(), style = getComputedStyle(node);
+      return { name, width: r.width, height: r.height, font: parseFloat(style.fontSize),
+        paddingTop: parseFloat(style.paddingTop), paddingRight: parseFloat(style.paddingRight),
+        paddingBottom: parseFloat(style.paddingBottom), paddingLeft: parseFloat(style.paddingLeft),
+        labelFonts: [...node.querySelectorAll('span[data-i18n]')].map(label => parseFloat(getComputedStyle(label).fontSize)) };
+    });
+  }, view);
+}
+
+function sameChrome(actual, expected, label) {
+  const differences = [];
+  for (let i = 0; i < actual.length; i++) {
+    assert.equal(actual[i].name, expected[i].name);
+    for (const key of ['width', 'height', 'font', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']) {
+      if (Math.abs(actual[i][key] - expected[i][key]) > 1) differences.push(
+        `${actual[i].name} ${key}: Summary ${actual[i][key]}, reference ${expected[i][key]}`);
+    }
+    // Toolbar contents differ by view; compare shared action labels and each navigation tab.
+    if (actual[i].name.startsWith('tab:') || ['outlook-open', 'update-open', 'settings-btn'].includes(actual[i].name)) {
+      if (JSON.stringify(actual[i].labelFonts) !== JSON.stringify(expected[i].labelFonts)) differences.push(`${actual[i].name} label fonts differ`);
+    }
+  }
+  assert.deepEqual(differences, [], label);
+}
+
 // Catch tiny inherited text, reduced hit targets, clipped values and offscreen panels.
 // These assertions use computed fonts, text ranges and actual rectangles, not CSS source strings.
 async function inspectLayout(label, columns, dayCount) {
@@ -66,6 +100,7 @@ async function inspectLayout(label, columns, dayCount) {
     const actions = [...el.querySelectorAll('button:not([data-summary-bar]):not([data-summary-day])')]
       .filter(node => !node.closest('dialog') && visible(node));
     for (const node of actions) {
+      if (!node.closest('.summaryScreen, .summaryOptions')) continue;
       floor(node, 16);
       if (node.getBoundingClientRect().height < 39.5) fail(`${name(node)} target height ${node.getBoundingClientRect().height}px < 40px`);
     }
@@ -83,9 +118,10 @@ async function inspectLayout(label, columns, dayCount) {
     while ((textNode = walker.nextNode())) {
       const node = textNode.parentElement;
       if (!textNode.textContent.trim() || !visible(node) || node.closest('dialog, svg, [aria-hidden="true"].summaryTagCheck, .summaryInsightIcon')) continue;
-      floor(node, 14);
+      const summaryContent = node.closest('.summaryScreen, .summaryOptions');
+      if (summaryContent) floor(node, 14);
       const action = node.closest('button:not([data-summary-bar]):not([data-summary-day]):not([data-summary-tag])');
-      if (action && !node.closest('small')) floor(node, 16);
+      if (summaryContent && action && !node.closest('small')) floor(node, 16);
       const range = document.createRange(); range.selectNodeContents(textNode);
       for (const r of range.getClientRects()) {
         if (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1) {
@@ -152,7 +188,7 @@ async function inspectLayout(label, columns, dayCount) {
       visible: r.width > 0 && r.height > 0 && r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight };
   }));
   assert.deepEqual(links.map(link => link.view), ['calendar', 'tasks', 'ai', 'summary']);
-  assert.ok(links.every(link => link.visible && link.font >= 16), `${label}: all four page tabs must be visible at 16px`);
+  assert.ok(links.every(link => link.visible), `${label}: all four shared page tabs must remain visible`);
 }
 
 try {
@@ -172,6 +208,16 @@ try {
     isAllDay: false, recurrence: { type: 'none' },
   })));
   await h.boot();
+  for (const viewport of [{ width: 1366, height: 768 }, { width: 1280, height: 800 }, { width: 1000, height: 800 }]) {
+    await h.page.setViewportSize(viewport);
+    const reference = {};
+    for (const view of ['calendar', 'tasks', 'ai']) { await go(view); reference[view] = await sharedChromeGeometry(view); }
+    await go('summary');
+    const summary = await sharedChromeGeometry('summary');
+    for (const view of ['calendar', 'tasks', 'ai']) sameChrome(summary, reference[view],
+      `${viewport.width}×${viewport.height}: Summary must use the same header/navigation/toolbar scale as ${view}`);
+  }
+  console.log('PASS: unchanged shared header, navigation, toolbar and action dimensions at 1366, 1280 and 1000 widths');
   await h.page.setViewportSize({ width: 1366, height: 768 });
   const before = {};
   for (const view of ['calendar', 'tasks', 'ai']) { await go(view); before[view] = await viewGeometry(view); }
@@ -209,7 +255,7 @@ try {
     await root.locator('[data-summary-day="2026-10"]').click();
     assert.equal(await root.locator('[data-summary-day]').count(), 31, 'Selecting an annual cell must open that month');
   }
-  console.log('PASS: 16px primary text, 14px supporting text, 40px actions, 10 tags, readable dates and exact long durations at both desktop sizes');
+  console.log('PASS: Summary content uses 16px primary text, 14px supporting text and 40px actions, with 10 tags and exact long durations at both desktop sizes');
 
   // Translated labels must satisfy the same visible-text and geometry rules.
   // Include the narrower desktop width for three locales with long toolbar labels.

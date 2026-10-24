@@ -4,7 +4,7 @@
 
 **Goal:** Rebuild the Summary screen at a readable scale and restore the upper page tabs and shared application action bar.
 
-**Architecture:** Keep the existing Store aggregation and state behavior. Reuse the shared toolbar template without the sidebar action on Summary. Scope larger typography and shell adjustments to the active Summary view; other views retain their present sizing. Preserve the original arrangement: chart and numeric dates in one panel on the left, tags above insights on the right.
+**Architecture:** Keep the existing Store aggregation and state behavior. Reuse the shared toolbar template without the sidebar action on Summary. Use existing shared shell styles for all views; larger typography belongs only to Summary content and its options dialog. Preserve the original arrangement: chart and numeric dates in one panel on the left, tags above insights on the right.
 
 **Tech Stack:** Existing vanilla HTML/CSS/JavaScript, nine locale catalogs and isolated Chromium harness.
 
@@ -12,16 +12,18 @@
 
 ## Design choices
 
-- Use 16px for primary Summary text/actions, at least 14px for supporting text, axis labels, weekdays and time units; use 30px metric values and 18px section headings. These are implementation choices proposed in conversation, not user-specified exact dimensions.
+- Use 16px for primary Summary content text/actions, at least 14px for supporting text, axis labels, weekdays and time units; use 30px metric values and 18px section headings. Shared navigation and toolbar retain existing shared sizing. These are implementation choices, not user-specified exact dimensions.
 - Following the user's explicit correction, restore numeric dates below the chart inside the original left panel. Use 12 columns for all 28–31 dates and six columns for all 12 months to retain enlarged text. Keep hours and minutes explicit on separate lines. Dates remain selectable and annual cells still open the selected month.
 - Restore tags above the derived insights on the right. Keep all four components visible at the standard desktop targets with 10 tags. Tag names and durations use separate lines. The rejected chart/tag-left and numbers/insights-right arrangement is superseded, not an accepted design.
 - Restore shared Outlook acquisition, update and settings actions, with one working settings trigger. Omit the sidebar toggle because the user selected upper bars rather than a left sidebar.
-- Retain the existing four navigation tabs and enlarge them only while Summary is active. Avoid global changes to other views or global settings dialogs.
+- Retain the existing four navigation tabs at the same size in every view. No Summary-only header, navigation or toolbar overrides. Do not enlarge shared controls through inherited custom properties.
 - Aim for no page scrolling at 1280×800 and 1366×768, standard CSS scale. For smaller/zoomed windows allow scrolling rather than hide controls or reduce text below the stated floor.
 
 ## Constraints
 
 **2026-10-24 correction:** User: 「これはひどい、元の配置に戻して、大きさはこんな漢字でいい」. Restore spatial grouping while keeping the enlarged text, controls, upper tabs and shared action bar. This is a layout correction, with no aggregation or release change.
+
+**Subsequent correction:** User: 「上のタブ切り替えボタンの大きさがほかのタブと変わったらダメ」「ツールバーについてもそう」. The former Summary-only shell enlargement is superseded. Preserve the shared shell while enlarging only the screen content. Test dimensions during Summary activation, not merely after leaving it.
 
 - No aggregation changes, new AI calls, live Outlook calls, native app/WebView2/Edge launch, schema migration, version bump, release, or main merge.
 - No change to task data. Use synthetic data/API/native bridge for UI tests and screenshots.
@@ -34,7 +36,7 @@
 1. Restored toolbar actions must actually work, with no duplicate settings handlers or no-op sidebar button.
 2. 31 dates, 10 tags, four metrics and long durations must fit with visible time units at the typography floor.
 3. Long translations and multiple selected tag names must not collide with period controls or application actions.
-4. Leaving Summary must restore the shared header's original sizing and preserve other views' appearance/behavior.
+4. Shared header/navigation/toolbar dimensions must remain identical while Summary is active and after leaving it. Preserve other views' appearance/behavior.
 5. Larger controls must preserve graph/day synchronization, keyboard focus, tag paging, errors and settings persistence.
 
 ## Tasks
