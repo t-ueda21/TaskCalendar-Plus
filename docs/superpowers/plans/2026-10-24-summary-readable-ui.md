@@ -31,6 +31,8 @@
 
 **Current-period overflow and visibility:** User reports a scrollbar after 「今月」 and difficulty identifying the displayed month. Reproduced an internal3px/10px overflow at1366×768/1264×761 when a wrapped insight raises the right-column requirement. Let the tag panel shrink within available height, with visible tag rows56px normally and52px minimum, preserving text and heading padding. Add a12px「表示中」caption above the18px period label inside the existing toolbar. Keep shared shell geometry. Test previous→current month/year, multiple tag selection and reset, actual scrollable containers, and the intentionally scrollable short-window fallback.
 
+**Vertical alignment from screenshot:** User marks the boundary near metric4/5 with a red line. Use the same six equal tracks and12px gap for metrics and lower content: chart/numbers span4, tags/insights span2. Match chart right to metric4 right and tags/insights left to metric5 left at every desktop width. Preserve small-screen stacking, typography, period caption and the current-month overflow fix.
+
 - No aggregation changes, new AI calls, live Outlook calls, DB schema migration, application version bump, release, or main merge. Native launch was separately authorized and performed before the six-metric correction; the current audit uses isolated Chromium.
 - No change to task data. Use synthetic data/API/native bridge for UI tests and screenshots.
 - Keep month/year modes, future inclusion, tag paging, errors/retry, saved average denominator, keyboard focus, empty states and nine locales. Metric selection UI is intentionally removed by the latest correction.

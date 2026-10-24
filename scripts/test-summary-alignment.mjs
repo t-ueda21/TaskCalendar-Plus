@@ -3,7 +3,7 @@ import { openHarness } from './refactor-20261008-harness.mjs';
 
 const h=await openHarness();
 try {
-  for(let i=0;i<8;i++)await h.page.request.post(h.origin+'/api/tags',{data:{id:'alignment-'+i,name:'タグ '+i,color:'#658f79'}});
+  await h.page.request.post(h.origin+'/api/tags',{data:{id:'alignment-0',name:'タグ 0',color:'#658f79'}});
   await h.boot();await h.page.setViewportSize({width:1280,height:800});
   await h.page.locator('[data-nav-target="summary"]').click();
   const root=h.page.locator('[data-view="summary"]');
@@ -33,6 +33,21 @@ try {
       if(tagHeading.bottom>rect('.summaryTagList').top+1)errors.push({message:'tag header must not overlap tag list'});
       const left=el.querySelector('.summaryTrend'),chart=el.querySelector('[data-summary-chart]'),numbers=el.querySelector('[data-summary-numbers]');
       const side=el.querySelector('.summarySide'),tags=el.querySelector('[data-summary-panel="tags"]'),insights=el.querySelector('[data-summary-panel="insights"]');
+      // The six metric cards and both lower columns share one vertical grid:
+      // chart/numbers span cards 1–4; tags/insights span cards 5–6.
+      const metrics=[...el.querySelectorAll('[data-summary-metric]')].map(node=>node.getBoundingClientRect());
+      if(metrics.length!==6)errors.push({message:'vertical alignment requires all six metric cards',actual:metrics.length});
+      else {
+        const chartPanel=left.getBoundingClientRect(),tagPanel=tags.getBoundingClientRect(),insightPanel=insights.getBoundingClientRect();
+        same([metrics[0].left,chartPanel.left],'metric 1 and chart left edges');
+        same([metrics[3].right,chartPanel.right],'metric 4 and chart right edges');
+        same([metrics[4].left,tagPanel.left,insightPanel.left],'metric 5, tags and insights left edges');
+        same([metrics[5].right,tagPanel.right,insightPanel.right],'metric 6, tags and insights right edges');
+        const metricGutters=metrics.slice(1).map((card,index)=>card.left-metrics[index].right);
+        const panelGutter=tagPanel.left-chartPanel.right;
+        same([...metricGutters,panelGutter],'metric and lower-panel gutters');
+        same([panelGutter,12],'shared gutter stays 12px');
+      }
       if(!left.contains(chart)||!left.contains(numbers))errors.push({message:'chart and numbers must share the left panel'});
       if(!side?.contains(tags)||!side?.contains(insights))errors.push({message:'tags and insights must share the right column'});
       if(numbers.getBoundingClientRect().top<chart.getBoundingClientRect().bottom-1)errors.push({message:'numbers must be below chart'});
@@ -50,9 +65,20 @@ try {
     });
     assert.deepEqual(problems,[],label);
   }
-  await inspect('month, ten tags, 1280 x 800');
-  await h.page.setViewportSize({width:1366,height:768});
-  await root.locator('[data-summary-period="year"]').click();await inspect('year, ten tags, 1366 x 768');
+  async function inspectDesktopGrid(tagCount) {
+    for(const viewport of [{width:1422,height:866},{width:1280,height:800},{width:1366,height:768}]) {
+      await h.page.setViewportSize(viewport);
+      for(const period of ['month','year']) {
+        await root.locator(`[data-summary-period="${period}"]`).click();
+        await inspect(`${period}, ${tagCount} tags, ${viewport.width} x ${viewport.height}`);
+      }
+    }
+  }
+  await inspectDesktopGrid(3);
+  for(let i=1;i<8;i++)await h.page.request.post(h.origin+'/api/tags',{data:{id:'alignment-'+i,name:'タグ '+i,color:'#658f79'}});
+  await h.boot();await h.page.locator('[data-nav-target="summary"]').click();
+  await root.locator('[data-summary-metric="total"]').waitFor({state:'visible'});
+  await inspectDesktopGrid(10);
   await h.page.evaluate(async()=>{const S=await import('/src/store.js');await S.updateSettings({uiLanguage:'de'});document.documentElement.dataset.theme='dark';(await import('/src/ui-color-picker.js')).applyUiColor(S.getSettings().uiAccentColor);});
   await inspect('year, German, dark');
   for(const metrics of [['total'],['total','average'],['total','average','days'],['total','average','overtime','days'],['total','average','overtime','days','overtimeDays'],['total','average','overtime','days','overtimeDays','longest']]){
@@ -62,5 +88,5 @@ try {
     assert.ok(Math.abs(gap)<=1,`six metric cards must use the available row width (${gap}px unused)`);
   }
   assert.deepEqual(h.pageErrors,[]);
-  console.log('PASS: axis/grid alignment, controls, panel insets, metric widths and desktop fit');
+  console.log('PASS: shared six-column metric/panel grid with 3/10 tags across 3 desktop sizes and month/year, axis alignment, controls, panel insets and desktop fit');
 }finally{await h.close();}
