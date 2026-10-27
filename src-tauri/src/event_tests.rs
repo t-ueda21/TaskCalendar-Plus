@@ -76,6 +76,134 @@ fn personal_memo_is_separate_from_outlook_body_and_survives_updates() {
     c.execute("UPDATE tasks SET memo='New Outlook body' WHERE id='note'",[]).unwrap();
     assert_eq!(serde_json::to_value(tasks_get(&c,"note").unwrap().unwrap()).unwrap()["localMemo"],"New personal note");
 }
+
+#[test]
+fn backup_restore_preserves_personal_memos_and_legacy_backup_rows() {
+    let c=Connection::open_in_memory().unwrap();
+    crate::db::migrate(&c,"2026-10").unwrap();
+    for (id, body, note, key) in [
+        ("local", "Local original", Some("Bulk note"), None),
+        ("remote", "Outlook body", Some("Bulk note"), Some("external-1")),
+        ("cleared", "Previous body", Some(""), Some("external-2")),
+        ("legacy-local", "Legacy local note", None, None),
+        ("legacy-remote", "Legacy Outlook body", None, Some("external-3")),
+    ] {
+        let input=json!({"id":id,"title":id,"date":"2026-10-20","startTime":"09:00","endTime":"10:00",
+            "memo":body,"localMemo":note,"outlookOccurrenceKey":key,"outlookDetails":{"location":"Room A"}});
+        tasks_insert(&c,serde_json::from_value(input).unwrap()).unwrap();
+    }
+    tasks_insert(&c,serde_json::from_value(json!({"id":"legacy-series","title":"legacy-series","date":"2026-10-20",
+        "startTime":"09:00","endTime":"10:00","memo":"Series Outlook body","outlookSeriesId":"remote-series"})).unwrap()).unwrap();
+    let mut backup=backup_export(&c).unwrap();
+    let mut invalid_backup=backup.clone();
+    invalid_backup["tasks"][0]["localMemo"]=json!(42);
+    assert!(backup_restore(&c,&invalid_backup).is_err());
+    assert_eq!(tasks_list(&c).unwrap().len(),6,"invalid backup must not replace existing data");
+    for task in backup["tasks"].as_array_mut().unwrap() {
+        if task["id"].as_str().unwrap().starts_with("legacy-") {
+            task.as_object_mut().unwrap().remove("localMemo");
+        }
+    }
+    backup_restore(&c,&backup).unwrap();
+    let local=tasks_get(&c,"local").unwrap().unwrap();
+    let remote=tasks_get(&c,"remote").unwrap().unwrap();
+    let cleared=tasks_get(&c,"cleared").unwrap().unwrap();
+    let legacy_local=tasks_get(&c,"legacy-local").unwrap().unwrap();
+    let legacy_remote=tasks_get(&c,"legacy-remote").unwrap().unwrap();
+    let legacy_series=tasks_get(&c,"legacy-series").unwrap().unwrap();
+    assert_eq!(local.local_memo.as_deref(),Some("Bulk note"));
+    assert_eq!(local.memo,"Local original");
+    assert_eq!(remote.personal_memo(),"Bulk note");
+    assert_eq!(remote.memo,"Outlook body");
+    assert_eq!(remote.outlook_occurrence_key.as_deref(),Some("external-1"));
+    assert_eq!(remote.outlook_details["location"],"Room A");
+    assert_eq!(cleared.local_memo.as_deref(),Some(""));
+    assert_eq!(cleared.personal_memo(),"");
+    assert_eq!(legacy_local.local_memo,None);
+    assert_eq!(legacy_local.personal_memo(),"Legacy local note");
+    assert_eq!(legacy_remote.local_memo,None);
+    assert_eq!(legacy_remote.personal_memo(),"");
+    assert_eq!(legacy_remote.memo,"Legacy Outlook body");
+    assert_eq!(legacy_series.local_memo,None);
+    assert_eq!(legacy_series.personal_memo(),"");
+    crate::db::migrate(&c,"2026-10").unwrap();
+    let restarted_series=tasks_get(&c,"legacy-series").unwrap().unwrap();
+    assert_eq!(restarted_series.local_memo,None);
+    assert_eq!(restarted_series.personal_memo(),"");
+    assert_eq!(restarted_series.memo,"Series Outlook body");
+    assert_eq!(tasks_get(&c,"local").unwrap().unwrap().personal_memo(),"Bulk note");
+    assert_eq!(tasks_get(&c,"remote").unwrap().unwrap().personal_memo(),"Bulk note");
+    assert_eq!(tasks_get(&c,"cleared").unwrap().unwrap().local_memo.as_deref(),Some(""));
+}
+
+#[test]
+fn series_only_import_does_not_turn_outlook_body_into_a_personal_memo() {
+    let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    let imported=tasks_insert(&c,serde_json::from_value(json!({"id":"series-import","title":"Remote","date":"2026-10-20",
+        "startTime":"09:00","endTime":"10:00","memo":"Outlook body","outlookSeriesId":"remote-series"})).unwrap()).unwrap();
+    assert_eq!(imported.local_memo,None);
+    assert_eq!(imported.personal_memo(),"");
+    assert_eq!(imported.memo,"Outlook body");
+    let owned=tasks_insert(&c,serde_json::from_value(json!({"id":"series-owned","title":"Owned","date":"2026-10-20",
+        "startTime":"09:00","endTime":"10:00","memo":"Owned note","outlookOccurrenceKey":"tcplus:owned","outlookSeriesId":"owned-series"})).unwrap()).unwrap();
+    assert_eq!(owned.personal_memo(),"Owned note");
+}
+
+#[test]
+fn series_only_legacy_migration_keeps_outlook_body_separate() {
+    let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    c.execute("INSERT INTO tasks(id,date,memo,local_memo,outlook_occurrence_key,outlook_series_id,created_at,updated_at) VALUES('legacy-series','2026-10-20','Outlook body',NULL,NULL,'remote-series','x','x')",[]).unwrap();
+    c.execute("INSERT INTO tasks(id,date,memo,local_memo,outlook_occurrence_key,outlook_series_id,created_at,updated_at) VALUES('existing-note','2026-10-20','Outlook body','Personal note',NULL,'remote-series','x','x')",[]).unwrap();
+    crate::db::migrate(&c,"2026-10").unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    let row=tasks_get(&c,"legacy-series").unwrap().unwrap();
+    assert_eq!(row.local_memo,None);
+    assert_eq!(row.personal_memo(),"");
+    assert_eq!(row.memo,"Outlook body");
+    assert_eq!(tasks_get(&c,"existing-note").unwrap().unwrap().personal_memo(),"Personal note");
+}
+
+#[test]
+fn legacy_migration_distinguishes_owned_prefix_case() {
+    let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    c.execute("INSERT INTO tasks(id,date,memo,local_memo,outlook_occurrence_key,created_at,updated_at) VALUES('foreign','2026-10-20','Outlook body',NULL,'TCPLUS:foreign','x','x'),('owned','2026-10-20','Owned note',NULL,'tcplus:owned','x','x')",[]).unwrap();
+    crate::db::migrate(&c,"2026-10").unwrap();
+    let foreign=tasks_get(&c,"foreign").unwrap().unwrap();
+    let owned=tasks_get(&c,"owned").unwrap().unwrap();
+    assert_eq!(foreign.local_memo,None);
+    assert_eq!(foreign.personal_memo(),"");
+    assert_eq!(foreign.memo,"Outlook body");
+    assert_eq!(owned.personal_memo(),"Owned note");
+}
+
+#[test]
+fn bulk_personal_memo_preserves_remote_body_and_does_not_queue_outlook() {
+    let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    let task=tasks_insert(&c,serde_json::from_value(json!({"id":"bulk-note","title":"Meeting","date":"2026-10-20",
+        "startTime":"09:00","endTime":"10:00","memo":"Remote body","localMemo":"Before","outlookEnabled":true})).unwrap()).unwrap();
+    c.execute("UPDATE outlook_jobs SET status='done' WHERE task_id=?1",[&task.id]).unwrap();
+    let before:(String,i64,String)=c.query_row("SELECT status,revision,payload FROM outlook_jobs WHERE task_id=?1",[&task.id],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?))).unwrap();
+    let mut changed=serde_json::to_value(&task).unwrap();changed["localMemo"]=json!("Bulk note");
+    let batch=json!({"expected":[{"id":task.id,"updatedAt":task.updated_at}],"upserts":[changed],"deleteIds":[]});
+    assert!(tasks_batch(&c,serde_json::from_value(batch).unwrap()).is_ok());
+    let saved=tasks_get(&c,&task.id).unwrap().unwrap();
+    assert_eq!(saved.memo,"Remote body");assert_eq!(saved.personal_memo(),"Bulk note");
+    let after:(String,i64,String)=c.query_row("SELECT status,revision,payload FROM outlook_jobs WHERE task_id=?1",[&task.id],|row|Ok((row.get(0)?,row.get(1)?,row.get(2)?))).unwrap();
+    assert_eq!(after,before,"a local note edit must not change or enqueue an Outlook job");
+}
+
+#[test]
+fn backup_restore_preserves_personal_memo_without_reenabling_outlook() {
+    let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();
+    tasks_insert(&c,serde_json::from_value(json!({"id":"linked-backup","title":"Meeting","date":"2026-10-20",
+        "startTime":"09:00","endTime":"10:00","memo":"Remote body","localMemo":"Personal note","outlookEnabled":true})).unwrap()).unwrap();
+    let backup=backup_export(&c).unwrap();backup_restore(&c,&backup).unwrap();
+    let restored=tasks_get(&c,"linked-backup").unwrap().unwrap();
+    assert_eq!(restored.personal_memo(),"Personal note");
+    assert_eq!(restored.memo,"Remote body");
+    assert!(!restored.outlook_enabled,"restoring a backup must not enable Outlook writes");
+    let jobs:i64=c.query_row("SELECT COUNT(*) FROM outlook_jobs",[],|row|row.get(0)).unwrap();
+    assert_eq!(jobs,0,"restoring a backup must not enqueue an Outlook job");
+}
 #[test]
 fn personal_note_changes_never_queue_outbound_and_survive_batch_undo() {
     let c=Connection::open_in_memory().unwrap();crate::db::migrate(&c,"2026-10").unwrap();

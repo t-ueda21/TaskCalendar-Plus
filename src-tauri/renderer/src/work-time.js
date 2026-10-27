@@ -1,5 +1,8 @@
 import { clockMinutes } from "./event-fields.js";
-const minutes = value => Number.isFinite(clockMinutes(value)) ? clockMinutes(value) : null;
+const minutes = value => {
+  const parsed = clockMinutes(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
 export function mergeIntervals(intervals) {
   const sorted = intervals.filter(([s, e]) => Number.isFinite(s) && Number.isFinite(e) && e > s).map(pair => [...pair]).sort((a, b) => a[0] - b[0]);
   const result = [];
@@ -18,12 +21,15 @@ export function workIntervals(tasks, settings) {
   }
   return segments;
 }
-export function summarizeWork(tasks, settings) {
-  const segments = workIntervals(tasks, settings);
+export function summarizeIntervals(segments, settings) {
   const start = minutes(settings.workStart) ?? 540;
   const end = minutes(settings.workEnd) ?? 1080;
   return segments.reduce((result, [s, e]) => ({
     total: result.total + e - s,
     overtime: result.overtime + Math.max(0, Math.min(e, start) - s) + Math.max(0, e - Math.max(s, end)),
   }), { total: 0, overtime: 0 });
+}
+
+export function summarizeWork(tasks, settings) {
+  return summarizeIntervals(workIntervals(tasks, settings), settings);
 }

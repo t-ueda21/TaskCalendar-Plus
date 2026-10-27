@@ -177,7 +177,11 @@ pub fn tasks_insert(conn: &Connection, input: TaskInsertInput) -> rusqlite::Resu
     let transaction = if conn.is_autocommit() { Some(conn.unchecked_transaction()?) } else { None };
     let id = input.id.clone();
     let local_memo = input.local_memo.clone().or_else(|| {
-        input.outlook_occurrence_key.as_deref().is_none_or(|key| key.starts_with("tcplus:")).then(|| input.memo.clone().unwrap_or_default())
+        let is_local = match input.outlook_occurrence_key.as_deref() {
+            Some(key) => key.starts_with("tcplus:"),
+            None => input.outlook_series_id.as_deref().is_none_or(str::is_empty),
+        };
+        is_local.then(|| input.memo.clone().unwrap_or_default())
     });
     validate_event_input(&input.date,input.end_date.as_deref(),input.is_all_day,input.start_time.as_deref(),input.end_time.as_deref(),input.outlook_details.as_ref())?;
     let now = next_revision(None);
@@ -828,6 +832,8 @@ struct BackupTask {
     #[serde(default)]
     memo: String,
     #[serde(default)]
+    local_memo: Option<String>,
+    #[serde(default)]
     outlook_occurrence_key: Option<String>,
     #[serde(default)]
     outlook_series_id: Option<String>,
@@ -918,8 +924,8 @@ pub fn backup_restore(conn: &Connection, data: &Value) -> Result<RestoreCounts, 
     )?;
     for task in &tasks {
         tx.execute(
-            "INSERT INTO tasks (id, title, date, is_all_day, start_time, end_time, tag_id, recurrence, memo, outlook_occurrence_key, outlook_series_id, meeting_url, created_at, updated_at,end_date,outlook_details)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,?15,?16)",
+            "INSERT INTO tasks (id, title, date, is_all_day, start_time, end_time, tag_id, recurrence, memo, outlook_occurrence_key, outlook_series_id, meeting_url, created_at, updated_at,end_date,outlook_details,local_memo)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14,?15,?16,?17)",
             params![
                 task.id,
                 task.title,
@@ -937,6 +943,7 @@ pub fn backup_restore(conn: &Connection, data: &Value) -> Result<RestoreCounts, 
                 task.updated_at,
                 task.end_date,
                 crate::event_data::merge_details(&task.outlook_details,None).to_string(),
+                task.local_memo,
             ],
         )?;
     }

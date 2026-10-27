@@ -24,7 +24,7 @@ pub fn migrate(conn: &Connection, current_month: &str) -> Result<()> {
         let exists:bool=conn.query_row("SELECT count(*)>0 FROM pragma_table_info('tasks') WHERE name=?1",[name],|r|r.get(0))?;
         if !exists{conn.execute(&format!("ALTER TABLE tasks ADD COLUMN {name} {kind}"),[])?;}
     }
-    conn.execute("UPDATE tasks SET local_memo=memo WHERE local_memo IS NULL AND (outlook_occurrence_key IS NULL OR outlook_occurrence_key LIKE 'tcplus:%')", [])?;
+    conn.execute("UPDATE tasks SET local_memo=memo WHERE local_memo IS NULL AND (substr(outlook_occurrence_key,1,7)='tcplus:' OR (outlook_occurrence_key IS NULL AND COALESCE(outlook_series_id,'')=''))", [])?;
     crate::outlook_jobs::migrate(conn)?;
     create_task_revision(conn)?;
     add_tags_budget_range_columns(conn)?;

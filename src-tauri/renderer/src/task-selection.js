@@ -1,3 +1,5 @@
+import {memoPatch} from './task-notes.js';
+
 /** Selection order comes from the current visible/sorted view. */
 export class TaskSelection {
   ids = new Set();
@@ -36,7 +38,8 @@ export function prepareBulkTasks(tasks, patch) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(patch.date) || !Number.isFinite(parsed.valueOf()) || parsed.toISOString().slice(0,10)!==patch.date) throw new Error('Invalid date');
   }
   return tasks.map(task=>{
-    const next = {...task,...patch,recurrence:{...(task.recurrence??{type:'none'})}};
+    const next = {...task,...patch,...(Object.hasOwn(patch,'memo') ? memoPatch(task,patch.memo) : {}),
+      recurrence:{...(task.recurrence??{type:'none'})}};
     if ('date' in patch && patch.date!==task.date && next.recurrence.type!=='none') {
       next.recurrence.occurrenceDate = task.recurrence?.occurrenceDate ?? task.date;
       next.recurrence.exception = true;
