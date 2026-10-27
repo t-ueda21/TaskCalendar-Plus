@@ -93,3 +93,28 @@ assert.throws(()=>build([],{settings:{...settings,workStart:'18:00',workEnd:'09:
 const many=Array.from({length:1000},(_,i)=>task('large-'+i,'09:00','10:00',{tagId:i%2?'a':'b'}));
 assert.deepEqual(core(build(many,{period:'year'})),{total:60,overtime:0,count:1000});
 console.log('PASS: fractional minutes, larger overlaps and immutable input');
+
+const orderTags = [...tags, {id:'c',name:'未設定',color:'#22aa33'}];
+const orderSettings = {...settings, monthTagOrders:{
+  '2026-09':['a','b'], '2026-10':['b','missing','a'], '2025-10':['a','b'],
+}};
+const orderedMonth = build(overlapping, {tags:orderTags,settings:orderSettings});
+assert.deepEqual(orderedMonth.tags.map(tag=>tag.id), ['b','a','c'],
+  'month uses settings order, preserving tags absent from it');
+assert.deepEqual(core(orderedMonth), core(build(overlapping,{tags:orderTags})),
+  'changing display order does not change aggregation');
+assert.equal(orderedMonth.tags.find(tag=>tag.id==='a').total, 120);
+assert.equal(orderedMonth.tags.find(tag=>tag.id==='b').total, 120);
+const filteredMonth = build(overlapping,{tags:orderTags,settings:orderSettings,selectedTagIds:['a']});
+assert.deepEqual(core(filteredMonth),{total:120,overtime:0,count:2});
+assert.deepEqual(filteredMonth.selectedTagIds,['a']);
+assert.deepEqual(build([],{month:9,tags:orderTags,settings:orderSettings}).tags.map(tag=>tag.id), ['a','b','c'],
+  'changing month uses that month\'s settings');
+assert.deepEqual(build([],{period:'year',year:2026,month:10,tags:orderTags,settings:orderSettings}).tags.map(tag=>tag.id), ['b','a','c'],
+  'year uses the displayed year and the month that seeds its settings dialog');
+assert.deepEqual(build([],{period:'year',year:2025,month:10,tags:orderTags,settings:orderSettings}).tags.map(tag=>tag.id), ['a','b','c']);
+assert.deepEqual(build([],{month:11,tags:orderTags,settings:orderSettings}).tags.map(tag=>tag.id), ['a','b','c'],
+  'a month without an order preserves all tags in their original order');
+assert.deepEqual(build([],{tags:orderTags,settings:{...settings,monthTagOrders:{'2026-10':[]}}}).tags.map(tag=>tag.id), ['a','b','c'],
+  'an explicitly empty order preserves all tags');
+console.log('PASS: month-specific tag ordering preserves all tags, selection and totals');

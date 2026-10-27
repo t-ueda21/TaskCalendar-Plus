@@ -531,23 +531,29 @@ function _renderEmptyState(dateKey, visibleTasks) {
     return;
   }
 
-  const otherDates = Array.from(new Set(
-    allTasks
-      .map((task) => String(task.date ?? ""))
-      .filter((taskDate) => taskDate && taskDate !== dateKey)
-  )).sort();
+  const otherDates = new Set();
+  for (const task of allTasks) {
+    const taskDate = String(task.date ?? "");
+    if (taskDate && taskDate !== dateKey) otherDates.add(taskDate);
+  }
 
-  if (otherDates.length === 0) {
+  if (otherDates.size === 0) {
     $emptyState.hidden = false;
     $emptyState.textContent = translate('ui.0fc51bc7a1', { p0: (formatDateJP(_selectedDate)) });
     return;
   }
 
-  const nearestDates = otherDates
-    .slice()
-    .sort((left, right) => Math.abs(parseLocalDate(left) - _selectedDate) - Math.abs(parseLocalDate(right) - _selectedDate))
-    .slice(0, 3)
-    .map((taskDate) => formatDateJP(parseLocalDate(taskDate)));
+  const nearest = [];
+  for (const taskDate of otherDates) {
+    const date = parseLocalDate(taskDate);
+    const distance = Math.abs(date - _selectedDate);
+    const index = nearest.findIndex(entry => distance < entry.distance
+      || (distance === entry.distance && taskDate < entry.key));
+    if (index >= 0) nearest.splice(index, 0, { key:taskDate, date, distance });
+    else if (nearest.length < 3) nearest.push({ key:taskDate, date, distance });
+    if (nearest.length > 3) nearest.pop();
+  }
+  const nearestDates = nearest.map(entry => formatDateJP(entry.date));
 
   $emptyState.hidden = false;
   $emptyState.textContent = translate('ui.076b47e53b', { p0: (formatDateJP(_selectedDate)), p1: (nearestDates.join(" / ")) });

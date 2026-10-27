@@ -1,5 +1,5 @@
 import { clockMinutes, eventDaySegment } from './event-fields.js';
-import { summarizeWork, workIntervals } from './work-time.js';
+import { summarizeIntervals, summarizeWork, workIntervals } from './work-time.js';
 import { getHolidayName } from './holidays.js';
 import { getCompanyHolidayNameForDate } from './company-holidays.js';
 
@@ -90,9 +90,10 @@ export function buildSummary({ period, year, month, today = todayInJst(), includ
       if (!tasks.has(id)) tasks.set(id, []);
       tasks.get(id).push(segment);
     }
-    const byTag = new Map([...tasks].map(([id, rows]) => [id, {
-      ...summarizeWork(rows, settings), intervals:workIntervals(rows, settings), ids:new Set(rows.map(row => row.id)),
-    }]));
+    const byTag = new Map([...tasks].map(([id, rows]) => {
+      const intervals = workIntervals(rows, settings);
+      return [id, { ...summarizeIntervals(intervals, settings), intervals, ids:new Set(rows.map(row => row.id)) }];
+    }));
     const selectedRows = [...tasks].filter(([id]) => selected.has(id)).flatMap(([, rows]) => rows);
     const intervals = new Map([...byTag].filter(([id]) => selected.has(id)).map(([id, row]) => [id, row.intervals]));
     const ids = new Set(selectedRows.map(row => row.id));
@@ -124,6 +125,15 @@ export function buildSummary({ period, year, month, today = todayInJst(), includ
     }
     return { ...tag, total, overtime, count:ids.size };
   });
+
+  // Year view uses the same month that initially opens in its settings dialog.
+  const orderMonth = `${String(year).padStart(4, '0')}-${pad(month)}`;
+  const tagOrder = settings.monthTagOrders?.[orderMonth];
+  if (Array.isArray(tagOrder) && tagOrder.length) {
+    const ranks = new Map();
+    tagOrder.forEach((id, index) => { if (!ranks.has(id)) ranks.set(id, index); });
+    tagTotals.sort((a, b) => (ranks.get(a.id) ?? tagOrder.length) - (ranks.get(b.id) ?? tagOrder.length));
+  }
 
   let comparison = null;
   if (start <= cutoff) {
