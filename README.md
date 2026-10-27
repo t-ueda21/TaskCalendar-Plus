@@ -12,9 +12,9 @@ TaskCalendar+ は、予定と作業記録をカレンダーで管理する Windo
 
 [Windows版をダウンロード](https://github.com/t-ueda21/TaskCalendar-Plus/releases/latest) ・ [変更履歴](CHANGELOG.md) ・ [サンプルデータ](docs/examples/sample-backup.json)
 
-<a href="docs/images/v3.0.0-review/calendar-week.png"><img src="docs/images/v3.0.0-review/calendar-week.png" alt="v3.0.0の週表示。月次の合計時間と残業時間、日次のタグ別集計、現在時刻の赤い線を表示" width="800" height="556"></a>
+<a href="docs/images/v4.0.2-readme/calendar-week.png"><img src="docs/images/v4.0.2-readme/calendar-week.png" alt="v4.0.2の週表示。月次の合計時間と残業時間、日次のタグ別集計、現在時刻の赤い線を表示" width="800"></a>
 
-> v3.0.0の画像は、アプリの画面コードを隔離したChromiumで表示したものです。予定・タグは架空のデータで、日時は2026年10月8日10時15分、天気も固定しています。API・ネイティブ連携の応答は検証用です。Windows版の再起動試験や、実Outlook・実AIへの接続を示す画像ではありません。工数上限・下限の2枚は、明記したv0.2.0の例を残しています。
+> 画像はv4.0.2の画面コードを隔離したChromiumで表示したものです。予定・タグ・天気は架空で、日時は2026年10月8日10時15分に固定しています。APIとネイティブ連携の応答も撮影用です。インストール版の動作や、実Outlook・実AIへの接続を示す画像ではありません。
 
 ## まずは3ステップ
 
@@ -51,15 +51,15 @@ AIモードの次にある「サマリー」で、月間・年間の登録時間
 
 登録済みの予定を集計する機能です。タグ付きの時間がある予定を対象に、休憩を除き、同じ時刻の重複を合算せずに計算します。「時間外」は設定した勤務時間帯の外です。右下の要約は登録データから計算した内容で、AIへ送信しません。
 
-<a href="docs/images/summary-readable/month-10-tags.png"><img src="docs/images/summary-readable/month-10-tags.png" alt="開発中のサマリー画面。6項目、日別グラフと時間・分の数字、10個のタグ、集計要約を同時表示" width="800" height="500"></a>
+<a href="docs/images/v4.0.2-readme/summary-month.png"><img src="docs/images/v4.0.2-readme/summary-month.png" alt="サマリー画面。6項目、日別グラフと時間・分の数字、10個のタグ、集計要約を同時表示" width="800"></a>
 
-> 画像は実際の画面コードを隔離したChromiumで表示し、架空の予定・API・ネイティブ応答を使って撮影しています。1280×800と1366×768ではページスクロールなしを確認しています。小さい画面や拡大表示では、操作を隠さずスクロールできます。インストール版・実Outlookとの接続試験を示す画像ではありません。[年間・複数タグ・ダークテーマの画面と検証範囲](docs/reviews/summary-screen.md)も掲載しています。
+> 1280×800と1366×768ではページスクロールなしを確認しています。小さい画面や拡大表示では、操作を隠さずスクロールできます。[年間表示](docs/images/v4.0.2-readme/summary-year.png)・[複数タグ選択](docs/images/v4.0.2-readme/summary-selected-tags.png)・[ダークテーマ](docs/images/v4.0.2-readme/summary-dark.png)の画面も確認できます。
 
 ## 予定を作る・動かす
 
 カレンダーの「表示」で **日／週** を切り替えます。一日の時間配分を見るなら日表示、一週間の予定を見渡すなら週表示が便利です。
 
-<a href="docs/images/v3.0.0-review/calendar-day.png"><img src="docs/images/v3.0.0-review/calendar-day.png" alt="2026年10月8日の予定と月次合計4時間30分・残業1時間を表示した日表示" width="800" height="556"></a>
+<a href="docs/images/v4.0.2-readme/calendar-day.png"><img src="docs/images/v4.0.2-readme/calendar-day.png" alt="2026年10月8日の予定と月次合計10時間30分・残業1時間を表示した日表示" width="800"></a>
 
 | やりたいこと | 操作 |
 |---|---|
@@ -75,9 +75,9 @@ AIモードの次にある「サマリー」で、月間・年間の登録時間
 
 予定には、日付・タイトル・開始／終了時刻・タグ・メモを登録できます。終日予定や、毎日・毎週・毎月の繰り返しにも対応しています。
 
-<a href="docs/images/v3.0.0-review/task-edit.png"><img src="docs/images/v3.0.0-review/task-edit.png" alt="タスク編集画面。日付・時刻・タグ・繰り返し・メモを設定" width="800" height="556"></a>
+<a href="docs/images/v4.0.2-readme/task-edit.png"><img src="docs/images/v4.0.2-readme/task-edit.png" alt="タスク編集画面。日付・時刻・タグ・繰り返し・メモを設定" width="800"></a>
 
-CalendarからOutlookへの送信は「設定」→「Outlook」の全体スイッチと、タスクの「Outlookにも登録」が両方ONの場合だけ実行します。全体スイッチの初期状態はOFFです。タスクの既定ON／OFFは別に設定できます。右クリックのタグ選択は、文字と色見本を分けて表示します。[年選択](docs/images/v3.0.0-review/mini-year.png)・[月選択](docs/images/v3.0.0-review/mini-month.png)・[タグ選択](docs/images/v3.0.0-review/tag-menu.png)の画面も確認できます。
+CalendarからOutlookへの送信は「設定」→「Outlook」の全体スイッチと、タスクの「このタスクをOutlookに送信」が両方ONの場合だけ実行します。全体スイッチの初期状態はOFFです。タスクの既定ON／OFFは別に設定できます。右クリックのタグ選択は、文字と色見本を分けて表示します。[年選択](docs/images/v4.0.2-readme/mini-year.png)・[月選択](docs/images/v4.0.2-readme/mini-month.png)・[タグ選択](docs/images/v4.0.2-readme/tag-menu.png)の画面も確認できます。
 
 ミニカレンダー上でホイールを回すと、日付表示では月、月選択では年、年選択では年のページを移動できます。折りたたみの矢印と年月の選択は別のボタンです。
 
@@ -94,7 +94,7 @@ CalendarからOutlookへの送信は「設定」→「Outlook」の全体スイ�
 
 選んでいない予定や、指定していない項目は維持します。選択していない予定を右クリックした場合は、その1件だけを対象にします。繰り返し予定の変更・一括削除も選択した回だけが対象です。他の操作で内容が変わっていた場合は競合を表示し、一部だけの変更・削除を避けます。
 
-<a href="docs/images/v3.0.0-review/task-bulk-edit.png"><img src="docs/images/v3.0.0-review/task-bulk-edit.png" alt="選択した2件のタグ・日付・メモを一括変更する画面" width="800" height="556"></a>
+<a href="docs/images/v4.0.2-readme/task-bulk-edit.png"><img src="docs/images/v4.0.2-readme/task-bulk-edit.png" alt="選択した2件のタグ・日付・メモを一括変更する画面" width="800"></a>
 
 ## 工数バーの見方
 
@@ -104,9 +104,9 @@ CalendarからOutlookへの送信は「設定」→「Outlook」の全体スイ�
 
 タグには「下限と上限」「上限のみ」「設定なし」を指定できます。下の画像では、範囲内・下限未達・上限のみ・超過・設定なしを、一つの集計欄で見比べられます。
 
-> この工数バーと次のタグ管理画像・数値表は、v0.2.0の架空データによる例です。
+> この工数バーと次のタグ管理画像は、[サンプルデータ](docs/examples/sample-backup.json)を使った現行画面の例です。
 
-<a href="docs/images/monthly-budgets.png"><img src="docs/images/previews/monthly-budgets.webp" alt="上下限の範囲内、下限未達、上限のみ、上限超過、設定なしを同時に表示した月次集計" width="420" height="473"></a>
+<a href="docs/images/v4.0.2-readme/monthly-budgets.png"><img src="docs/images/v4.0.2-readme/monthly-budgets.png" alt="上下限の範囲内、下限未達、上限のみ、上限超過、設定なしを同時に表示した月次集計" width="420"></a>
 
 | 状態 | タグ | 設定 | 登録時間 | 見方 |
 |---|---|---|---|---|
@@ -122,7 +122,7 @@ CalendarからOutlookへの送信は「設定」→「Outlook」の全体スイ�
 
 「設定」→「タグ管理」で、対象の月とタグを確認します。**先に上限を入力すると、下限も入力できるようになります。** 数値の単位は時間で、下限は上限より小さく設定します。上限を空欄にすると上下限なしになります。
 
-<a href="docs/images/tag-budgets.png"><img src="docs/images/previews/tag-budgets.webp" alt="5タグの工数設定。上下限あり2件、上限のみ2件、設定なし1件" width="560" height="636"></a>
+<a href="docs/images/v4.0.2-readme/tag-budgets.png"><img src="docs/images/v4.0.2-readme/tag-budgets.png" alt="5タグの工数設定。上下限あり2件、上限のみ2件、設定なし1件" width="560"></a>
 
 タグの色や表示順も変更できます。次の月も同じタグを使う場合は「前月をコピー」が便利です。
 
@@ -130,7 +130,7 @@ CalendarからOutlookへの送信は「設定」→「Outlook」の全体スイ�
 
 「タスク一覧」では、開始・終了時刻、タイトル、タグ、工数を確認できます。見出しをクリックすると並べ替え、上部の「タグ」で絞り込みができます。
 
-<a href="docs/images/v3.0.0-review/tasks.png"><img src="docs/images/v3.0.0-review/tasks.png" alt="6件の予定、タグ付きの合計4時間30分、タグなしの中立色バッジを表示したタスク一覧" width="800" height="556"></a>
+<a href="docs/images/v4.0.2-readme/tasks.png"><img src="docs/images/v4.0.2-readme/tasks.png" alt="6件の予定、タグ付きの合計4時間30分、タグなしの中立色バッジを表示したタスク一覧" width="800"></a>
 
 この日の例は、**6件の予定のうちタグ付き4件で合計4時間30分、勤務時間9:00〜18:00の外に1時間**です。タグなし2件は一覧に表示しますが、合計・残業には含めません。画面下部の日次集計にある線画のコピー用ボタンから、作業内容や時間を日報へ転記できます。
 
@@ -142,9 +142,9 @@ CalendarからOutlookへの送信は「設定」→「Outlook」の全体スイ�
 
 ダークモードとタグ・工数の変更は、その場で保存されます。その他の設定は「保存」で確定します。設定ページは上下／左右キー・Home・Endでも切り替えられ、タグの並べ替えボタンは上下キーでも操作できます。狭い画面ではサイドバーを初期状態で折りたたみ、「サイド」から開けます。
 
-<a href="docs/images/v3.0.0-settings/settings-work-dark.png"><img src="docs/images/v3.0.0-settings/settings-work-dark.png" alt="勤務時間と休日の設定画面（ダークモード）" width="800" height="556"></a>
+<a href="docs/images/v4.0.2-readme/settings-work-dark.png"><img src="docs/images/v4.0.2-readme/settings-work-dark.png" alt="勤務時間と休日の設定画面（ダークモード）" width="800"></a>
 
-「設定」→「表示」→「表示言語」で、PCに合わせるか、**日本語・English・한국어・简体中文・繁體中文・Español・Français・Deutsch・Português**を指定できます。AIの回答にも同じ言語を使います。言語を変更しても、日本の祝日・地域設定や入力したタスク名・メモ・タグ名は変わりません。未対応のPC言語は日本語になります。[言語設定](docs/images/v3.0.0-settings/settings-display.png)・[英語](docs/images/v3.0.0-review/calendar-en.png)・[韓国語](docs/images/v3.0.0-review/calendar-ko.png)の画面も確認できます。
+「設定」→「表示」→「表示言語」で、PCに合わせるか、**日本語・English・한국어・简体中文・繁體中文・Español・Français・Deutsch・Português**を指定できます。AIの回答にも同じ言語を使います。言語を変更しても、日本の祝日・地域設定や入力したタスク名・メモ・タグ名は変わりません。未対応のPC言語は日本語になります。[言語設定](docs/images/v4.0.2-readme/settings-display.png)・[英語](docs/images/v4.0.2-readme/calendar-en.png)・[韓国語](docs/images/v4.0.2-readme/calendar-ko.png)の画面も確認できます。
 
 設定は目的別の**11ページ**に分かれています。
 
@@ -176,7 +176,7 @@ CalendarからOutlookへの送信は「設定」→「Outlook」の全体スイ�
 2. 予定表名、タグ、取得方法を指定します。「現在時刻以降」は今から先に開始する予定を対象にします。「期間指定」は開始日と終了日を選択し、両端の日付を含めて最大366日取得できます。「今週」「今月」「表示中の週」も選べます。
 3. 「今すぐ取得」を押します。定期的に取り込む場合は「自動同期」をONにして、間隔を選びます。
 
-<a href="docs/images/v3.0.0-settings/settings-outlook.png"><img src="docs/images/v3.0.0-settings/settings-outlook.png" alt="Outlookの期間指定、日付プリセット、タスク登録の既定設定" width="800" height="556"></a>
+<a href="docs/images/v4.0.2-readme/settings-outlook.png"><img src="docs/images/v4.0.2-readme/settings-outlook.png" alt="Outlookの期間指定、日付プリセット、タスク登録の既定設定" width="800"></a>
 
 Outlookで変更・削除・キャンセルされた連携予定は、次の「今すぐ取得」または自動同期で反映します。識別情報を保存した連携予定は、新規取り込みの期間より前でも状態を確認します。Outlookに連携していない手動予定は削除しません。取得エラーや確認できない状態を、削除済みとして扱いません。
 
@@ -186,9 +186,9 @@ Outlookで変更・削除・キャンセルされた連携予定は、次の「�
 
 「設定」→「Outlook」でClassic Outlookの予定表候補を取得し、「取得元の予定表」と「登録先の予定表」をそれぞれ選べます。同名の予定表はアカウントやフォルダの階層で区別できます。「再取得」で候補を更新し、候補にない場合は「手入力」も選べます。選択した予定表が利用できなくなった場合はエラーを表示します。登録先の設定変更は新しく登録するタスクに適用され、すでに連携しているタスクは元の登録先を保持します。
 
-タスクの作成・編集画面で「Outlookにも登録」をON／OFFにできます。「設定」→「Outlook」→「新しいタスクをOutlookへ登録する（既定）」で初期値を選べます。既定値の変更は保存済みタスクには適用されません。登録済みタスクをOFFで保存しても、CalendarとOutlookの両方に予定を残します。OFFは送信の停止であり、削除操作ではありません。未送信の変更は保持し、再度ONにすると最新の内容を送信します。全体OFF中やタスクOFF中は再試行でも送信しません。
+タスクの作成・編集画面で「このタスクをOutlookに送信」をON／OFFにできます。「設定」→「Outlook」→「新しいタスクをOutlookへ登録する（既定）」で初期値を選べます。既定値の変更は保存済みタスクには適用されません。登録済みタスクをOFFで保存しても、CalendarとOutlookの両方に予定を残します。OFFは送信の停止であり、削除操作ではありません。未送信の変更は保持し、再度ONにすると最新の内容を送信します。全体OFF中やタスクOFF中は再試行でも送信しません。
 
-単日・複数日予定のタイトル、開始・終了日、時刻、終日、メモ、場所、通知、予定の公開方法、秘密度、重要度、分類、タイムゾーンを扱います。主催者・参加者・出欠・添付情報は表示用です。招待・会議通知の送信や出欠回答はOutlookで行います。日時はPCのタイムゾーンで表示・入力し、タイムゾーンIDはOutlookの設定として保持します。タグはアプリ側に保持します。
+単日・複数日予定のタイトル、開始・終了日、時刻、終日、場所、通知、予定の公開方法、秘密度、重要度、分類、タイムゾーンを扱います。編集画面のメモはアプリ内の個人メモとして保存し、その変更だけではOutlookへ送信しません。主催者・参加者・出欠・添付情報は表示用です。招待・会議通知の送信や出欠回答はOutlookで行います。日時はPCのタイムゾーンで表示・入力し、タイムゾーンIDはOutlookの設定として保持します。タグはアプリ側に保持します。
 
 送信OFFでもOutlookからの取り込みは独立して使えます。OFF中にCalendarで編集した内容は古い取得結果で上書きしません。同時変更は競合として保留し、確認後の「再試行」でCalendar側を優先します。
 
@@ -200,7 +200,11 @@ Classic OutlookのCOMには制約があります。秒を含む時刻はCalendar
 
 「設定」→「AI」→「AIの話し方」で、**温かさ・絵文字の量・回答の長さ・口調・カスタム指示**を調整できます。AIチャットと日次サマリーの両方に適用し、「回答例を確認」で話し方を試せます。表示言語と同じ言語で回答します。
 
-<a href="docs/images/v3.0.0-settings/settings-ai.png"><img src="docs/images/v3.0.0-settings/settings-ai.png" alt="AIの話し方。温かさ、絵文字、回答の長さ、口調、カスタム指示を調整" width="800" height="556"></a>
+<a href="docs/images/v4.0.2-readme/ai-mode.png"><img src="docs/images/v4.0.2-readme/ai-mode.png" alt="AIモードで撮影用の架空の会話を表示した画面" width="800"></a>
+
+> モデル名と会話は撮影用の例で、実際のAI生成結果ではありません。
+
+<a href="docs/images/v4.0.2-readme/settings-ai.png"><img src="docs/images/v4.0.2-readme/settings-ai.png" alt="AIの話し方。温かさ、絵文字、回答の長さ、口調、カスタム指示を調整" width="800"></a>
 
 Claude CodeまたはCodexを使う場合は、別途導入してログインし、「設定」→「AI」で連携を有効にします。接続先を選び、モデルは「既定を使用」または表示された候補から選択します。
 
@@ -239,7 +243,7 @@ Ollama／LM Studioを使う場合は、サーバーを起動してモデルを�
 
 書き出しと読み込みは別の欄に分かれています。読み込みは **1. ファイルを選択 → 2. 表示された内容を確認 → 3. インポートまたは復元を実行** の順です。形式を確認できないファイルは実行できません。復元前には現在のデータの置き換えを確認します。バックアップ復元はOutlookへの書き込みリンクを引き継がず、元の予定表を変更しません。
 
-<a href="docs/images/v3.0.0-settings/settings-data.png"><img src="docs/images/v3.0.0-settings/settings-data.png" alt="設定の読み込み手順。ファイル名、内容確認、インポートの3ステップ" width="800" height="556"></a>
+<a href="docs/images/v4.0.2-readme/settings-data.png"><img src="docs/images/v4.0.2-readme/settings-data.png" alt="設定の読み込み手順。ファイル名、内容確認、インポートの3ステップ" width="800"></a>
 
 ### 工数バーの説明用サンプルを試す
 
