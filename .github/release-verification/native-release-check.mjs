@@ -28,6 +28,18 @@ try {
     const task=rows.find(row=>row.id===seed.task.id);
     assert.ok(task,'previous-version task persists after installer upgrade');
     for(const key of ['title','date','startTime','endTime','tagId'])assert.equal(task[key],seed.task[key]);
+    const lifecycle=await app.evaluate(`(async()=>{
+      const S=await import('/src/store.js');
+      const original=S.getAllTasks().find(task=>task.title==='Upgrade compatibility fixture');
+      const temporary=await S.createTask({title:'Disposable release check',date:original.date,startTime:'10:00',endTime:'11:00',tagId:original.tagId,recurrence:{type:'none'}});
+      const created=(await(await fetch('/api/tasks')).json()).find(row=>row.id===temporary.id);
+      await S.updateTask(temporary.id,{title:'Updated disposable release check'});
+      const updated=(await(await fetch('/api/tasks')).json()).find(row=>row.id===temporary.id);
+      await S.deleteTask(temporary.id);
+      const deleted=!(await(await fetch('/api/tasks')).json()).some(row=>row.id===temporary.id);
+      return {created:created?.title,updated:updated?.title,deleted};
+    })()`);
+    assert.deepEqual(lifecycle,{created:'Disposable release check',updated:'Updated disposable release check',deleted:true});
     const api=await app.evaluate("(async()=>({authorized:(await fetch('/api/tasks')).status,unauthorized:await new Promise(resolve=>{const x=new XMLHttpRequest();x.open('GET','/api/tasks');x.onload=()=>resolve(x.status);x.send();})}))()");
     assert.deepEqual(api,{authorized:200,unauthorized:401});
     await app.evaluate("document.querySelector('nav [data-nav-target=summary]').click()");
@@ -47,7 +59,7 @@ try {
     })()`);
     assert.deepEqual(layout.rows,[[1,10,10],[11,20,10],[21,31,11]]);
     for(let i=1;i<layout.controls.length;i++)assert.ok(layout.controls[i-1].right<=layout.controls[i].left);
-    await app.evaluate("document.querySelector('[data-summary-day=\"2026-10-10\"]').click()");
+    await app.evaluate("(()=>{const button=document.querySelector('[data-summary-day=\"2026-10-10\"]');button.click();button.focus();})()");
     for(const [key,day]of[['ArrowDown','20'],['ArrowDown','30'],['ArrowRight','31'],['ArrowUp','20']]){
       await app.evaluate(`document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'${key}',bubbles:true,cancelable:true}))`);
       assert.equal(await app.evaluate("document.activeElement.dataset.summaryDay"),`2026-10-${day}`);

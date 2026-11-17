@@ -8,20 +8,21 @@ on:
         required: true
       phase:
         type: choice
-        options: [package, updates]
+        options: [package, updates, diagnose]
         default: package
       expected_sha:
         type: string
-        required: true
+        required: false
       previous_sha:
         type: string
-        required: true
+        required: false
 
 permissions:
   contents: read
 
 jobs:
   verify:
+    if: inputs.phase != 'diagnose'
     runs-on: windows-latest
     timeout-minutes: 15
     env:
@@ -128,3 +129,18 @@ jobs:
           name: packaged-verification-${{ inputs.phase }}
           path: verification-report/*
           if-no-files-found: warn
+
+  diagnose:
+    if: inputs.phase == 'diagnose'
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Reproduce fake Claude CLI pipe exchange
+        shell: pwsh
+        run: |
+          rustc --edition=2024 .github/release-verification/diagnose-fixture.rs -o fixture-diagnostic.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./fixture-diagnostic.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
