@@ -4,8 +4,8 @@ if($env:GITHUB_ACTIONS -ne 'true' -or $ExecutableName -ne 'taskcalendar-plus.exe
 $full=[IO.Path]::GetFullPath($DataDir)
 $temp=[IO.Path]::GetFullPath($env:RUNNER_TEMP)+[IO.Path]::DirectorySeparatorChar
 if(-not $full.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase)){throw 'Profile must be in runner temp'}
-$base='HKCU:\Software\Policies\Microsoft\Edge\WebView2'
-$result=@()
+$base='HKLM:\Software\Policies\Microsoft\Edge\WebView2'
+$result=@(@{hostElevated=([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)})
 foreach($item in @(@{key='AdditionalBrowserArguments';value="--remote-debugging-port=$Port"},@{key='UserDataFolder';value=$full})){
  $key=Join-Path $base $item.key
  New-Item -Path $key -Force | Out-Null
