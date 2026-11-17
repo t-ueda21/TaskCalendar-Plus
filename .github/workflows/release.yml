@@ -29,6 +29,9 @@ permissions:
 jobs:
   verify:
     if: inputs.phase == 'package' || inputs.phase == 'updates'
+    permissions:
+      contents: read
+      actions: read
     runs-on: windows-latest
     timeout-minutes: 15
     env:
@@ -45,7 +48,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Download and verify exact installers
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44119887844
+          name: taskcalendar-distribution
+          path: ${{ runner.temp }}/current-distribution
+      - name: Verify staged installer and download previous installer
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -56,8 +65,6 @@ jobs:
           $current = Join-Path $env:RUNNER_TEMP 'current-distribution'
           $previous = Join-Path $env:RUNNER_TEMP 'previous-distribution'
           New-Item -ItemType Directory -Force $current,$previous | Out-Null
-          gh release download $env:VERIFY_TAG --repo $env:GITHUB_REPOSITORY --dir $current --pattern '*_x64-setup.exe'
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           gh release download v4.0.3 --repo $env:GITHUB_REPOSITORY --dir $previous --pattern '*_x64-setup.exe'
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $newFiles = @(Get-ChildItem -LiteralPath $current -File -Filter '*_x64-setup.exe')
