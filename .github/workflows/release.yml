@@ -1,115 +1,130 @@
-name: Windows Release
+name: Windows packaged release verification
 
 on:
-  push:
-    tags: ['v*']
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Existing version tag (for example v0.1.0)'
-        required: true
         type: string
-      stage_only:
-        description: 'Build and upload workflow artifacts without editing a GitHub Release'
-        type: boolean
-        default: false
+        required: true
+      phase:
+        type: choice
+        options: [package, updates]
+        default: package
+      expected_sha:
+        type: string
+        required: true
+      previous_sha:
+        type: string
+        required: true
 
 permissions:
   contents: read
 
-concurrency:
-  group: release-${{ github.event.inputs.tag || github.ref_name }}
-  cancel-in-progress: false
-
 jobs:
-  release:
+  verify:
     runs-on: windows-latest
-    permissions:
-      contents: write
+    timeout-minutes: 15
     env:
-      RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
+      VERIFY_TAG: ${{ inputs.tag }}
+      VERIFY_PHASE: ${{ inputs.phase }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      PREVIOUS_SHA: ${{ inputs.previous_sha }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.stage_only && github.sha || inputs.tag || github.ref }}
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
+          ref: ${{ inputs.tag }}
+          path: app-source
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install isolated renderer test browser
+      - name: Download and verify exact installers
         shell: pwsh
-        run: |
-          $testDependencies = Join-Path $env:RUNNER_TEMP 'tcplus-test-dependencies'
-          npm install --prefix $testDependencies --no-package-lock --no-save playwright@1.62.1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $testModules = Join-Path $testDependencies 'node_modules'
-          "TCPLUS_TEST_NODE_MODULES=$testModules" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          node (Join-Path $testModules 'playwright/cli.js') install chromium
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-      - name: Validate version
-        run: node scripts/release-manifest.mjs --check
-      - name: Test
-        shell: pwsh
-        run: |
-          cargo test --locked --manifest-path src-tauri/Cargo.toml -- --test-threads=1
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          cargo clippy --locked --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Get-ChildItem scripts/test-* -File | ForEach-Object {
-            node $_.FullName
-            if ($LASTEXITCODE -ne 0) { throw "Test failed: $($_.Name)" }
-          }
-      - name: Build signed updater installer
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: npx --yes @tauri-apps/cli@2.11.5 build --ci --bundles nsis -- --locked
-      - name: Create stable update feed (skip prereleases)
-        run: node scripts/release-manifest.mjs
-      - name: Stage distribution files
-        if: inputs.stage_only == true
-        shell: pwsh
-        run: |
-          $assetJson = node scripts/release-manifest.mjs --assets
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $distribution = Join-Path $env:RUNNER_TEMP 'taskcalendar-distribution'
-          New-Item -ItemType Directory -Path $distribution -Force | Out-Null
-          foreach ($asset in @($assetJson | ConvertFrom-Json)) {
-            Copy-Item -LiteralPath $asset -Destination $distribution
-          }
-      - uses: actions/upload-artifact@v4
-        if: inputs.stage_only == true
-        with:
-          name: taskcalendar-distribution
-          path: ${{ runner.temp }}/taskcalendar-distribution/*
-          if-no-files-found: error
-      - name: Create draft release
-        if: inputs.stage_only != true
         env:
           GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:VERIFY_TAG -ne 'v4.0.4') { throw 'Unexpected release tag' }
+          if ($env:EXPECTED_SHA -notmatch '^[0-9a-f]{64}$' -or $env:PREVIOUS_SHA -notmatch '^[0-9a-f]{64}$') { throw 'Expected verified SHA-256 values' }
+          $current = Join-Path $env:RUNNER_TEMP 'current-distribution'
+          $previous = Join-Path $env:RUNNER_TEMP 'previous-distribution'
+          New-Item -ItemType Directory -Force $current,$previous | Out-Null
+          gh release download $env:VERIFY_TAG --repo $env:GITHUB_REPOSITORY --dir $current --pattern '*_x64-setup.exe'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release download v4.0.3 --repo $env:GITHUB_REPOSITORY --dir $previous --pattern '*_x64-setup.exe'
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $newFiles = @(Get-ChildItem -LiteralPath $current -File -Filter '*_x64-setup.exe')
+          $oldFiles = @(Get-ChildItem -LiteralPath $previous -File -Filter '*_x64-setup.exe')
+          if ($newFiles.Count -ne 1 -or $oldFiles.Count -ne 1) { throw 'Ambiguous installers' }
+          if ((Get-FileHash -Algorithm SHA256 -LiteralPath $newFiles[0].FullName).Hash.ToLower() -ne $env:EXPECTED_SHA) { throw 'New installer hash mismatch' }
+          if ((Get-FileHash -Algorithm SHA256 -LiteralPath $oldFiles[0].FullName).Hash.ToLower() -ne $env:PREVIOUS_SHA) { throw 'Previous installer hash mismatch' }
+          "NEW_INSTALLER=$($newFiles[0].FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "OLD_INSTALLER=$($oldFiles[0].FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Ensure Microsoft WebView2 runtime
         shell: pwsh
         run: |
-          $notesPath = "docs/releases/$env:RELEASE_TAG.md"
-          $version = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          $isPrerelease = $version.Contains('-')
-          $releaseFlags = @()
-          if ($isPrerelease) { $releaseFlags += @('--prerelease', '--latest=false') }
-          $existing = gh release view $env:RELEASE_TAG --json isDraft 2>$null
-          if ($LASTEXITCODE -eq 0) {
-            if (-not ($existing | ConvertFrom-Json).isDraft) { throw 'Refusing to overwrite a published release' }
-            gh release edit $env:RELEASE_TAG --notes-file $notesPath @releaseFlags
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          } else {
-            gh release create $env:RELEASE_TAG --verify-tag --draft --title "TaskCalendar+ $env:RELEASE_TAG" --notes-file $notesPath @releaseFlags
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $ErrorActionPreference = 'Stop'
+          $locations = @("${env:ProgramFiles(x86)}\Microsoft\EdgeWebView\Application", "$env:ProgramFiles\Microsoft\EdgeWebView\Application")
+          $runtime = @($locations | Where-Object { Test-Path $_ } | ForEach-Object { Get-ChildItem -LiteralPath $_ -Recurse -File -Filter msedgewebview2.exe })
+          if ($runtime.Count -eq 0) {
+            $bootstrapper = Join-Path $env:RUNNER_TEMP 'MicrosoftEdgeWebview2Setup.exe'
+            Invoke-WebRequest 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $bootstrapper
+            $signature = Get-AuthenticodeSignature -LiteralPath $bootstrapper
+            if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft Corporation') { throw 'Untrusted WebView2 bootstrapper' }
+            $process = Start-Process -FilePath $bootstrapper -ArgumentList '/silent','/install' -Wait -PassThru
+            if ($process.ExitCode -notin @(0,3010)) { throw "WebView2 installation failed: $($process.ExitCode)" }
           }
-          $assetJson = node scripts/release-manifest.mjs --assets
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $assets = @($assetJson | ConvertFrom-Json)
-          gh release upload $env:RELEASE_TAG @assets --clobber
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install, upgrade and exercise the packaged app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $install = Join-Path $env:RUNNER_TEMP 'taskcalendar-installed'
+          $oldCopy = Join-Path $env:RUNNER_TEMP 'taskcalendar-previous-copy'
+          $taskProfile = Join-Path $env:RUNNER_TEMP 'taskcalendar-upgrade-profile'
+          $report = Join-Path $env:GITHUB_WORKSPACE 'verification-report'
+          New-Item -ItemType Directory -Force $report | Out-Null
+          function Install-Checked([string]$file) {
+            $process = Start-Process -FilePath $file -ArgumentList @('/S',"/D=$install") -Wait -PassThru
+            if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          }
+          function App-Exe([string]$folder) {
+            $files = @(Get-ChildItem -LiteralPath $folder -File -Filter '*.exe' | Where-Object { $_.Name -notmatch '(?i)uninstall|webview|update' })
+            if ($files.Count -ne 1) { throw 'Ambiguous installed app executable' }
+            return $files[0].FullName
+          }
+          function Check-Native([string]$mode,[string]$exe,[string]$data) {
+            node .github/release-verification/native-release-check.mjs $mode $exe $data $report
+            if ($LASTEXITCODE -ne 0) { throw "Native check failed: $mode" }
+          }
+          Install-Checked $env:OLD_INSTALLER
+          Copy-Item -LiteralPath $install -Destination $oldCopy -Recurse
+          $oldExe = App-Exe $oldCopy
+          if ($env:VERIFY_PHASE -eq 'package') {
+            Check-Native 'seed' (App-Exe $install) $taskProfile
+          }
+          Install-Checked $env:NEW_INSTALLER
+          $newExe = App-Exe $install
+          $renderers = @(Get-ChildItem -LiteralPath $install -Directory -Recurse | Where-Object { $_.Name -eq 'renderer' -and (Test-Path (Join-Path $_.FullName 'assets/app.html')) })
+          if ($renderers.Count -ne 1) { throw 'Packaged renderer not found' }
+          $source = Join-Path $env:GITHUB_WORKSPACE 'app-source/src-tauri/renderer'
+          $files = @(Get-ChildItem -LiteralPath $source -Recurse -File)
+          foreach ($file in $files) {
+            $relative = [System.IO.Path]::GetRelativePath($source,$file.FullName)
+            $installed = Join-Path $renderers[0].FullName $relative
+            if (-not (Test-Path -LiteralPath $installed)) { throw "Packaged source missing: $relative" }
+            if ((Get-FileHash -Algorithm SHA256 -LiteralPath $file.FullName).Hash -ne (Get-FileHash -Algorithm SHA256 -LiteralPath $installed).Hash) { throw "Packaged source differs: $relative" }
+          }
+          @{rendererFiles=$files.Count;tag=$env:VERIFY_TAG;installerSha256=$env:EXPECTED_SHA;previousSha256=$env:PREVIOUS_SHA} | ConvertTo-Json | Set-Content (Join-Path $report 'package-hashes.json')
+          if ($env:VERIFY_PHASE -eq 'package') {
+            Check-Native 'package' $newExe $taskProfile
+            Check-Native 'fresh' $newExe (Join-Path $env:RUNNER_TEMP 'taskcalendar-fresh-profile')
+          } elseif ($env:VERIFY_PHASE -eq 'updates') {
+            Check-Native 'updates-old' $oldExe (Join-Path $env:RUNNER_TEMP 'taskcalendar-old-update-profile')
+            Check-Native 'updates-new' $newExe (Join-Path $env:RUNNER_TEMP 'taskcalendar-new-update-profile')
+          } else { throw 'Unknown verification phase' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: packaged-verification-${{ inputs.phase }}
+          path: verification-report/*
+          if-no-files-found: warn
