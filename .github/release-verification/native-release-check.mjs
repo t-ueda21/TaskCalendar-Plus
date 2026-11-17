@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import {nativeApp,delay} from '../../scripts/native-test-driver.mjs';
+import {nativeApp,delay} from './native-release-driver.mjs';
 
 const [mode,exe,dataDir,reportDir]=process.argv.slice(2);
 assert.ok(['seed','package','updates-old','updates-new','fresh'].includes(mode));
 fs.mkdirSync(reportDir,{recursive:true});
-const app=await nativeApp({exe,dataDir,port:{seed:9481,package:9482,fresh:9483,'updates-old':9484,'updates-new':9485}[mode]});
+const app=await nativeApp({exe,dataDir,diagnosticsDir:reportDir,port:{seed:9481,package:9482,fresh:9483,'updates-old':9484,'updates-new':9485}[mode]});
 try {
   const runtime=await app.evaluate("fetch('/api/runtime').then(r=>r.json())");
   const expectedVersion=['seed','updates-old'].includes(mode)?'4.0.3':'4.0.4';
