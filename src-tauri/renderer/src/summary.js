@@ -91,12 +91,22 @@ function handleDateKey(event) {
   const grid = query('number-grid');
   const buttons = [...grid.querySelectorAll('[data-summary-day]:not(:disabled)')];
   const index = buttons.indexOf(button);
-  const columns = getComputedStyle(grid).gridTemplateColumns.split(/\s+/).length;
-  const offsets = {ArrowLeft:-1,ArrowRight:1,ArrowUp:-columns,ArrowDown:columns};
+  const offsets = {ArrowLeft:-1,ArrowRight:1};
   let next;
   if (event.key === 'Home') next = 0;
   else if (event.key === 'End') next = buttons.length - 1;
   else if (Object.hasOwn(offsets,event.key)) next = index + offsets[event.key];
+  else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+    // Monthly rows have 10, 10 and up to 11 dates. Follow the visible row,
+    // including responsive wrapping, rather than adding a fixed column count.
+    const current = button.getBoundingClientRect();
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    const candidates = buttons.map((node,index) => ({index,rect:node.getBoundingClientRect()}))
+      .filter(({rect}) => (rect.top - current.top) * direction > 1);
+    candidates.sort((a,b) => Math.abs(a.rect.top - current.top) - Math.abs(b.rect.top - current.top)
+      || Math.abs(a.rect.left - current.left) - Math.abs(b.rect.left - current.left));
+    next = candidates[0]?.index ?? index;
+  }
   else return;
   event.preventDefault();
   event.stopPropagation();
