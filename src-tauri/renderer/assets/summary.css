@@ -7,10 +7,15 @@
 .summaryView .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .summaryView button, .summaryView select { font-family: inherit; }
 .summaryScreen .btn { min-height: 40px; padding: 6px 10px; line-height: 24px; font-size: 16px; white-space: nowrap; }
-.summarySegment { display: flex; gap: 4px; }
-.summarySegment button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-strong); }
-.summaryPeriodNav { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.summaryPeriodDisplay { display: flex; align-items: center; justify-content: center; min-width: 136px; padding: 0 8px; text-align: center; white-space: nowrap; }
+.summarySegment { display: flex; gap: 0; border: 1px solid var(--border-strong); border-radius: var(--radius-md); background: var(--panel); box-shadow: var(--shadow-sm); }
+.summarySegment .btn { border: 0; border-radius: 0; box-shadow: none; }
+.summarySegment .btn:first-child { border-radius: calc(var(--radius-md) - 1px) 0 0 calc(var(--radius-md) - 1px); }
+.summarySegment .btn:last-child { border-left: 1px solid var(--border-strong); border-radius: 0 calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0; }
+.summarySegment .btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-strong); }
+.summarySegment .btn:focus-visible { outline-offset: -3px; }
+.summaryPeriodNav { display: flex; align-items: center; gap: 6px; flex-shrink: 0; padding-right: 12px; border-right: 1px solid var(--border-strong); }
+.summaryToolbarControls > .uiToggle { margin-left: 6px; }
+.summaryPeriodDisplay { display: flex; align-items: center; justify-content: flex-start; min-width: 120px; padding: 0 8px 0 0; text-align: left; white-space: nowrap; }
 .summaryPeriodDisplay > strong { font-size: 18px; line-height: 24px; color: var(--accent-strong); }
 .summaryScreen { grid-row: 3; margin-top: var(--summary-section-gap); min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--summary-section-gap); overflow-y: auto; }
 .summaryScreen:has(.summaryNotice:not([hidden])) .summaryContent { flex: 0 0 auto; min-height: 520px; }
@@ -78,6 +83,8 @@
 .summaryNumbersHeading { min-height: 40px; padding-top: 8px; padding-bottom: 8px; }
 .summaryNumbersHeading > span { font-size: 14px; line-height: 20px; color: var(--muted); }
 .summaryNumberGrid { display: grid; grid-template-columns: repeat(11,minmax(0,1fr)); grid-auto-rows: minmax(66px,1fr); gap: 4px; padding: 0 var(--summary-inset) 8px; min-height: 0; }
+.summaryNumberGrid:not(.year) > .summaryDay:nth-child(11),
+.summaryNumberGrid:not(.year) > .summaryDay:nth-child(21) { grid-column-start: 1; }
 .summaryNumberGrid.year { grid-template-columns: repeat(6,minmax(0,1fr)); }
 .summaryDay { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; min-height: 40px; padding: 2px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--panel2); font: inherit; color: var(--text); cursor: pointer; }
 .summaryDayLabel { display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; font-size: 14px; line-height: 16px; white-space: nowrap; }
@@ -112,8 +119,10 @@
   .summaryScreen { min-height: 0; }
   .summaryTrend { min-height: 560px; flex: none; }
   .summaryChart { min-height: 210px; }
-  .summaryNumberGrid { grid-template-columns: repeat(10,minmax(0,1fr)); }
   .summaryMetrics { grid-auto-flow: row; grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width:767px) {
+  .summaryNumberGrid:not(.year) { grid-template-columns: repeat(4,minmax(0,1fr)); }
 }
 @media (max-width:600px) {
   .summaryTagList { --summary-visible-tag-rows: var(--summary-tag-count,1); grid-template-columns: 1fr; }

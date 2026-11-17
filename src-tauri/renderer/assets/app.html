@@ -321,15 +321,15 @@
       <section class="view summaryView" data-view="summary" hidden>
         <section class="toolbar summaryToolbar" aria-label="サマリー" data-i18n-attrs="aria-label=summary.title">
           <div class="left summaryToolbarControls">
+            <div class="summaryPeriodNav">
+              <div class="summaryPeriodDisplay" role="status" aria-live="polite" aria-atomic="true"><strong data-summary-period-label></strong></div>
+              <button class="btn titleNavBtn" type="button" data-summary-shift="-1"><span aria-hidden="true">◀</span><span data-nav-label></span></button>
+              <button class="btn titleNavBtn" type="button" data-summary-shift="1"><span data-nav-label></span><span aria-hidden="true">▶</span></button>
+              <button class="btn" type="button" data-summary-current></button>
+            </div>
             <div class="summarySegment" role="group" aria-label="期間" data-i18n-attrs="aria-label=summary.periodLabel">
               <button class="btn" type="button" data-summary-period="month" aria-pressed="true" data-i18n="summary.month"></button>
               <button class="btn" type="button" data-summary-period="year" aria-pressed="false" data-i18n="summary.year"></button>
-            </div>
-            <div class="summaryPeriodNav">
-              <button class="btn titleNavBtn" type="button" data-summary-shift="-1"><span aria-hidden="true">◀</span><span data-nav-label></span></button>
-              <div class="summaryPeriodDisplay" role="status" aria-live="polite" aria-atomic="true"><strong data-summary-period-label></strong></div>
-              <button class="btn titleNavBtn" type="button" data-summary-shift="1"><span data-nav-label></span><span aria-hidden="true">▶</span></button>
-              <button class="btn" type="button" data-summary-current></button>
             </div>
             <label class="uiToggle" title="これからの予定も含める" data-i18n-attrs="title=summary.includeFuture"><input class="uiToggleInput" type="checkbox" role="switch" data-summary-future aria-label="これからの予定も含める" data-i18n-attrs="aria-label=summary.includeFuture"><span class="themeToggleTrack" aria-hidden="true"><span class="themeToggleThumb"></span></span><span class="themeToggleLabel" data-i18n="summary.futureEvents"></span></label>
           </div>

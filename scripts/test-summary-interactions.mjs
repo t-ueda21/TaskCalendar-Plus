@@ -94,10 +94,10 @@ try {
     }));
     assert.deepEqual(stops, { chart: 0, days: ['2026-09-08'] });
   });
-  await check('monthly arrows move across the 11-column grid and synchronize the graph', async () => {
+  await check('monthly arrows follow the ten-day rows and synchronize the graph', async () => {
     await root.locator('[data-summary-day="2026-09-08"]').click();
     for (const [key, day] of [
-      ['ArrowRight', '09'], ['ArrowDown', '20'], ['ArrowUp', '09'], ['ArrowLeft', '08'],
+      ['ArrowRight', '09'], ['ArrowDown', '19'], ['ArrowUp', '09'], ['ArrowLeft', '08'],
       ['Home', '01'], ['End', '30'], ['ArrowRight', '30'],
     ]) {
       await h.page.keyboard.press(key);
@@ -153,10 +153,9 @@ try {
     assert.equal(await root.locator('[data-summary-day="2026-10-08"]').getAttribute('aria-pressed'), 'true');
     assert.equal(await root.locator('[data-summary-day="2026-10-31"]').isDisabled(), true);
   });
-  await check('vertical movement follows the responsive ten-column grid', async () => {
+  await check('vertical movement follows the ten-day rows at narrower widths', async () => {
     await root.locator('[data-summary-shift="-1"]').click();
     await h.page.setViewportSize({ width: 1000, height: 800 });
-    assert.equal(await root.locator('[data-summary-number-grid]').evaluate(node => getComputedStyle(node).gridTemplateColumns.split(' ').length), 10);
     await root.locator('[data-summary-day="2026-09-01"]').click();
     await h.page.keyboard.press('ArrowDown');
     await expectSelection('2026-09-11');
