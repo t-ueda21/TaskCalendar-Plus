@@ -8,9 +8,15 @@ on:
         required: true
       phase:
         type: choice
-        options: [package, updates, diagnose]
+        options: [package, updates, diagnose, upload]
         default: package
       expected_sha:
+        type: string
+        required: false
+      feed_sha:
+        type: string
+        required: false
+      signature_sha:
         type: string
         required: false
       previous_sha:
@@ -22,7 +28,7 @@ permissions:
 
 jobs:
   verify:
-    if: inputs.phase != 'diagnose'
+    if: inputs.phase == 'package' || inputs.phase == 'updates'
     runs-on: windows-latest
     timeout-minutes: 15
     env:
@@ -154,3 +160,50 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           ./fixture-diagnostic.exe
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+  upload:
+    if: inputs.phase == 'upload'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+      actions: read
+    env:
+      VERIFY_TAG: ${{ inputs.tag }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      FEED_SHA: ${{ inputs.feed_sha }}
+      SIGNATURE_SHA: ${{ inputs.signature_sha }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: 44119887844
+          name: taskcalendar-distribution
+          path: ${{ runner.temp }}/signed-distribution
+      - name: Verify signed build bytes and upload draft assets
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:VERIFY_TAG -ne 'v4.0.4') { throw 'Unexpected release tag' }
+          foreach ($hash in @($env:EXPECTED_SHA,$env:FEED_SHA,$env:SIGNATURE_SHA)) {
+            if ($hash -notmatch '^[0-9a-f]{64}$') { throw 'Expected verified SHA-256 values' }
+          }
+          $folder = Join-Path $env:RUNNER_TEMP 'signed-distribution'
+          $expected = @{
+            'TaskCalendar+_4.0.4_x64-setup.exe' = $env:EXPECTED_SHA
+            'TaskCalendar+_4.0.4_x64-setup.exe.sig' = $env:SIGNATURE_SHA
+            'latest.json' = $env:FEED_SHA
+          }
+          if (@(Get-ChildItem -LiteralPath $folder -File).Count -ne 3) { throw 'Unexpected artifact files' }
+          foreach ($name in $expected.Keys) {
+            if ((Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $folder $name)).Hash.ToLowerInvariant() -ne $expected[$name]) { throw "Staged artifact mismatch: $name" }
+          }
+          python -c "import sys,pathlib,zipfile; p=pathlib.Path(sys.argv[1]); n='TaskCalendar+_4.0.4_x64-setup.exe'; z=zipfile.ZipFile(p/'TaskCalendar+_4.0.4_x64-setup.zip','x',zipfile.ZIP_DEFLATED,compresslevel=9); z.write(p/n,arcname=n); z.close()" $folder
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $release = gh release view $env:VERIFY_TAG --repo $env:GITHUB_REPOSITORY --json isDraft,tagName | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or -not $release.isDraft -or $release.tagName -ne $env:VERIFY_TAG) { throw 'Refusing to overwrite a published or different release' }
+          $assets = @('TaskCalendar+_4.0.4_x64-setup.exe','TaskCalendar+_4.0.4_x64-setup.exe.sig','TaskCalendar+_4.0.4_x64-setup.zip','latest.json') | ForEach-Object { Join-Path $folder $_ }
+          gh release upload $env:VERIFY_TAG --repo $env:GITHUB_REPOSITORY @assets --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $assets | ForEach-Object { Get-FileHash -Algorithm SHA256 -LiteralPath $_ } | Format-Table -AutoSize
