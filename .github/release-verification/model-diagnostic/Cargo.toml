@@ -1,0 +1,10 @@
+[package]
+name = "taskcalendar-model-diagnostic"
+version = "4.0.4"
+edition = "2024"
+
+[dependencies]
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.151"
+tokio = { version = "=1.53.1", features = ["io-util", "macros", "process", "rt", "time"] }
+tempfile = "=3.27.0"

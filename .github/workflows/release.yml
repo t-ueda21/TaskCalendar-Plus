@@ -137,7 +137,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .github/release-verification/model-diagnostic
+          cache-on-failure: true
+      - name: Run the unchanged model tests in isolation
+        shell: pwsh
+        run: |
+          cargo test --locked --manifest-path .github/release-verification/model-diagnostic/Cargo.toml -- --test-threads=1 --nocapture
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Reproduce fake Claude CLI pipe exchange
+        if: always()
         shell: pwsh
         run: |
           rustc --edition=2024 .github/release-verification/diagnose-fixture.rs -o fixture-diagnostic.exe
