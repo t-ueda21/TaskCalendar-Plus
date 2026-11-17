@@ -1,5 +1,5 @@
 // Drive the real Tauri WebView2 with an isolated DB/profile, never the user's app data.
-import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawn} from 'node:child_process';
+import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import {spawn,execFileSync} from 'node:child_process';
 import {DatabaseSync} from 'node:sqlite';
 export const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 export async function nativeApp({exe='src-tauri/target/debug/taskcalendar-plus.exe',port=9381,dataDir=fs.mkdtempSync(path.join(os.tmpdir(),'tcplus-v3-')),diagnosticsDir=null}={}) {
@@ -12,7 +12,7 @@ export async function nativeApp({exe='src-tauri/target/debug/taskcalendar-plus.e
     const settings={...(saved?JSON.parse(saved.value):{}),checkUpdatesOnStartup:false,outlookAutoSync:false,urlAutoOpenEnabled:false,trayEnabled:false,startMinimizedToTray:false};
     fixtureDb.prepare("INSERT INTO settings (key,value) VALUES ('main',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(JSON.stringify(settings));
   }finally{fixtureDb.close();}
-  const child=spawn(path.resolve(exe),[],{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,TCPLUS_DATA_DIR:dataDir,WEBVIEW2_USER_DATA_FOLDER:path.join(dataDir,'webview2'),WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:`--remote-debugging-port=${port}`}});
+  const child=spawn(path.resolve(exe),[],{windowsHide:false,stdio:['ignore','pipe','pipe'],env:{...process.env,TCPLUS_DATA_DIR:dataDir,WEBVIEW2_USER_DATA_FOLDER:path.join(dataDir,'webview2'),WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:`--remote-debugging-port=${port}`}});
   if(diagnosticsDir) {
     fs.mkdirSync(diagnosticsDir,{recursive:true});
     for(const [name,stream] of [['stdout',child.stdout],['stderr',child.stderr]])stream.on('data',chunk=>fs.appendFileSync(path.join(diagnosticsDir,`startup-${port}-${name}.log`),chunk));
@@ -23,7 +23,12 @@ export async function nativeApp({exe='src-tauri/target/debug/taskcalendar-plus.e
   try {
     let page;let lastTargets=[];let lastError=null;
     for(let i=0;i<120&&!page;i++){try{const targets=await(await fetch(`http://127.0.0.1:${port}/json`)).json();lastTargets=targets.map(p=>({type:p.type,url:p.url,title:p.title}));page=targets.find(p=>p.type==='page'&&p.url.includes('/assets/app.html'));}catch(error){lastError=String(error);}if(!page)await delay(250);}
-    if(!page){if(diagnosticsDir)fs.writeFileSync(path.join(diagnosticsDir,`startup-${port}.json`),JSON.stringify({exe,pid:child.pid,exitCode:child.exitCode,signalCode:child.signalCode,lastTargets,lastError},null,2));throw Error('Native page not available');}
+    if(!page){if(diagnosticsDir){
+      fs.writeFileSync(path.join(diagnosticsDir,`startup-${port}.json`),JSON.stringify({exe,pid:child.pid,exitCode:child.exitCode,signalCode:child.signalCode,lastTargets,lastError},null,2));
+      try{fs.writeFileSync(path.join(diagnosticsDir,`startup-${port}-window.json`),execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-File',path.resolve('scripts/single-instance-native.ps1'),'-ProcessId',String(child.pid)],{timeout:20000,encoding:'utf8'}));}catch(error){fs.writeFileSync(path.join(diagnosticsDir,`startup-${port}-window-error.txt`),String(error));}
+      try{const script=`$rootId=${child.pid};$all=Get-CimInstance Win32_Process;$ids=@($rootId);for($i=0;$i -lt 4;$i++){$ids+=@($all|Where-Object {$_.ParentProcessId -in $ids}|ForEach-Object {[int]$_.ProcessId})};$all|Where-Object {$_.ProcessId -in $ids}|ForEach-Object {@{pid=$_.ProcessId;parent=$_.ParentProcessId;name=$_.Name;session=$_.SessionId;debugPort=([regex]::Match($_.CommandLine,'remote-debugging-port=(\\d+)').Value)}}|ConvertTo-Json`;
+        fs.writeFileSync(path.join(diagnosticsDir,`startup-${port}-processes.json`),execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{timeout:20000,encoding:'utf8'}));}catch(error){fs.writeFileSync(path.join(diagnosticsDir,`startup-${port}-processes-error.txt`),String(error));}
+    }throw Error('Native page not available');}
     socket=new WebSocket(page.webSocketDebuggerUrl);await new Promise(resolve=>{socket.onopen=resolve;});
     socket.onmessage=event=>{const data=JSON.parse(event.data);if(data.method==='Runtime.exceptionThrown')errors.push(data.params.exceptionDetails.exception?.description??data.params.exceptionDetails.text);if(data.method==='Runtime.consoleAPICalled'&&data.params.type==='error')errors.push(data.params.args.map(argument=>argument.description??argument.value??'').join(' '));if(data.method==='Page.javascriptDialogOpening')void send('Page.handleJavaScriptDialog',{accept:true});if(data.id&&pending.has(data.id)){pending.get(data.id)(data);pending.delete(data.id);}};
     const send=(method,params={})=>new Promise((resolve,reject)=>{const id=++sequence;const timeout=setTimeout(()=>{pending.delete(id);reject(Error(`CDP timeout: ${method}`));},30000);pending.set(id,data=>{clearTimeout(timeout);if(data.error)reject(Error(JSON.stringify(data.error)));else resolve(data);});socket.send(JSON.stringify({id,method,params}));});
