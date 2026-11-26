@@ -45,7 +45,7 @@ export function cancelAi() {
 }
 
 async function _request(body) {
-  if (!isAiConfigured()) {
+  if (!isAiConfigured() && body.agent !== true) {
     throw new AiError(translate('ui.f992530a0a'), { unavailable: true });
   }
   const controller = new AbortController();
@@ -93,6 +93,7 @@ export async function chatWithAgent(messages, { viewDate = null } = {}) {
   const data = await _request({ agent: true, messages, ...(viewDate ? { viewDate } : {}) });
   return {
     content: String(data?.message?.content ?? "").trim(),
+    source: data.source === "application" ? "application" : "model",
     proposals: Array.isArray(data?.proposals) ? data.proposals : [],
   };
 }

@@ -64,3 +64,14 @@ vm.runInContext(clientSource.slice(clientSource.indexOf('export async function c
 await client.chatWithAgent([{role:'user',content:'この月の残業時間は？'}],{viewDate:'2026-09-26'});
 assert.equal(sentBody.viewDate,'2026-09-26');assert.equal(sentBody.agent,true);
 console.log('PASS: selected date crosses the actual AI request boundary');
+
+const localOnly=sendContext();localOnly.c.isAiConfigured=()=>false;
+const localRequest=localOnly.c._send();localOnly.release();await localRequest;
+assert.equal(localOnly.calls(),1,'the backend can answer local totals even with no provider configured');
+console.log('PASS: unconfigured AI does not block app-calculated work questions');
+
+const offlineClient=vm.createContext({Store:{getSettings:()=>({})},localAiConfig:()=>null,validateLocalAi:()=>null,translate:t,AbortController,DOMException,window:{setTimeout,clearTimeout},fetch:async()=>new Response(JSON.stringify({source:'application',message:{content:'1時間'},proposals:[]})),Response});
+vm.runInContext(clientSource.replace(/^import .*$/gm,'').replace(/export /g,''),offlineClient);
+assert.equal((await offlineClient.chatWithAgent([{role:'user',content:'今日の残業時間は？'}])).source,'application');
+await assert.rejects(offlineClient.callAi([{role:'user',content:'summary'}]),error=>error.unavailable===true);
+console.log('PASS: agent requests can use local totals while model-only summaries still require configuration');

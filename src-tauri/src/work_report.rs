@@ -97,7 +97,7 @@ pub fn format_minutes(minutes: i64) -> String {
     }
 }
 
-fn aggregate(
+pub fn summarize(
     tasks: &[Value],
     tags: &HashMap<String, String>,
     work: &WorkSettings,
@@ -130,9 +130,10 @@ fn aggregate(
             continue;
         }
         let searchable = format!(
-            "{} {} {}",
+            "{} {} {} {}",
             text(task, "title"),
             text(task, "memo"),
+            text(task, "localMemo"),
             tag_name
         )
         .to_lowercase();
@@ -145,7 +146,7 @@ fn aggregate(
             }
             total.add(day, interval, text(task, "id"));
             let key = match group {
-                "tag" => tag_name.clone(),
+                "tag" => tag_id.to_string(),
                 "title" => text(task, "title").into(),
                 "month" => day.format("%Y-%m").to_string(),
                 "year" => day.format("%Y").to_string(),
@@ -162,7 +163,12 @@ fn aggregate(
         .into_iter()
         .map(|(key, bucket)| {
             let mut value = bucket.value(work);
-            value["key"] = json!(key);
+            if group == "tag" {
+                value["tagId"] = json!(key);
+                value["key"] = json!(tags.get(&key).unwrap_or(&key));
+            } else {
+                value["key"] = json!(key);
+            }
             value
         })
         .collect();
@@ -184,6 +190,45 @@ fn aggregate(
     Ok(result)
 }
 
+fn round_report(value: &mut Value) {
+    let rounded = |seconds: i64| (seconds + 30).div_euclid(60);
+    for (field, display, text_field) in [
+        ("totalSeconds", "totalMinutes", "total"),
+        ("overtimeSeconds", "overtimeMinutes", "overtime"),
+    ] {
+        if let Some(seconds) = value[field].as_i64() {
+            let minutes = rounded(seconds);
+            value[display] = json!(minutes);
+            value[text_field] = json!(format_minutes(minutes));
+        }
+    }
+    if let Some(seconds) = value["seconds"].as_i64() {
+        value["minutes"] = json!(rounded(seconds));
+        value["duration"] = json!(format_minutes(rounded(seconds)));
+    }
+    for (field, minutes_field, text_field) in [
+        ("totalDeltaSeconds", "totalDeltaMinutes", "totalDelta"),
+        (
+            "overtimeDeltaSeconds",
+            "overtimeDeltaMinutes",
+            "overtimeDelta",
+        ),
+    ] {
+        if let Some(seconds) = value[field].as_i64() {
+            value[minutes_field] = json!(rounded(seconds));
+            value[text_field] = json!(format_minutes(rounded(seconds)));
+        }
+    }
+    if let Some(groups) = value.get_mut("groups").and_then(Value::as_array_mut) {
+        for group in groups {
+            round_report(group);
+        }
+    }
+    if let Some(comparison) = value.get_mut("comparison") {
+        round_report(comparison);
+    }
+}
+
 pub fn work_report(
     tasks: &[Value],
     tags: &HashMap<String, String>,
@@ -198,7 +243,7 @@ pub fn work_report(
         .and_then(Value::as_bool)
         .unwrap_or(false);
     let cutoff = if include_future { to } else { to.min(today) };
-    let mut result = aggregate(tasks, tags, &work, args, from, cutoff)?;
+    let mut result = summarize(tasks, tags, &work, args, from, cutoff)?;
     result["dateFrom"] = json!(from.to_string());
     result["dateTo"] = json!(to.to_string());
     result["effectiveTo"] = if cutoff >= from {
@@ -211,7 +256,7 @@ pub fn work_report(
     if args.get("compareFrom").is_some() || args.get("compareTo").is_some() {
         let (cf, ct) = period(args, "compareFrom", "compareTo")?;
         let effective = if include_future { ct } else { ct.min(today) };
-        let mut comparison = aggregate(tasks, tags, &work, args, cf, effective)?;
+        let mut comparison = summarize(tasks, tags, &work, args, cf, effective)?;
         comparison["dateFrom"] = json!(cf.to_string());
         comparison["dateTo"] = json!(ct.to_string());
         comparison["effectiveTo"] = if effective >= cf {
@@ -231,30 +276,41 @@ pub fn work_report(
         comparison["overtimeDelta"] = json!(format_minutes(overtime / 60));
         result["comparison"] = comparison;
     }
+    round_report(&mut result);
     Ok(result)
 }
 
-pub fn availability(tasks: &[Value], settings: &Value, args: &Value) -> Result<Value, String> {
-    let (from, to) = period(args, "dateFrom", "dateTo")?;
+/// Available working ranges use calendar occupancy, independently of work tags.
+pub fn business_ranges(
+    tasks: &[Value],
+    settings: &Value,
+    from: NaiveDate,
+    to: NaiveDate,
+) -> Result<BTreeMap<NaiveDate, Vec<(i64, i64)>>, String> {
+    let mut result = BTreeMap::new();
+    if to < from {
+        return Ok(result);
+    }
+    use chrono::Datelike;
+    if !(1980..=2099).contains(&from.year()) || !(1980..=2099).contains(&to.year()) {
+        return Err("営業日を含む空き時間の計算は1980〜2099年に対応しています".into());
+    }
     let work = WorkSettings::from_settings(settings);
     let start = calendar::time_to_seconds(&work.work_start).ok_or("勤務開始時刻が不正です")?;
     let end = calendar::time_to_seconds(&work.work_end).ok_or("勤務終了時刻が不正です")?;
     if end <= start {
         return Err("勤務終了時刻は開始時刻より後にしてください".into());
     }
-    let minimum = args.get("minMinutes").and_then(Value::as_i64).unwrap_or(30);
-    if !(1..=1440).contains(&minimum) {
-        return Err("minMinutes は1〜1440を指定してください".into());
-    }
     let mut busy: BTreeMap<NaiveDate, Vec<(i64, i64)>> = BTreeMap::new();
     for task in tasks {
+        if task["outlookDetails"]["busyStatus"].as_i64() == Some(0) {
+            continue;
+        }
         for (day, range) in event_intervals(task, from, to) {
             busy.entry(day).or_default().push(range);
         }
     }
-    let mut slots = Vec::new();
     let mut day = from;
-    let mut seconds = 0;
     while day <= to {
         if work.is_business_day(day) {
             let mut free = work.work_intervals(&[(start, end)]);
@@ -262,19 +318,33 @@ pub fn availability(tasks: &[Value], settings: &Value, args: &Value) -> Result<V
             {
                 free = calendar::subtract_interval(&free, range);
             }
-            for (s, e) in free {
-                if e - s >= minimum * 60 {
-                    seconds += e - s;
-                    slots.push(json!({"date":day.to_string(),"startTime":format!("{:02}:{:02}:{:02}",s/3600,s%3600/60,s%60),"endTime":format!("{:02}:{:02}:{:02}",e/3600,e%3600/60,e%60),"minutes":(e-s)/60,"seconds":e-s}));
-                }
-            }
+            result.insert(day, free);
         }
         day += Duration::days(1);
+    }
+    Ok(result)
+}
+
+pub fn availability(tasks: &[Value], settings: &Value, args: &Value) -> Result<Value, String> {
+    let (from, to) = period(args, "dateFrom", "dateTo")?;
+    let minimum = args.get("minMinutes").and_then(Value::as_i64).unwrap_or(30);
+    if !(1..=1440).contains(&minimum) {
+        return Err("minMinutes は1〜1440を指定してください".into());
+    }
+    let mut slots = Vec::new();
+    let mut seconds = 0;
+    for (day, ranges) in business_ranges(tasks, settings, from, to)? {
+        for (s, e) in ranges {
+            if e - s >= minimum * 60 {
+                seconds += e - s;
+                slots.push(json!({"date":day.to_string(),"startTime":format!("{:02}:{:02}:{:02}",s/3600,s%3600/60,s%60),"endTime":format!("{:02}:{:02}:{:02}",e/3600,e%3600/60,e%60),"minutes":(e-s)/60,"seconds":e-s}));
+            }
+        }
     }
     let count = slots.len();
     slots.truncate(500);
     Ok(
-        json!({"dateFrom":from.to_string(),"dateTo":to.to_string(),"slots":slots,"slotCount":count,"truncated":count>500,"totalMinutes":seconds/60,"totalSeconds":seconds,"total":format_minutes(seconds/60),"rules":"Business hours excluding unpaid breaks and all registered events, including untagged/all-day events"}),
+        json!({"dateFrom":from.to_string(),"dateTo":to.to_string(),"slots":slots,"slotCount":count,"truncated":count>500,"totalMinutes":seconds/60,"totalSeconds":seconds,"total":format_minutes(seconds/60),"rules":"Business hours minus breaks and registered busy events, including untagged/all-day. Events explicitly marked Free do not block time."}),
     )
 }
 
@@ -309,6 +379,16 @@ mod tests {
             )
             .unwrap();
             assert_eq!(
+                report["totalMinutes"], case["expected"]["totalMinutes"],
+                "display minutes: {}",
+                case["name"]
+            );
+            assert_eq!(
+                report["overtimeMinutes"], case["expected"]["overtimeMinutes"],
+                "display overtime: {}",
+                case["name"]
+            );
+            assert_eq!(
                 report["totalSeconds"], case["expected"]["totalSeconds"],
                 "{}",
                 case["name"]
@@ -342,6 +422,43 @@ mod tests {
                 &json!({}),
                 &json!({"dateFrom":"2026-12-01","dateTo":"2026-11-01"}),
                 today
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn personal_memo_and_duplicate_tag_labels_do_not_drop_work() {
+        let tasks = vec![
+            json!({"id":"1","date":"2026-11-26","tagId":"a","startTime":"09:00","endTime":"10:00","localMemo":"needle"}),
+            json!({"id":"2","date":"2026-11-26","tagId":"b","startTime":"09:00","endTime":"10:00","localMemo":"needle"}),
+        ];
+        let tags = HashMap::from([("a".into(), "同名".into()), ("b".into(), "同名".into())]);
+        let result=work_report(&tasks,&tags,&json!({}),&json!({"dateFrom":"2026-11-26","dateTo":"2026-11-26","keyword":"needle","groupBy":"tag"}),crate::calendar::parse_date("2026-11-26").unwrap()).unwrap();
+        assert_eq!(result["totalMinutes"], 60);
+        assert_eq!(result["groups"].as_array().unwrap().len(), 2);
+        assert_eq!(result["groups"][0]["tagId"], "a");
+        assert_eq!(result["groups"][1]["tagId"], "b");
+    }
+
+    #[test]
+    fn free_status_does_not_block_slots_and_unsupported_holiday_years_fail_safely() {
+        let tasks = vec![
+            json!({"id":"free","date":"2026-11-26","isAllDay":true,"outlookDetails":{"busyStatus":0}}),
+            json!({"id":"busy","date":"2026-11-26","startTime":"09:00","endTime":"10:00"}),
+        ];
+        let result = availability(
+            &tasks,
+            &json!({}),
+            &json!({"dateFrom":"2026-11-26","dateTo":"2026-11-26"}),
+        )
+        .unwrap();
+        assert_eq!(result["totalMinutes"], 420);
+        assert!(
+            availability(
+                &[],
+                &json!({}),
+                &json!({"dateFrom":"0001-01-01","dateTo":"0001-01-01"})
             )
             .is_err()
         );

@@ -327,11 +327,11 @@ fn search_tasks(data: &Data, args: &Value) -> Result<Value, String> {
 fn summarize_work(data: &Data, args: &Value) -> Result<Value, String> {
     let rows=data.filter(args)?;
     let tasks: Vec<_>=rows.iter().map(|task|serde_json::to_value(task).expect("task serialization")).collect();
-    let from=arg_date(args,"dateFrom")?.or_else(||rows.iter().filter_map(|t|calendar::parse_date(&t.date)).min()).unwrap_or(NaiveDate::from_ymd_opt(2000,1,1).unwrap());
+    let from=arg_date(args,"dateFrom")?.or_else(||rows.iter().filter_map(|t|calendar::parse_date(&t.date)).min()).or(arg_date(args,"dateTo")?).unwrap_or(NaiveDate::from_ymd_opt(2000,1,1).unwrap());
     let to=arg_date(args,"dateTo")?.or_else(||rows.iter().filter_map(|t|calendar::parse_date(t.end_date.as_deref().unwrap_or(&t.date))).max()).unwrap_or(from);
-    let mut options=args.clone();options["dateFrom"]=json!(from.to_string());options["dateTo"]=json!(to.to_string());options["includeFuture"]=json!(true);
+    let mut options=args.clone();
     if options.get("groupBy").is_none(){options["groupBy"]=json!("tag");}
-    let mut report=crate::work_report::work_report(&tasks,&data.tag_names,&data.settings,&options,to)?;
+    let mut report=crate::work_report::summarize(&tasks,&data.tag_names,&data.work,&options,from,to)?;
     report["count"]=json!(rows.len());
     Ok(report)
 }
@@ -378,7 +378,9 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
 
     let daily = data.work.daily_work_minutes();
     let start = if ctx.today > first { ctx.today } else { first };
-    let (mut total_days, mut scheduled) = (0, 0);
+    let free=crate::work_report::business_ranges(&values,&data.settings,start,last)?;
+    let free_seconds:i64=free.values().flatten().map(|(s,e)|e-s).sum();
+    let mut total_days=0;
     let mut remaining_dates = Vec::new();
     let mut day = first;
     while day <= last {
@@ -386,14 +388,16 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
             total_days += 1;
             if day >= start {
                 remaining_dates.push(format!("{}({})", day.format("%m/%d"), calendar::weekday_jp(day)));
-                scheduled += (daily * 60).min(seconds_by_day.get(&day).copied().unwrap_or(0));
+
             }
         }
         day += Duration::days(1);
     }
     let remaining_days = remaining_dates.len() as i64;
     let remaining_work = remaining_days * daily;
-    let available = (remaining_work * 60 - scheduled).max(0) / 60;
+    let capacity_seconds=remaining_days*data.work.duration_seconds(Some(&data.work.work_start),Some(&data.work.work_end),false);
+    let scheduled=(capacity_seconds-free_seconds).max(0);
+    let available=free_seconds/60;
     let worked_seconds: i64 = seconds_by_day.iter().filter(|(d, _)| **d < ctx.today).map(|(_, seconds)| seconds).sum();
     let worked = worked_seconds / 60;
     let scheduled_seconds = scheduled;
@@ -674,6 +678,27 @@ mod tests {
         assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 11);
         let unknown = handle_message(&ctx, &json!({ "jsonrpc": "2.0", "id": 3, "method": "foo" })).unwrap();
         assert_eq!(unknown["error"]["code"], -32601);
+    }
+
+    #[test]
+    fn old_searches_keep_personal_memo_matches_long_history_and_empty_one_sided_periods() {
+        let (conn,store)=setup();
+        conn.execute_batch("DELETE FROM tasks; INSERT INTO tasks(id,title,date,start_time,end_time,tag_id,memo,local_memo,created_at,updated_at) VALUES ('old','Old','2010-01-01','09:00','10:00','g1','','needle','x','x'),('new','New','2026-09-24','09:00','10:00','g1','','needle','x','x')").unwrap();
+        let matches=call(&conn,&store,"search_tasks",json!({"keyword":"needle"}));
+        assert_eq!(matches["isError"],false);assert_eq!(matches["structuredContent"]["totalMinutes"],120);
+        assert_eq!(matches["structuredContent"]["tasks"].as_array().unwrap().len(),2);
+        let empty=call(&conn,&store,"search_tasks",json!({"dateTo":"1999-01-01"}));
+        assert_eq!(empty["isError"],false);assert_eq!(empty["structuredContent"]["count"],0);
+    }
+
+    #[test]
+    fn month_capacity_and_slots_count_untagged_busy_events_but_not_free_items() {
+        let (conn,store)=setup();
+        conn.execute_batch(r#"DELETE FROM tasks; INSERT INTO tasks(id,title,date,is_all_day,tag_id,outlook_details,created_at,updated_at) VALUES ('busy','Busy','2026-09-24',1,'','{}','x','x'),('free','Free','2026-09-25',1,'','{"busyStatus":0}','x','x')"#).unwrap();
+        let result=call(&conn,&store,"month_status",json!({"month":"2026-09"}));
+        let available=call(&conn,&store,"get_availability",json!({"dateFrom":"2026-09-24","dateTo":"2026-09-30","minMinutes":1}));
+        assert_eq!(result["structuredContent"]["availableWorkTime"]["availableMinutes"],available["structuredContent"]["totalMinutes"]);
+        assert_eq!(result["structuredContent"]["availableWorkTime"]["alreadyScheduledMinutes"],480);
     }
 
     #[test]
