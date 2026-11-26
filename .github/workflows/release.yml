@@ -96,7 +96,7 @@ jobs:
           }
       - name: Install, upgrade and exercise exact packaged app
         shell: pwsh
-        run: .github/release-verification/verify-installed.ps1
+        run: ./.github/release-verification/verify-installed.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
