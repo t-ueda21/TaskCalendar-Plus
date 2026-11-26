@@ -89,8 +89,8 @@ export async function callAi(messages, { format = null } = {}) {
  * @param {{role: "user"|"assistant", content: string}[]} messages 直近の会話(最後が今回の質問)
  * @returns {Promise<{content: string, proposals: object[]}>}
  */
-export async function chatWithAgent(messages) {
-  const data = await _request({ agent: true, messages });
+export async function chatWithAgent(messages, { viewDate = null } = {}) {
+  const data = await _request({ agent: true, messages, ...(viewDate ? { viewDate } : {}) });
   return {
     content: String(data?.message?.content ?? "").trim(),
     proposals: Array.isArray(data?.proposals) ? data.proposals : [],

@@ -10,7 +10,7 @@ use crate::repositories as repo;
 use chrono::{Datelike, Duration, NaiveDate};
 use rusqlite::Connection;
 use serde_json::{Map, Value, json};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 pub const SERVER_NAME: &str = "taskcalendar";
@@ -103,6 +103,21 @@ pub(crate) fn tool_definitions() -> Value {
             "inputSchema": { "type": "object", "properties": { "dateFrom": date, "dateTo": date }, "required": ["dateFrom", "dateTo"] }
         },
         {
+            "name":"get_work_report",
+            "description":"画面と同じ集計規則で合計・残業・通常時間・日数をまとめて返す。重複時間は日ごとに1回だけ数え、タグなし・削除済みタグ・終日を工数から除く。日/タグ/タイトル/月/年別、期間比較、残業が多い日の質問に使う。既定では今日まで。未来の予定は includeFuture=true。比較の差分も返すので再計算しない。",
+            "inputSchema":{"type":"object","properties":{"dateFrom":date,"dateTo":date,"groupBy":{"type":"string","enum":["day","tag","title","month","year"]},"tagName":{"type":"string"},"keyword":{"type":"string"},"includeFuture":{"type":"boolean"},"compareFrom":date,"compareTo":date},"required":["dateFrom","dateTo"]}
+        },
+        {
+            "name":"get_availability",
+            "description":"指定期間の営業日の空き時間帯を返す。勤務時間・休憩・祝日・会社休日を反映し、タグなし・終日を含むすべての登録済み予定で埋まった時間を除く。空き時間や会議を入れられる時間の質問に使う。",
+            "inputSchema":{"type":"object","properties":{"dateFrom":date,"dateTo":date,"minMinutes":{"type":"integer","minimum":1,"maximum":1440}},"required":["dateFrom","dateTo"]}
+        },
+        {
+            "name":"get_app_help",
+            "description":"TaskCalendar+の勤務時間・残業・予定・AI・Outlook・バックアップの使い方と、回答に使える情報の範囲を返す。操作方法の質問に使う。外部Web情報は取得しない。",
+            "inputSchema":{"type":"object","properties":{}}
+        },
+        {
             "name": "propose_create_task",
             "description": "予定の作成を提案する。実際の登録はされず、利用者が画面のカードで確定したときに登録される。終日でなければ startTime と endTime を指定する(終了が不明なら開始の1時間後)。tagName は get_context のタグから選ぶ(無ければ新しいタグとして提案される)。",
             "inputSchema": {
@@ -148,10 +163,15 @@ struct Data {
     tag_names: HashMap<String, String>,
     tags: Vec<repo::Tag>,
     work: WorkSettings,
+    settings: Value,
 }
 
+#[cfg(test)]
 fn load(conn: &Connection) -> Result<Data, String> {
-    let tasks = repo::tasks_list(conn).map_err(|e| e.to_string())?;
+    load_data(conn, repo::tasks_list(conn).map_err(|e|e.to_string())?)
+}
+
+fn load_data(conn: &Connection, tasks: Vec<repo::TaskRow>) -> Result<Data,String> {
     let tags = repo::tags_list(conn).map_err(|e| e.to_string())?;
     let settings = repo::settings_get(conn).map_err(|e| e.to_string())?.unwrap_or(Value::Null);
     Ok(Data {
@@ -159,7 +179,45 @@ fn load(conn: &Connection) -> Result<Data, String> {
         tags,
         tasks,
         work: WorkSettings::from_settings(&settings),
+        settings,
     })
+}
+
+fn load_for_tool(ctx: &McpContext, name: &str, args: &Value) -> Result<Data,String> {
+    let (from,to) = match name {
+        "get_context"|"propose_create_task" => return load_data(ctx.conn,vec![]),
+        "propose_update_task"|"propose_delete_task" => return load_data(ctx.conn,repo::tasks_get(ctx.conn,arg_str(args,"taskId").ok_or("taskId は必須です")?).map_err(|e|e.to_string())?.into_iter().collect()),
+        "get_work_report"|"get_availability" => {
+            let (mut from,mut to)=crate::work_report::period(args,"dateFrom","dateTo")?;
+            if args.get("compareFrom").is_some()||args.get("compareTo").is_some(){let (cf,ct)=crate::work_report::period(args,"compareFrom","compareTo")?;from=from.min(cf);to=to.max(ct);}
+            (Some(from),Some(to))
+        },
+        "month_status"=>{
+            let month=arg_str(args,"month").map(String::from).unwrap_or_else(||ctx.today.format("%Y-%m").to_string());
+            let (year,month)=month.split_once('-').ok_or("month は YYYY-MM 形式で指定してください")?;
+            let (from,to)=calendar::month_bounds(year.parse().map_err(|_|"年が不正です")?,month.parse().map_err(|_|"月が不正です")?).ok_or("month が不正です")?;
+            (Some(from),Some(to))
+        },
+        "search_tasks"|"summarize_work"=>(arg_date(args,"dateFrom")?,arg_date(args,"dateTo")?),
+        _=>return Err(format!("unknown tool: {name}")),
+    };
+    if let (Some(from),Some(to))=(from,to) && to<from {return Err("終了日は開始日以降にしてください".into());}
+    let tasks=match (from,to) {
+        (Some(from),Some(to))=>repo::tasks_in_range(ctx.conn,&from.to_string(),&to.to_string()),
+        _=>repo::tasks_list(ctx.conn),
+    }.map_err(|e|e.to_string())?;
+    load_data(ctx.conn,tasks)
+}
+
+pub fn read_work_report(conn: &Connection, args: &Value, today: NaiveDate) -> Result<Value,String> {
+    let proposals=std::sync::Arc::new(std::sync::Mutex::new(HashMap::new()));
+    let ctx=McpContext{conn,today,session:"local-report",proposals:&proposals};
+    let data=load_for_tool(&ctx,"get_work_report",args)?;
+    crate::work_report::work_report(&task_values(&data.tasks),&data.tag_names,&data.settings,args,today)
+}
+
+fn task_values(tasks: &[repo::TaskRow]) -> Vec<Value> {
+    tasks.iter().map(|task|serde_json::to_value(task).expect("task serialization")).collect()
 }
 
 impl Data {
@@ -233,6 +291,8 @@ fn get_context(ctx: &McpContext, data: &Data) -> Value {
         "workEnd": data.work.work_end,
         "dailyWorkMinutes": data.work.daily_work_minutes(),
         "dailyWork": format_minutes(data.work.daily_work_minutes()),
+        "breaks":data.settings.get("breaks").cloned().unwrap_or(json!([{"start":"12:00","end":"13:00","countAsWork":false}])),
+        "workWeekDays":data.settings.get("workWeekDays").cloned().unwrap_or(json!(["Mon","Tue","Wed","Thu","Fri"])),
         "isTodayBusinessDay": data.work.is_business_day(ctx.today),
         "tags": data.tags.iter().map(|t| json!({
             "name": t.name,
@@ -248,11 +308,12 @@ fn search_tasks(data: &Data, args: &Value) -> Result<Value, String> {
     let to = arg_date(args,"dateTo")?;
     let limit = args.get("limit").and_then(|v| v.as_u64()).map(|n| n as usize).unwrap_or(DEFAULT_TASK_LIMIT).clamp(1, MAX_TASK_LIMIT);
     let matched_seconds = |task: &repo::TaskRow| -> i64 { data.segments(task,from,to).iter().map(|(_,seconds)| seconds).sum() };
-    let seconds: i64 = rows.iter().map(|task| matched_seconds(task)).sum();
-    let total = seconds / 60;
+    let report=summarize_work(data,args)?;
+    let seconds=report["totalSeconds"].as_i64().unwrap_or(0);
+    let total=seconds/60;
     Ok(json!({
         "count": rows.len(), "totalMinutes": total, "totalSeconds": seconds,
-        "total": format_minutes(total), "truncated": rows.len() > limit,
+        "total": format_minutes(total), "overtimeSeconds":report["overtimeSeconds"], "overtimeMinutes":report["overtimeMinutes"], "overtime":report["overtime"], "truncated": rows.len() > limit,
         "tasks": rows.iter().take(limit).map(|task| {
             let mut row = data.describe(task);
             let matched = matched_seconds(task);
@@ -264,38 +325,15 @@ fn search_tasks(data: &Data, args: &Value) -> Result<Value, String> {
 }
 
 fn summarize_work(data: &Data, args: &Value) -> Result<Value, String> {
-    let rows = data.filter(args)?;
-    let from = arg_date(args,"dateFrom")?;
-    let to = arg_date(args,"dateTo")?;
-    let group_by = arg_str(args, "groupBy").unwrap_or("tag");
-    let mut groups: BTreeMap<String, (i64, usize)> = BTreeMap::new();
-    let mut total_seconds = 0;
-    for task in &rows {
-        let segments = data.segments(task,from,to);
-        let seconds: i64 = segments.iter().map(|(_,seconds)| seconds).sum();
-        total_seconds += seconds;
-        if group_by == "day" {
-            for (day,seconds) in segments {
-                let entry = groups.entry(day.format("%Y-%m-%d").to_string()).or_default();
-                entry.0 += seconds; entry.1 += 1;
-            }
-        } else {
-            let key = if group_by == "title" { task.title.clone() }
-                else { Some(data.tag_name(task)).filter(|name| !name.is_empty()).unwrap_or_else(|| "タグなし".to_string()) };
-            let entry = groups.entry(key).or_default();
-            entry.0 += seconds; entry.1 += 1;
-        }
-    }
-    let mut list: Vec<(String, (i64, usize))> = groups.into_iter().collect();
-    if group_by != "day" { list.sort_by_key(|(_, (seconds, _))| std::cmp::Reverse(*seconds)); }
-    Ok(json!({
-        "groupBy": group_by, "count": rows.len(), "totalMinutes": total_seconds / 60,
-        "totalSeconds": total_seconds, "total": format_minutes(total_seconds / 60),
-        "groups": list.into_iter().map(|(key, (seconds, count))| json!({
-            "key": key, "minutes": seconds / 60, "seconds": seconds,
-            "duration": format_minutes(seconds / 60), "count": count,
-        })).collect::<Vec<_>>(),
-    }))
+    let rows=data.filter(args)?;
+    let tasks: Vec<_>=rows.iter().map(|task|serde_json::to_value(task).expect("task serialization")).collect();
+    let from=arg_date(args,"dateFrom")?.or_else(||rows.iter().filter_map(|t|calendar::parse_date(&t.date)).min()).unwrap_or(NaiveDate::from_ymd_opt(2000,1,1).unwrap());
+    let to=arg_date(args,"dateTo")?.or_else(||rows.iter().filter_map(|t|calendar::parse_date(t.end_date.as_deref().unwrap_or(&t.date))).max()).unwrap_or(from);
+    let mut options=args.clone();options["dateFrom"]=json!(from.to_string());options["dateTo"]=json!(to.to_string());options["includeFuture"]=json!(true);
+    if options.get("groupBy").is_none(){options["groupBy"]=json!("tag");}
+    let mut report=crate::work_report::work_report(&tasks,&data.tag_names,&data.settings,&options,to)?;
+    report["count"]=json!(rows.len());
+    Ok(report)
 }
 
 fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, String> {
@@ -307,13 +345,15 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
         None => (ctx.today.year(), ctx.today.month()),
     };
     let (first, last) = calendar::month_bounds(year, month).ok_or("month が不正です")?;
-    let mut used_by_tag: HashMap<&str, i64> = HashMap::new();
-    let mut seconds_by_day: HashMap<NaiveDate, i64> = HashMap::new();
-    for task in &data.tasks {
-        for (day,seconds) in data.segments(task,Some(first),Some(last)) {
-            *used_by_tag.entry(task.tag_id.as_str()).or_default() += seconds;
-            *seconds_by_day.entry(day).or_default() += seconds;
-        }
+    let values=task_values(&data.tasks);
+    let range=json!({"dateFrom":first.to_string(),"dateTo":last.to_string(),"includeFuture":true,"groupBy":"day"});
+    let report=crate::work_report::work_report(&values,&data.tag_names,&data.settings,&range,ctx.today)?;
+    let seconds_by_day: HashMap<NaiveDate,i64>=report["groups"].as_array().into_iter().flatten().filter_map(|row|Some((calendar::parse_date(row["key"].as_str()?)?,row["totalSeconds"].as_i64()?))).collect();
+    let mut used_by_tag: HashMap<&str,i64>=HashMap::new();
+    for tag in &data.tags {
+        let tasks: Vec<_>=values.iter().filter(|v|v["tagId"].as_str()==Some(tag.id.as_str())).cloned().collect();
+        let used=crate::work_report::work_report(&tasks,&data.tag_names,&data.settings,&range,ctx.today)?;
+        used_by_tag.insert(&tag.id,used["totalSeconds"].as_i64().unwrap_or(0));
     }
     let budgets: Vec<Value> = data
         .tags
@@ -534,9 +574,13 @@ fn propose_delete(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, 
 }
 
 pub(crate) fn call_tool(ctx: &McpContext, name: &str, args: &Value) -> Result<Value, String> {
-    let data = load(ctx.conn)?;
+    if name=="get_daily_notes" { return get_daily_notes(ctx,args); }
+    if name=="get_app_help" { return Ok(json!({"workTime":"設定→勤務時間と休日で勤務開始・終了、休憩の工数算入、会社休日を設定。残業は勤務時間帯の外側（早出・終業後）で、法定時間外労働の判定ではない。工数は有効なタグ付き予定のみ。重複は1回だけ集計。","calendar":"日・週・月の予定を確認。サマリーで月間・年間、タグ別、未来の予定の表示を切り替える。","ai":"登録済み予定・作業時間・残業・予算・期間比較・空き時間・日報・メモを調べられる。作成・変更・削除は提案カードの確定後に実行。一般的な相談は選択中のAIを使う。外部の最新Web情報は検索しない。","outlook":"設定→Outlook連携で予定表・同期範囲・書き込みを設定。書き込みを有効にした予定のみOutlookへ反映。","backup":"設定→データから設定のエクスポートと全データバックアップを実行。復元は現在のデータを置き換えるため先にバックアップ。"})); }
+    let data = load_for_tool(ctx,name,args)?;
     match name {
         "get_context" => Ok(get_context(ctx, &data)),
+        "get_work_report" => crate::work_report::work_report(&task_values(&data.tasks),&data.tag_names,&data.settings,args,ctx.today),
+        "get_availability" => crate::work_report::availability(&task_values(&data.tasks),&data.settings,args),
         "search_tasks" => search_tasks(&data, args),
         "summarize_work" => summarize_work(&data, args),
         "month_status" => month_status(ctx, &data, args),
@@ -627,9 +671,23 @@ mod tests {
         assert_eq!(init["result"]["protocolVersion"], "2025-03-26");
         assert!(handle_message(&ctx, &json!({ "jsonrpc": "2.0", "method": "notifications/initialized" })).is_none());
         let list = handle_message(&ctx, &json!({ "jsonrpc": "2.0", "id": 2, "method": "tools/list" })).unwrap();
-        assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 8);
+        assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 11);
         let unknown = handle_message(&ctx, &json!({ "jsonrpc": "2.0", "id": 3, "method": "foo" })).unwrap();
         assert_eq!(unknown["error"]["code"], -32601);
+    }
+
+    #[test]
+    fn work_reports_and_legacy_totals_match_screen_union_and_overtime() {
+        let (conn,store)=setup();
+        conn.execute_batch("DELETE FROM tasks; INSERT INTO tasks(id,title,date,start_time,end_time,tag_id,created_at,updated_at) VALUES ('a','A','2026-09-24','08:00','10:00','g1','x','x'),('b','B','2026-09-24','09:00','11:00','g2','x','x'),('c','Untagged','2026-09-24','18:00','20:00','','x','x')").unwrap();
+        for name in ["get_work_report","summarize_work","search_tasks"] {
+            let result=call(&conn,&store,name,json!({"dateFrom":"2026-09-24","dateTo":"2026-09-24"}));
+            assert_eq!(result["structuredContent"]["totalMinutes"],180,"{name}");
+            assert_eq!(result["structuredContent"]["overtimeMinutes"],60,"{name}");
+        }
+        let free=call(&conn,&store,"get_availability",json!({"dateFrom":"2026-09-24","dateTo":"2026-09-24"}));
+        assert_eq!(free["structuredContent"]["totalMinutes"],360);
+        assert_eq!(call(&conn,&store,"propose_create_task",json!({"date":"2026-09-24","title":"test","startTime":"09:00"}))["isError"],false);
     }
 
     #[test]

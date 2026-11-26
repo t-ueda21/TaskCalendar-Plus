@@ -420,7 +420,7 @@ async fn chat_with_timeout(
 ) -> Result<Value, String> {
     let client = LocalClient::new(&settings.provider, &settings.endpoint)?;
     let session = agent.then(|| Session::new(&state.proposals));
-    let today = chrono::Local::now().date_naive();
+    let today = crate::ai::today_in_jst();
     let tools = if agent {
         if !messages.first().and_then(|m| m.get("content")).and_then(Value::as_str).is_some_and(|s| s.starts_with("# TaskCalendar+ application instructions")) {
             let config = {
