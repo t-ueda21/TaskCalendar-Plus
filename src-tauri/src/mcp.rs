@@ -104,7 +104,7 @@ pub(crate) fn tool_definitions() -> Value {
         },
         {
             "name":"get_work_report",
-            "description":"画面と同じ集計規則で合計・残業・通常時間・日数をまとめて返す。重複時間は日ごとに1回だけ数え、タグなし・削除済みタグ・終日を工数から除く。日/タグ/タイトル/月/年別、期間比較、残業が多い日の質問に使う。既定では今日まで。未来の予定は includeFuture=true。比較の差分も返すので再計算しない。",
+            "description":"画面と同じ集計規則で合計・残業・通常時間・日数をまとめて返す。重複時間は日ごとに1回だけ数え、タグなし・削除済みタグ・終日を工数から除く。日/タグ/タイトル/月/年別、期間比較、残業が多い日の質問に使う。既定では今日まで。未来の予定は includeFuture=true。比較の差分も返すので再計算しない。taskSumは並行予定も加算したサイドバーのタグ別工数・予算用の値で、total（重複除外）と区別する。",
             "inputSchema":{"type":"object","properties":{"dateFrom":date,"dateTo":date,"groupBy":{"type":"string","enum":["day","tag","title","month","year"]},"tagName":{"type":"string"},"keyword":{"type":"string"},"includeFuture":{"type":"boolean"},"compareFrom":date,"compareTo":date},"required":["dateFrom","dateTo"]}
         },
         {
@@ -349,11 +349,11 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
     let range=json!({"dateFrom":first.to_string(),"dateTo":last.to_string(),"includeFuture":true,"groupBy":"day"});
     let report=crate::work_report::work_report(&values,&data.tag_names,&data.settings,&range,ctx.today)?;
     let seconds_by_day: HashMap<NaiveDate,i64>=report["groups"].as_array().into_iter().flatten().filter_map(|row|Some((calendar::parse_date(row["key"].as_str()?)?,row["totalSeconds"].as_i64()?))).collect();
+    // Sidebar budgets deliberately add parallel tasks; elapsed work above uses a union.
     let mut used_by_tag: HashMap<&str,i64>=HashMap::new();
-    for tag in &data.tags {
-        let tasks: Vec<_>=values.iter().filter(|v|v["tagId"].as_str()==Some(tag.id.as_str())).cloned().collect();
-        let used=crate::work_report::work_report(&tasks,&data.tag_names,&data.settings,&range,ctx.today)?;
-        used_by_tag.insert(&tag.id,used["totalSeconds"].as_i64().unwrap_or(0));
+    for task in &data.tasks {
+        let seconds:i64=data.segments(task,Some(first),Some(last)).iter().map(|(_,s)|s).sum();
+        *used_by_tag.entry(task.tag_id.as_str()).or_default()+=seconds;
     }
     let budgets: Vec<Value> = data
         .tags
@@ -363,15 +363,18 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
             let max = t.budget_max_minutes.unwrap_or(0);
             let used_seconds = used_by_tag.get(t.id.as_str()).copied().unwrap_or(0);
             let used = used_seconds / 60;
-            let state = if max >= used { format!("残り{}", format_minutes(max - used)) } else { format!("{}超過", format_minutes(used - max)) };
+            let display_used=(used_seconds+30)/60;
+            let remaining_seconds=max.saturating_mul(60).saturating_sub(used_seconds);
+            let display_remaining=(remaining_seconds.abs()+30)/60;
+            let state=if remaining_seconds>=0 {format!("残り{}",format_minutes(display_remaining))}else{format!("{}超過",format_minutes(display_remaining))};
             json!({
-                "summary": format!("{}: 今月の実績{} / 上限{} → {state}", t.name, format_minutes(used), format_minutes(max)),
+                "summary": format!("{}: 今月の実績{} / 上限{} → {state}", t.name, format_minutes(display_used), format_minutes(max)),
                 "tag": t.name,
-                "usedMinutes": used, "usedSeconds": used_seconds, "used": format_minutes(used),
+                "usedMinutes": used, "displayUsedMinutes":display_used, "usedSeconds": used_seconds, "used": format_minutes(display_used),
                 "maxMinutes": max, "max": format_minutes(max),
                 "minMinutes": t.budget_min_minutes, "min": t.budget_min_minutes.map(format_minutes),
                 "remainingMinutes": max - used,
-                "remaining": if max >= used { format!("残り{}", format_minutes(max - used)) } else { format!("{}超過", format_minutes(used - max)) },
+                "remaining": state,
             })
         })
         .collect();
@@ -423,7 +426,7 @@ fn month_status(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, St
             "workedBeforeToday": format_minutes(worked),
         },
         "budgets": budgets,
-        "budgetNote": "予算の実績は月内の予定すべて(今日以降に登録済みの予定を含む)。",
+        "budgetNote": "予算はサイドバーと同じ予定加算（並行予定・今日以降も含む）。全体の実時間とは異なる。summary/used/remainingは画面と同じ表示丸め、usedMinutesは旧互換の切り捨て値。",
     }))
 }
 
@@ -579,7 +582,7 @@ fn propose_delete(ctx: &McpContext, data: &Data, args: &Value) -> Result<Value, 
 
 pub(crate) fn call_tool(ctx: &McpContext, name: &str, args: &Value) -> Result<Value, String> {
     if name=="get_daily_notes" { return get_daily_notes(ctx,args); }
-    if name=="get_app_help" { return Ok(json!({"workTime":"設定→勤務時間と休日で勤務開始・終了、休憩の工数算入、会社休日を設定。残業は勤務時間帯の外側（早出・終業後）で、法定時間外労働の判定ではない。工数は有効なタグ付き予定のみ。重複は1回だけ集計。","calendar":"日・週・月の予定を確認。サマリーで月間・年間、タグ別、未来の予定の表示を切り替える。","ai":"登録済み予定・作業時間・残業・予算・期間比較・空き時間・日報・メモを調べられる。作成・変更・削除は提案カードの確定後に実行。一般的な相談は選択中のAIを使う。外部の最新Web情報は検索しない。","outlook":"設定→Outlook連携で予定表・同期範囲・書き込みを設定。書き込みを有効にした予定のみOutlookへ反映。","backup":"設定→データから設定のエクスポートと全データバックアップを実行。復元は現在のデータを置き換えるため先にバックアップ。"})); }
+    if name=="get_app_help" { return Ok(json!({"workTime":"設定→勤務時間と休日で勤務開始・終了、休憩の工数算入、会社休日を設定。残業は勤務時間帯の外側（早出・終業後）で、法定時間外労働の判定ではない。全体時間は有効なタグ付き予定の重複を1回だけ集計。サイドバーのタグ別工数・予算は並行予定も加算する別の指標。","calendar":"日・週・月の予定を確認。サマリーで月間・年間、タグ別、未来の予定の表示を切り替える。","ai":"登録済み予定・作業時間・残業・予算・期間比較・空き時間・日報・メモを調べられる。作成・変更・削除は提案カードの確定後に実行。一般的な相談は選択中のAIを使う。外部の最新Web情報は検索しない。","outlook":"設定→Outlook連携で予定表・同期範囲・書き込みを設定。書き込みを有効にした予定のみOutlookへ反映。","backup":"設定→データから設定のエクスポートと全データバックアップを実行。復元は現在のデータを置き換えるため先にバックアップ。"})); }
     let data = load_for_tool(ctx,name,args)?;
     match name {
         "get_context" => Ok(get_context(ctx, &data)),
@@ -678,6 +681,19 @@ mod tests {
         assert_eq!(list["result"]["tools"].as_array().unwrap().len(), 11);
         let unknown = handle_message(&ctx, &json!({ "jsonrpc": "2.0", "id": 3, "method": "foo" })).unwrap();
         assert_eq!(unknown["error"]["code"], -32601);
+    }
+
+    #[test]
+    fn tag_budgets_preserve_sidebar_parallel_sums_and_display_rounding() {
+        let (conn,store)=setup();
+        conn.execute_batch("DELETE FROM tasks; INSERT INTO tasks(id,title,date,start_time,end_time,tag_id,created_at,updated_at) VALUES ('a','A','2026-09-24','08:00','10:00','g1','x','x'),('b','B','2026-09-24','09:00','11:00','g1','x','x')").unwrap();
+        let result=call(&conn,&store,"month_status",json!({"month":"2026-09"}));
+        let budget=result["structuredContent"]["budgets"].as_array().unwrap().iter().find(|r|r["tag"]=="会議").unwrap();
+        assert_eq!(budget["usedMinutes"],240);assert_eq!(budget["used"],"4時間");
+        conn.execute_batch("DELETE FROM tasks; INSERT INTO tasks(id,title,date,start_time,end_time,tag_id,created_at,updated_at) VALUES ('seconds','Seconds','2026-09-24','09:00','09:01:30','g1','x','x')").unwrap();
+        let result=call(&conn,&store,"month_status",json!({"month":"2026-09"}));
+        let budget=result["structuredContent"]["budgets"].as_array().unwrap().iter().find(|r|r["tag"]=="会議").unwrap();
+        assert_eq!(budget["usedSeconds"],90);assert_eq!(budget["used"],"2分");
     }
 
     #[test]

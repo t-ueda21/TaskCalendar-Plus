@@ -71,9 +71,11 @@ pub fn event_intervals(
 struct Bucket {
     days: BTreeMap<NaiveDate, Vec<(i64, i64)>>,
     ids: HashSet<String>,
+    task_sum_seconds: i64,
 }
 impl Bucket {
-    fn add(&mut self, day: NaiveDate, interval: (i64, i64), id: &str) {
+    fn add(&mut self, day: NaiveDate, interval: (i64, i64), id: &str, task_seconds: i64) {
+        self.task_sum_seconds += task_seconds;
         self.days.entry(day).or_default().push(interval);
         self.ids.insert(id.into());
     }
@@ -83,7 +85,7 @@ impl Bucket {
             .values()
             .map(|ranges| work.summarize_intervals(ranges))
             .fold((0, 0), |(s, o), (ds, doo)| (s + ds, o + doo));
-        json!({"count":self.ids.len(),"totalSeconds":seconds,"totalMinutes":seconds/60,"total":format_minutes(seconds/60),"seconds":seconds,"minutes":seconds/60,"duration":format_minutes(seconds/60),"overtimeSeconds":overtime,"overtimeMinutes":overtime/60,"overtime":format_minutes(overtime/60),"normalSeconds":seconds-overtime})
+        json!({"count":self.ids.len(),"totalSeconds":seconds,"totalMinutes":seconds/60,"total":format_minutes(seconds/60),"seconds":seconds,"minutes":seconds/60,"duration":format_minutes(seconds/60),"overtimeSeconds":overtime,"overtimeMinutes":overtime/60,"overtime":format_minutes(overtime/60),"normalSeconds":seconds-overtime,"taskSumSeconds":self.task_sum_seconds,"taskSumMinutes":self.task_sum_seconds/60,"taskSum":format_minutes(self.task_sum_seconds/60)})
     }
 }
 
@@ -141,10 +143,11 @@ pub fn summarize(
             continue;
         }
         for (day, interval) in event_intervals(task, from, to) {
-            if work.work_intervals(&[interval]).is_empty() {
+            let task_seconds = work.summarize_intervals(&[interval]).0;
+            if task_seconds == 0 {
                 continue;
             }
-            total.add(day, interval, text(task, "id"));
+            total.add(day, interval, text(task, "id"), task_seconds);
             let key = match group {
                 "tag" => tag_id.to_string(),
                 "title" => text(task, "title").into(),
@@ -155,7 +158,7 @@ pub fn summarize(
             groups
                 .entry(key)
                 .or_default()
-                .add(day, interval, text(task, "id"));
+                .add(day, interval, text(task, "id"), task_seconds);
         }
     }
     let mut result = total.value(work);
@@ -195,6 +198,7 @@ fn round_report(value: &mut Value) {
     for (field, display, text_field) in [
         ("totalSeconds", "totalMinutes", "total"),
         ("overtimeSeconds", "overtimeMinutes", "overtime"),
+        ("taskSumSeconds", "taskSumMinutes", "taskSum"),
     ] {
         if let Some(seconds) = value[field].as_i64() {
             let minutes = rounded(seconds);
@@ -253,7 +257,7 @@ pub fn work_report(
         Value::Null
     };
     result["includeFuture"] = json!(include_future);
-    result["rules"] = json!({"timezone":"Asia/Tokyo","workStart":work.work_start,"workEnd":work.work_end,"overlap":"count once per day","tags":"existing tags only","overtime":"outside workStart/workEnd after excluding unpaid breaks; not statutory overtime","groupTotalsMayOverlap":true});
+    result["rules"] = json!({"timezone":"Asia/Tokyo","workStart":work.work_start,"workEnd":work.work_end,"overlap":"count once per day","tags":"existing tags only","overtime":"outside workStart/workEnd after excluding unpaid breaks; not statutory overtime","groupTotalsMayOverlap":true,"taskSum":"Sum of registered task durations, including parallel tasks; matches sidebar tag budgets. total is the union of time."});
     if args.get("compareFrom").is_some() || args.get("compareTo").is_some() {
         let (cf, ct) = period(args, "compareFrom", "compareTo")?;
         let effective = if include_future { ct } else { ct.min(today) };
@@ -426,6 +430,27 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn union_time_and_parallel_task_sum_are_distinct_named_metrics() {
+        let tasks = vec![
+            json!({"id":"a","date":"2026-11-26","tagId":"a","startTime":"08:00","endTime":"10:00"}),
+            json!({"id":"b","date":"2026-11-26","tagId":"a","startTime":"09:00","endTime":"11:00"}),
+        ];
+        let tags = HashMap::from([("a".into(), "作業".into())]);
+        let report = work_report(
+            &tasks,
+            &tags,
+            &json!({}),
+            &json!({"dateFrom":"2026-11-26","dateTo":"2026-11-26","groupBy":"tag"}),
+            crate::calendar::parse_date("2026-11-26").unwrap(),
+        )
+        .unwrap();
+        assert_eq!(report["totalMinutes"], 180);
+        assert_eq!(report["taskSumMinutes"], 240);
+        assert_eq!(report["groups"][0]["taskSum"], "4時間");
+        assert_eq!(report["groups"][0]["total"], "3時間");
     }
 
     #[test]

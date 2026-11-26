@@ -18,7 +18,7 @@ try {
      const task=await S.createTask({title,date:today,startTime,endTime,tagId,recurrence:{type:'none'}});if(title==='Late')late=task.id;
    }
    (await import('/src/ui-utils.js')).syncViewDate(today);
-   return {today,late,summary:S.calcDaySummary(today)};
+   return {today,late,summary:S.calcDaySummary(today),tagSum:S.calcDaySummary(today).byTag.get(tag.id)};
  })()`);
  assert.equal(fixture.summary.total,240);assert.equal(fixture.summary.overtime,120);
  await app.evaluate(`(()=>{window.__workChecks=[];window.__taskReloads=0;const original=window.fetch;window.fetch=async(input,options)=>{const url=String(input);if(url==='/api/tasks'&&(!options?.method||options.method==='GET'))window.__taskReloads++;const response=await original(input,options);if(url==='/api/ai/chat')window.__workChecks.push({body:JSON.parse(options.body),reply:await response.clone().json()});return response;};document.querySelector('nav [data-nav-target="ai"]').click();})()`);
@@ -30,12 +30,12 @@ try {
  }
  const first=await ask(1);
  assert.equal(first.reply.source,'application');assert.equal(first.reply.report.overtimeMinutes,120);
- assert.equal(first.reply.report.totalMinutes,240);assert.equal(first.body.viewDate,fixture.today);
+ assert.equal(first.reply.report.totalMinutes,240);assert.equal(first.reply.report.taskSumMinutes,300);assert.equal(fixture.tagSum,300);assert.equal(first.body.viewDate,fixture.today);
  assert.ok(first.reply.elapsedMs<1000,'small local report should not wait for a model');
  const visible=await app.evaluate(`document.querySelector('[data-ai-chat-log]').textContent`);assert.ok(visible.includes('2時間'));
  await app.evaluate(`(async()=>{const S=await import('/src/store.js');await S.deleteTask(${JSON.stringify(fixture.late)});})()`);
  const second=await ask(2);
- assert.equal(second.reply.source,'application');assert.equal(second.reply.report.overtimeMinutes,60);
+ assert.equal(second.reply.source,'application');assert.equal(second.reply.report.overtimeMinutes,60);assert.equal(second.reply.report.taskSumMinutes,240);
  assert.ok(second.body.messages.some(m=>m.role==='assistant'&&m.source==='application'),'local-answer provenance survives history persistence');
  assert.equal(await app.evaluate('window.__taskReloads'),0,'asking questions must not fetch the complete renderer snapshot');
  const results={fixture,first:first.reply,second:second.reply,taskReloads:0,modelRequired:false};
