@@ -215,8 +215,9 @@ fn round_report(value: &mut Value) {
         ),
     ] {
         if let Some(seconds) = value[field].as_i64() {
-            value[minutes_field] = json!(rounded(seconds));
-            value[text_field] = json!(format_minutes(rounded(seconds)));
+            let minutes = seconds.signum() * rounded(seconds.abs());
+            value[minutes_field] = json!(minutes);
+            value[text_field] = json!(format_minutes(minutes));
         }
     }
     if let Some(groups) = value.get_mut("groups").and_then(Value::as_array_mut) {
@@ -425,6 +426,20 @@ mod tests {
             )
             .is_err()
         );
+    }
+
+    #[test]
+    fn negative_half_minute_comparisons_use_the_screen_sign_and_rounded_magnitude() {
+        let tasks = vec![
+            json!({"id":"now","date":"2026-11-02","tagId":"a","startTime":"18:00","endTime":"18:00:30"}),
+            json!({"id":"before","date":"2026-10-02","tagId":"a","startTime":"18:00","endTime":"18:01"}),
+        ];
+        let tags = HashMap::from([("a".into(), "作業".into())]);
+        let result=work_report(&tasks,&tags,&json!({}),&json!({"dateFrom":"2026-11-01","dateTo":"2026-11-30","compareFrom":"2026-10-01","compareTo":"2026-10-31"}),crate::calendar::parse_date("2026-11-26").unwrap()).unwrap();
+        assert_eq!(result["comparison"]["totalDeltaSeconds"], -30);
+        assert_eq!(result["comparison"]["totalDeltaMinutes"], -1);
+        assert_eq!(result["comparison"]["overtimeDeltaMinutes"], -1);
+        assert_eq!(result["comparison"]["overtimeDelta"], "-1分");
     }
 
     #[test]
