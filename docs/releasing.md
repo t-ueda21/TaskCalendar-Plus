@@ -9,7 +9,7 @@ Windows x64 uses a per-user Tauri NSIS installer with updater signatures. Window
 3. Run `node scripts/release-manifest.mjs --check`, Rust and JavaScript tests, renderer syntax checks, and Clippy. Test the actual packaged app with isolated data and verify compatibility with the previous version.
 4. Commit the tested sources and push main with a matching version tag. Never move a published tag. Require CI success for that exact commit.
 
-`.github/workflows/release.yml` builds, signs, and creates a **draft**, not a published update. It requires `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Preserve the original recovery key outside the repository; never print, commit, archive, or replace it for an ordinary release.
+`.github/workflows/release.yml` builds, signs, creates an installer ZIP, and creates a **draft**, not a published update. The four distribution files are also retained as the `taskcalendar-distribution` workflow artifact. It requires `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. Preserve the original recovery key outside the repository; never print, commit, archive, or replace it for an ordinary release.
 
 A verified local build is also supported:
 
@@ -23,7 +23,7 @@ Use `src-tauri/target` as the target directory and scope signing secrets to the 
 ## Publish and verify
 
 1. Verify the installer against the committed public key, including rejection of modified bytes. Compare bundled renderer files with the release sources. Record hashes, commands, and results under `out/`.
-2. Upload exactly the tested installer, its `.exe.sig`, and `latest.json` to the draft. Confirm remote hashes match and notes match `docs/releases/vX.Y.Z.md`.
+2. Upload exactly the tested installer, its `.exe.sig`, the ZIP containing that exact installer, and `latest.json` to the draft. Confirm remote hashes match and notes match `docs/releases/vX.Y.Z.md`.
 3. Publish as the latest stable release when authorized. Never overwrite published assets.
 4. Download the feed and installer without authentication; verify version, notes, URL, checksum, and signature. Check that the previous native app detects the update and the new app reports no newer version.
 

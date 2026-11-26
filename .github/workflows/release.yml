@@ -71,19 +71,21 @@ jobs:
         run: npx --yes @tauri-apps/cli@2.11.5 build --ci --bundles nsis -- --locked
       - name: Create stable update feed (skip prereleases)
         run: node scripts/release-manifest.mjs
-      - name: Stage distribution files
-        if: inputs.stage_only == true
+      - name: Create installer ZIP and stage distribution files
         shell: pwsh
         run: |
           $assetJson = node scripts/release-manifest.mjs --assets
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $assets = @($assetJson | ConvertFrom-Json)
+          $archive = [System.IO.Path]::ChangeExtension([string]$assets[0], '.zip')
+          Compress-Archive -LiteralPath $assets[0] -DestinationPath $archive -CompressionLevel Optimal
+          $assets += $archive
           $distribution = Join-Path $env:RUNNER_TEMP 'taskcalendar-distribution'
           New-Item -ItemType Directory -Path $distribution -Force | Out-Null
-          foreach ($asset in @($assetJson | ConvertFrom-Json)) {
+          foreach ($asset in $assets) {
             Copy-Item -LiteralPath $asset -Destination $distribution
           }
       - uses: actions/upload-artifact@v4
-        if: inputs.stage_only == true
         with:
           name: taskcalendar-distribution
           path: ${{ runner.temp }}/taskcalendar-distribution/*
@@ -111,5 +113,6 @@ jobs:
           $assetJson = node scripts/release-manifest.mjs --assets
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $assets = @($assetJson | ConvertFrom-Json)
+          $assets += [System.IO.Path]::ChangeExtension([string]$assets[0], '.zip')
           gh release upload $env:RELEASE_TAG @assets --clobber
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
