@@ -109,8 +109,8 @@ pub(crate) fn tool_definitions() -> Value {
         },
         {
             "name":"get_availability",
-            "description":"指定期間の営業日の空き時間帯を返す。勤務時間・休憩・祝日・会社休日を反映し、タグなし・終日を含むすべての登録済み予定で埋まった時間を除く。空き時間や会議を入れられる時間の質問に使う。",
-            "inputSchema":{"type":"object","properties":{"dateFrom":date,"dateTo":date,"minMinutes":{"type":"integer","minimum":1,"maximum":1440}},"required":["dateFrom","dateTo"]}
+            "description":"指定期間の営業日の空き時間帯を返す。勤務時間・休憩・祝日・会社休日を反映し、タグなし・終日を含むすべての登録済み予定で埋まった時間を除く。空き時間や会議を入れられる時間の質問に使う。availableは空き時間の総量、slots/totalはminMinutes以上の候補（既定30分）なので区別する。",
+            "inputSchema":{"type":"object","properties":{"dateFrom":date,"dateTo":date,"minMinutes":{"type":"integer","minimum":1,"maximum":1440,"default":30}},"required":["dateFrom","dateTo"]}
         },
         {
             "name":"get_app_help",

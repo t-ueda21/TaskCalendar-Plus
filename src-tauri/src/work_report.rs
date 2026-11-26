@@ -338,8 +338,10 @@ pub fn availability(tasks: &[Value], settings: &Value, args: &Value) -> Result<V
     }
     let mut slots = Vec::new();
     let mut seconds = 0;
+    let mut available_seconds = 0;
     for (day, ranges) in business_ranges(tasks, settings, from, to)? {
         for (s, e) in ranges {
+            available_seconds += e - s;
             if e - s >= minimum * 60 {
                 seconds += e - s;
                 slots.push(json!({"date":day.to_string(),"startTime":format!("{:02}:{:02}:{:02}",s/3600,s%3600/60,s%60),"endTime":format!("{:02}:{:02}:{:02}",e/3600,e%3600/60,e%60),"minutes":(e-s)/60,"seconds":e-s}));
@@ -349,7 +351,7 @@ pub fn availability(tasks: &[Value], settings: &Value, args: &Value) -> Result<V
     let count = slots.len();
     slots.truncate(500);
     Ok(
-        json!({"dateFrom":from.to_string(),"dateTo":to.to_string(),"slots":slots,"slotCount":count,"truncated":count>500,"totalMinutes":seconds/60,"totalSeconds":seconds,"total":format_minutes(seconds/60),"rules":"Business hours minus breaks and registered busy events, including untagged/all-day. Events explicitly marked Free do not block time."}),
+        json!({"dateFrom":from.to_string(),"dateTo":to.to_string(),"minMinutes":minimum,"availableSeconds":available_seconds,"availableMinutes":available_seconds/60,"available":format_minutes(available_seconds/60),"slots":slots,"slotCount":count,"truncated":count>500,"totalMinutes":seconds/60,"totalSeconds":seconds,"total":format_minutes(seconds/60),"rules":"available is all business time minus breaks and busy events (including untagged/all-day). total is the sum of candidate slots at least minMinutes long. Explicit Free events do not block time."}),
     )
 }
 
@@ -479,6 +481,31 @@ mod tests {
         assert_eq!(result["groups"].as_array().unwrap().len(), 2);
         assert_eq!(result["groups"][0]["tagId"], "a");
         assert_eq!(result["groups"][1]["tagId"], "b");
+    }
+
+    #[test]
+    fn total_available_time_is_distinct_from_duration_filtered_candidates() {
+        let tasks = vec![json!({"date":"2026-11-26","startTime":"09:10","endTime":"09:55"})];
+        let settings = json!({"workStart":"09:00","workEnd":"10:00","breaks":[]});
+        let report = availability(
+            &tasks,
+            &settings,
+            &json!({"dateFrom":"2026-11-26","dateTo":"2026-11-26"}),
+        )
+        .unwrap();
+        assert_eq!(report["availableMinutes"], 15);
+        assert_eq!(report["minMinutes"], 30);
+        assert_eq!(report["totalMinutes"], 0);
+        assert_eq!(report["slots"], json!([]));
+        let short = availability(
+            &tasks,
+            &settings,
+            &json!({"dateFrom":"2026-11-26","dateTo":"2026-11-26","minMinutes":5}),
+        )
+        .unwrap();
+        assert_eq!(short["availableMinutes"], 15);
+        assert_eq!(short["totalMinutes"], 15);
+        assert_eq!(short["slots"].as_array().unwrap().len(), 2);
     }
 
     #[test]

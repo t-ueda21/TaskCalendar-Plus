@@ -6,7 +6,7 @@ import {nativeApp,delay} from './native-test-driver.mjs';
 const dataDir=process.env.TCPLUS_AI_NATIVE_DATA;
 assert.ok(dataDir,'Set TCPLUS_AI_NATIVE_DATA to an isolated test profile');
 const output=path.resolve('out/ai-worktime-native');fs.mkdirSync(output,{recursive:true});
-const app=await nativeApp({port:9491,dataDir});
+const app=await nativeApp({port:9491,dataDir,diagnosticsDir:output});
 async function waitFor(expression){for(let i=0;i<120;i++){const value=await app.evaluate(expression);if(value)return value;await delay(100);}throw Error('Native AI condition timed out: '+expression);}
 try {
  const fixture=await app.evaluate(`(async()=>{
