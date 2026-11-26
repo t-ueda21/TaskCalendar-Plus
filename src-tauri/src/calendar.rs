@@ -159,6 +159,23 @@ impl WorkSettings {
         }
     }
 
+    /// Union of work ranges, excluding unpaid breaks once, in integer seconds.
+    pub fn work_intervals(&self, intervals: &[(i64, i64)]) -> Vec<(i64, i64)> {
+        let mut ranges = merge_intervals(intervals);
+        for (start, end) in merge_intervals(&self.excluded_breaks) {
+            ranges = subtract_interval(&ranges, (start, end));
+        }
+        ranges
+    }
+
+    pub fn summarize_intervals(&self, intervals: &[(i64, i64)]) -> (i64, i64) {
+        let start = time_to_seconds(&self.work_start).unwrap_or(9 * 3600);
+        let end = time_to_seconds(&self.work_end).unwrap_or(18 * 3600);
+        self.work_intervals(intervals).iter().fold((0, 0), |(total, overtime), &(s, e)| {
+            (total + e - s, overtime + (e.min(start) - s).max(0) + (e - s.max(end)).max(0))
+        })
+    }
+
     fn work_seconds(&self, start: i64, end: i64) -> i64 {
         if end <= start { return 0; }
         let mut breaks: Vec<_> = self.excluded_breaks.iter()
@@ -227,6 +244,30 @@ pub fn month_bounds(year: i32, month: u32) -> Option<(NaiveDate, NaiveDate)> {
     let first = NaiveDate::from_ymd_opt(year, month, 1)?;
     let next = if month == 12 { NaiveDate::from_ymd_opt(year + 1, 1, 1)? } else { NaiveDate::from_ymd_opt(year, month + 1, 1)? };
     Some((first, next - Duration::days(1)))
+}
+
+/// Merge half-open ranges. Adjacent ranges form one occupied interval.
+pub fn merge_intervals(intervals: &[(i64, i64)]) -> Vec<(i64, i64)> {
+    let mut sorted: Vec<_> = intervals.iter().copied().filter(|(s, e)| e > s).collect();
+    sorted.sort_unstable();
+    let mut merged: Vec<(i64, i64)> = Vec::new();
+    for (s, e) in sorted {
+        if let Some(last) = merged.last_mut() && s <= last.1 { last.1 = last.1.max(e); }
+        else { merged.push((s, e)); }
+    }
+    merged
+}
+
+pub fn subtract_interval(intervals: &[(i64, i64)], (start, end): (i64, i64)) -> Vec<(i64, i64)> {
+    let mut result = Vec::new();
+    for &(s, e) in intervals {
+        if end <= s || start >= e { result.push((s, e)); }
+        else {
+            if start > s { result.push((s, start)); }
+            if end < e { result.push((end, e)); }
+        }
+    }
+    result
 }
 
 #[cfg(test)]

@@ -40,20 +40,38 @@ assert.equal(operations[1].options.expectedUpdatedAt,'rev-2');
 console.log('PASS: valid and legacy proposals send atomic revision guards');
 
 function sendContext() {
-  let release;const gate=new Promise(r=>release=r);const messages=[];let calls=0;
+  let release;const gate=new Promise(r=>release=r);const messages=[];let calls=0,cancels=0,viewDate;
   const c=vm.createContext({t,th,translate:t,translateHtml:th,_busy:false,_sendCancelled:false,$:{input:{value:'予定を確認'}},_activeDateKey:'2026-09-26',HISTORY_TURNS:12,
-    isAiConfigured:()=>true,console,cancelAi:()=>{},_showLoading:()=>{},_appendMessage:()=>{},_renderModelStatus:()=>{},
-    Store:{refreshTasks:()=>gate,getAiChatHistory:()=>messages,addAiChatMessage:(day,m)=>{messages.push(m);return m;}},
-    chatWithAgent:async()=>{calls++;return {content:'回答',proposals:[]};}});
+    isAiConfigured:()=>true,console,cancelAi:()=>{cancels++;},_showLoading:()=>{},_appendMessage:()=>{},_renderModelStatus:()=>{},
+    Store:{refreshTasks:()=>{throw Error('Questions must not reload the complete renderer task snapshot');},getAiChatHistory:()=>messages,addAiChatMessage:(day,m)=>{messages.push(m);return m;}},
+    chatWithAgent:async(history,options)=>{calls++;viewDate=options?.viewDate;await gate;return {content:'回答',proposals:[]};}});
   c._setBusy=v=>{c._busy=v;};
-  const start=source.includes('function _cancelSend(')?'function _cancelSend(':'async function _send()';
-  vm.runInContext(source.slice(source.indexOf(start),source.indexOf('// ── サイドバー')),c);
-  return {c,release,messages,calls:()=>calls};
+  vm.runInContext(source.slice(source.indexOf('function _cancelSend('),source.indexOf('// ── サイドバー')),c);
+  return {c,release,messages,calls:()=>calls,cancels:()=>cancels,viewDate:()=>viewDate};
 }
 const first=sendContext();const a=first.c._send(),b=first.c._send();first.release();await Promise.all([a,b]);
 assert.equal(first.calls(),1);assert.equal(first.messages.filter(m=>m.role==='user').length,1);assert.equal(first.c._busy,false);
-console.log('PASS: send is reserved before asynchronous task refresh');
+assert.equal(first.viewDate(),'2026-09-26');
+console.log('PASS: send reserves one request, carries the selected date and skips a redundant full refresh');
 const stopped=sendContext();const pending=stopped.c._send();stopped.c._cancelSend();stopped.release();await pending;
-assert.equal(stopped.calls(),0);assert.equal(stopped.messages.length,0);assert.equal(stopped.c._busy,false);
-assert.equal(stopped.c.$.input.value,'予定を確認');
-console.log('PASS: stopping during refresh preserves input and does not start AI');
+assert.equal(stopped.calls(),1);assert.equal(stopped.cancels(),1);assert.equal(stopped.messages.filter(m=>m.role==='assistant').length,0);assert.equal(stopped.c._busy,false);
+console.log('PASS: stopping aborts the request and prevents a late response from being saved');
+
+let sentBody;
+const client=vm.createContext({_request:async body=>{sentBody=body;return {message:{content:'結果'},proposals:[]};}});
+const clientSource=fs.readFileSync('src-tauri/renderer/src/ai-client.js','utf8');
+vm.runInContext(clientSource.slice(clientSource.indexOf('export async function chatWithAgent')).replace('export ',''),client);
+await client.chatWithAgent([{role:'user',content:'この月の残業時間は？'}],{viewDate:'2026-09-26'});
+assert.equal(sentBody.viewDate,'2026-09-26');assert.equal(sentBody.agent,true);
+console.log('PASS: selected date crosses the actual AI request boundary');
+
+const localOnly=sendContext();localOnly.c.isAiConfigured=()=>false;
+const localRequest=localOnly.c._send();localOnly.release();await localRequest;
+assert.equal(localOnly.calls(),1,'the backend can answer local totals even with no provider configured');
+console.log('PASS: unconfigured AI does not block app-calculated work questions');
+
+const offlineClient=vm.createContext({Store:{getSettings:()=>({})},localAiConfig:()=>null,validateLocalAi:()=>null,translate:t,AbortController,DOMException,window:{setTimeout,clearTimeout},fetch:async()=>new Response(JSON.stringify({source:'application',message:{content:'1時間'},proposals:[]})),Response});
+vm.runInContext(clientSource.replace(/^import .*$/gm,'').replace(/export /g,''),offlineClient);
+assert.equal((await offlineClient.chatWithAgent([{role:'user',content:'今日の残業時間は？'}])).source,'application');
+await assert.rejects(offlineClient.callAi([{role:'user',content:'summary'}]),error=>error.unavailable===true);
+console.log('PASS: agent requests can use local totals while model-only summaries still require configuration');

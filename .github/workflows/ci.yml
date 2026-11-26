@@ -59,3 +59,45 @@ jobs:
             node $_.FullName
             if ($LASTEXITCODE -ne 0) { throw "Test failed: $($_.Name)" }
           }
+
+      - name: Build native app for AI work-time verification
+        run: cargo build --locked --manifest-path src-tauri/Cargo.toml
+
+      - name: Native AI work-time flow without a model account
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:TCPLUS_AI_NATIVE_DATA = Join-Path $env:RUNNER_TEMP 'taskcalendar-ai-native'
+          $env:TCPLUS_CODEX_PATH = Join-Path $env:RUNNER_TEMP 'deliberately-missing-model.exe'
+          $base = 'HKLM:\Software\Policies\Microsoft\Edge\WebView2'
+          $settings = @(
+            @{Key='AdditionalBrowserArguments'; Value='--remote-debugging-port=9491'},
+            @{Key='UserDataFolder'; Value=(Join-Path $env:TCPLUS_AI_NATIVE_DATA 'webview2')}
+          )
+          $previous = @()
+          try {
+            foreach ($setting in $settings) {
+              $key = Join-Path $base $setting.Key
+              New-Item -Path $key -Force | Out-Null
+              $old = (Get-ItemProperty -LiteralPath $key).PSObject.Properties['taskcalendar-plus.exe']
+              $previous += @{Key=$key; Exists=($null -ne $old); Value=$(if ($null -ne $old) {$old.Value} else {$null})}
+              New-ItemProperty -LiteralPath $key -Name 'taskcalendar-plus.exe' -PropertyType String -Value $setting.Value -Force | Out-Null
+            }
+            node scripts/e2e-ai-worktime.mjs
+            if ($LASTEXITCODE -ne 0) { throw 'Native AI work-time verification failed' }
+          } finally {
+            foreach ($old in $previous) {
+              if ($old.Exists) {
+                New-ItemProperty -LiteralPath $old.Key -Name 'taskcalendar-plus.exe' -PropertyType String -Value $old.Value -Force | Out-Null
+              } else {
+                Remove-ItemProperty -LiteralPath $old.Key -Name 'taskcalendar-plus.exe' -ErrorAction SilentlyContinue
+              }
+            }
+          }
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ai-worktime-native
+          path: out/ai-worktime-native/*
+          if-no-files-found: ignore

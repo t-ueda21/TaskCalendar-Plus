@@ -2,6 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod ai;
+mod ai_quick;
+mod work_report;
 mod ai_cli;
 mod ai_local;
 mod ai_models;

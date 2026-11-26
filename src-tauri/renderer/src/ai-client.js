@@ -45,7 +45,7 @@ export function cancelAi() {
 }
 
 async function _request(body) {
-  if (!isAiConfigured()) {
+  if (!isAiConfigured() && body.agent !== true) {
     throw new AiError(translate('ui.f992530a0a'), { unavailable: true });
   }
   const controller = new AbortController();
@@ -89,10 +89,11 @@ export async function callAi(messages, { format = null } = {}) {
  * @param {{role: "user"|"assistant", content: string}[]} messages 直近の会話(最後が今回の質問)
  * @returns {Promise<{content: string, proposals: object[]}>}
  */
-export async function chatWithAgent(messages) {
-  const data = await _request({ agent: true, messages });
+export async function chatWithAgent(messages, { viewDate = null } = {}) {
+  const data = await _request({ agent: true, messages, ...(viewDate ? { viewDate } : {}) });
   return {
     content: String(data?.message?.content ?? "").trim(),
+    source: data.source === "application" ? "application" : "model",
     proposals: Array.isArray(data?.proposals) ? data.proposals : [],
   };
 }

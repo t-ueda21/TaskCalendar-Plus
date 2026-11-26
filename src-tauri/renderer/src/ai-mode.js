@@ -327,28 +327,22 @@ async function _send() {
   if (!text) return;
   const dateKey = _activeDateKey;
 
-  if (!isAiConfigured()) {
-    _appendMessage({ role: "assistant", text: SETUP_MESSAGE() });
-    return;
-  }
-
-  // Reserve sending before the first await so a slow refresh cannot admit a second send.
+  // Reserve sending before the request so a second click cannot start another conversation.
   _sendCancelled = false;
   _setBusy(true);
   try {
-    await Store.refreshTasks().catch((e) => console.warn("[ai-mode] refreshTasks failed:", e));
-    if (_sendCancelled) return;
+    // The backend reads current records directly; sending a question does not need a full renderer reload.
     const history = Store.getAiChatHistory(dateKey)
       .slice(-HISTORY_TURNS)
-      .map((row) => ({ role: row.role, content: row.text }));
+      .map((row) => ({ role: row.role, content: row.text, ...(row.source === "application" ? { source: "application" } : {}) }));
     const saved = Store.addAiChatMessage(dateKey, { role: "user", text });
     _appendMessage({ role: "user", text, id: saved?.id, dateKey });
     $.input.value = "";
     _showLoading();
-    const reply = await chatWithAgent([...history, { role: "user", content: text }]);
+    const reply = await chatWithAgent([...history, { role: "user", content: text }], { viewDate: dateKey });
     if (_sendCancelled) return;
     const answer = reply.content || translate('ui.f5d59c00eb');
-    const message = Store.addAiChatMessage(dateKey, { role: "assistant", text: answer, proposals: reply.proposals });
+    const message = Store.addAiChatMessage(dateKey, { role: "assistant", text: answer, proposals: reply.proposals, source: reply.source });
     if (dateKey === _activeDateKey) {
       _appendMessage({ role: "assistant", text: answer, proposals: message?.proposals ?? [], id: message?.id, dateKey });
     }

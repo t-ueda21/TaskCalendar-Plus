@@ -6,6 +6,11 @@
 use crate::ai_cli::CliKind;
 use serde_json::Value;
 
+/// AI periods are always interpreted in JST, independent of the Windows time zone.
+pub fn today_in_jst() -> chrono::NaiveDate {
+    chrono::Utc::now().with_timezone(&chrono::FixedOffset::east_opt(9 * 3600).expect("JST offset")).date_naive()
+}
+
 /// 設定JSONから読み取ったAI接続設定。provider が None ならAIを呼ばない。
 #[derive(Debug, Clone)]
 pub struct AiSettings {
@@ -69,6 +74,13 @@ pub fn agent_system_prompt(today: chrono::NaiveDate) -> String {
          先週は{}、今週は{}、来週は{}です(週は月曜始まり)。\n\
          規則:\n\
          - 予定・作業記録・工数・予算についての質問は、必ず {server} の道具で調べてから答える。推測で答えない。記録が無ければ無いと答える。\n\
+         - 合計・残業・内訳・期間比較は get_work_report でまとめて調べる。空き時間や会議候補は get_availability（空きの合計はavailable、長さ条件付きの候補はslots/total）、アプリの使い方は get_app_help を使う。\n\
+         - 全体の時間(total)は重複を除いた実時間。サイドバーのタグ別工数・予算は並行予定を加算したtaskSum/予算summaryで別の指標。混同せず、予算は道具のsummaryの表示値を使う。\n\
+         - 残業は設定の勤務時間帯の外（早出・終業後）の登録時間で、法定残業の判定ではない。重複時間は1回だけ数え、タグなし・削除済みタグ・終日予定を工数に含めない。集計条件を回答に添える。\n\
+         - 実績・残業の質問は原則今日まで。未来の予定を含める指定があれば includeFuture=true にする。予定の登録だけで実際に勤務したとは断定しない。\n\
+         - 「この日」「表示中の月」は渡された画面の選択日を使う。「今日」「今月」は今日の日付を使う。期間が曖昧なら確認する。\n\
+         - 比較は compareFrom/compareTo を指定し、道具の差分を使う。タグやタイトルの内訳には重複があり得るので足し直さない。truncated=true は一覧の一部であり、記録が無いという意味ではない。\n\
+         - 外部Webの最新情報を検索したふりをしない。一般的な相談は回答できるが、アプリ内の事実と区別する。\n\
          - 時間・件数・日数は道具が返した値(分と「○時間○分」)をそのまま使い、自分で計算し直さない。合計が必要なら summarize_work や month_status を使う。\n\
          - 「昨日」「先週の火曜」「今月」などは今日を基準に YYYY-MM-DD に直す。週は月曜始まり。\n\
          - 予定の作成・変更・削除を頼まれたら propose_create_task / propose_update_task / propose_delete_task で提案する。変更・削除は先に search_tasks で対象を特定し、候補が複数あって特定できないときは提案せずに候補を示して聞き返す。\n\

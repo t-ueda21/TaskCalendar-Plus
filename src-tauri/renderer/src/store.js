@@ -160,6 +160,7 @@ function _normalizeAiChatMessage(messageLike, fallbackDate = "") {
     role,
     text,
     proposals,
+    ...(role === "assistant" && messageLike.source === "application" ? { source: "application" } : {}),
     createdAt: String(messageLike.createdAt ?? new Date().toISOString()),
   };
 }

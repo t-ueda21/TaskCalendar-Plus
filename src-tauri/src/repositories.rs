@@ -160,6 +160,12 @@ pub fn tasks_list(conn: &Connection) -> rusqlite::Result<Vec<TaskRow>> {
         .collect()
 }
 
+/// Only events overlapping an inclusive date range. Rows are already stored occurrences.
+pub fn tasks_in_range(conn: &Connection, from: &str, to: &str) -> rusqlite::Result<Vec<TaskRow>> {
+    conn.prepare("SELECT * FROM tasks WHERE date <= ?2 AND COALESCE(NULLIF(end_date,''),date) >= ?1 ORDER BY date,start_time")?
+        .query_map(params![from,to], row_to_task)?.collect()
+}
+
 pub fn tasks_revision(conn: &Connection) -> rusqlite::Result<i64> {
     conn.query_row("SELECT revision FROM task_revision WHERE id = 1", [], |row| row.get(0))
 }
