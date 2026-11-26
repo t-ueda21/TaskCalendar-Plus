@@ -20,9 +20,36 @@ function Check-Native([string]$mode,[string]$exe,[string]$data) {
   node .github/release-verification/native-release-check.mjs $mode $exe $data $report
   if ($LASTEXITCODE -ne 0) { throw "Native check failed: $mode" }
 }
+function Read-Registrations {
+  foreach ($hive in @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall')) {
+    if (Test-Path $hive) {
+      foreach ($key in Get-ChildItem $hive) {
+        $value = Get-ItemProperty -LiteralPath $key.PSPath
+        @{key=$key.Name;hive=$hive;name=$value.DisplayName;version=$value.DisplayVersion;location=([string]$value.InstallLocation).Trim('"').TrimEnd('\');uninstall=[string]$value.UninstallString}
+      }
+    }
+  }
+}
+function Read-Shortcuts {
+  $shell = New-Object -ComObject WScript.Shell
+  foreach ($folder in @([Environment]::GetFolderPath('Programs'),[Environment]::GetFolderPath('CommonPrograms'),[Environment]::GetFolderPath('DesktopDirectory'))) {
+    if (Test-Path $folder) {
+      foreach ($file in Get-ChildItem -LiteralPath $folder -Recurse -File -Filter '*.lnk') {
+        $shortcut = $shell.CreateShortcut($file.FullName)
+        @{path=$file.FullName;name=$file.Name;target=$shortcut.TargetPath;folder=$folder}
+      }
+    }
+  }
+}
 try {
   Set-TimeZone -Id 'Tokyo Standard Time'
   Install-Checked $env:OLD_INSTALLER
+  $previousExe = App-Exe $install
+  $previousRegistration = @(Read-Registrations | Where-Object { $_.location -eq $install -or $_.uninstall.Contains($install) })
+  if ($previousRegistration.Count -ne 1 -or $previousRegistration[0].version -ne '4.0.4' -or -not $previousRegistration[0].hive.StartsWith('HKCU:')) { throw 'Previous per-user installer registration is ambiguous or missing' }
+  $previousShortcuts = @(Read-Shortcuts | Where-Object { $_.target -eq $previousExe })
+  if (@($previousShortcuts | Where-Object { $_.folder -eq [Environment]::GetFolderPath('Programs') }).Count -lt 1) { throw 'Previous Start Menu app shortcut missing' }
+  if (@($previousShortcuts | Where-Object { $_.folder -eq [Environment]::GetFolderPath('DesktopDirectory') }).Count -lt 1) { throw 'Previous desktop app shortcut missing' }
   Copy-Item -LiteralPath $install -Destination $oldCopy -Recurse
   $oldExe = App-Exe $oldCopy
   if ($env:VERIFY_PHASE -eq 'package') { Check-Native 'seed' (App-Exe $install) $taskProfile }
@@ -40,36 +67,19 @@ try {
     if (-not (Test-Path -LiteralPath $installed)) { throw "Packaged source missing: $relative" }
     if ((Get-FileHash -Algorithm SHA256 -LiteralPath $file.FullName).Hash -ne (Get-FileHash -Algorithm SHA256 -LiteralPath $installed).Hash) { throw "Packaged source differs: $relative" }
   }
-  # Scope registry and shortcut assertions to this disposable installation.
-  $registrations = @(
-    foreach ($hive in @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall')) {
-      if (Test-Path $hive) {
-        foreach ($key in Get-ChildItem $hive) {
-          $value = Get-ItemProperty -LiteralPath $key.PSPath
-          if (($value.InstallLocation -and $value.InstallLocation.TrimEnd('\') -eq $install.TrimEnd('\')) -or ($value.UninstallString -and $value.UninstallString.Contains($install))) {
-            @{key=$key.Name;name=$value.DisplayName;version=$value.DisplayVersion;location=$value.InstallLocation;uninstall=$value.UninstallString}
-          }
-        }
-      }
-    }
-  )
-  if ($registrations.Count -ne 1 -or $registrations[0].version -ne '4.0.5') { throw 'Installer registration is duplicated, missing or has the wrong version' }
-  $shell = New-Object -ComObject WScript.Shell
+  $registrations = @(Read-Registrations | Where-Object { $_.name -eq $previousRegistration[0].name -or $_.key -eq $previousRegistration[0].key -or $_.location -eq $install -or $_.uninstall.Contains($install) })
+  if ($registrations.Count -ne 1 -or $registrations[0].version -ne '4.0.5' -or $registrations[0].key -ne $previousRegistration[0].key -or $registrations[0].location -ne $install) { throw 'Per-user installer registration changed, duplicated or has the wrong version/path' }
+  $allShortcuts = @(Read-Shortcuts)
   $shortcuts = @(
-    foreach ($folder in @([Environment]::GetFolderPath('Programs'),[Environment]::GetFolderPath('CommonPrograms'),[Environment]::GetFolderPath('DesktopDirectory'))) {
-      if (Test-Path $folder) {
-        foreach ($file in Get-ChildItem -LiteralPath $folder -Recurse -File -Filter '*.lnk') {
-          $shortcut = $shell.CreateShortcut($file.FullName)
-          if ($shortcut.TargetPath -and $shortcut.TargetPath.StartsWith($install,[StringComparison]::OrdinalIgnoreCase)) {
-            if ($shortcut.TargetPath -ne $newExe) { throw 'Installer shortcut targets a stale app path' }
-            @{path=$file.FullName;target=$shortcut.TargetPath}
-          }
-        }
-      }
+    foreach ($old in $previousShortcuts) {
+      $matches = @($allShortcuts | Where-Object { $_.path -eq $old.path })
+      if ($matches.Count -ne 1 -or $matches[0].target -ne $newExe) { throw "App shortcut missing or stale: $($old.path)" }
+      $matches[0]
     }
   )
-  if ($shortcuts.Count -lt 1) { throw 'Installer did not retain an app shortcut' }
-  @{rendererFiles=$files.Count;tag=$env:VERIFY_TAG;sourceSha=$env:SOURCE_SHA;installerSha256=$env:EXPECTED_SHA;previousSha256=$env:PREVIOUS_SHA;registrations=$registrations;shortcuts=$shortcuts} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $report 'package-hashes.json')
+  $namedShortcuts = @($allShortcuts | Where-Object { $_.name -in $previousShortcuts.name })
+  foreach ($link in $namedShortcuts) { if ($link.target -ne $newExe) { throw "Stale named app shortcut: $($link.path)" } }
+  @{rendererFiles=$files.Count;tag=$env:VERIFY_TAG;sourceSha=$env:SOURCE_SHA;installerSha256=$env:EXPECTED_SHA;previousSha256=$env:PREVIOUS_SHA;previousRegistration=$previousRegistration;previousShortcuts=$previousShortcuts;registrations=$registrations;shortcuts=$shortcuts} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $report 'package-hashes.json')
   if ($env:VERIFY_PHASE -eq 'package') {
     Check-Native 'package' $newExe $taskProfile
     Check-Native 'fresh' $newExe (Join-Path $env:RUNNER_TEMP 'taskcalendar-fresh-profile')
