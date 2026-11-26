@@ -36,7 +36,10 @@ try {
   foreach($setting in @(@{Key='AdditionalBrowserArguments';Value="--remote-debugging-port=$Port"},@{Key='UserDataFolder';Value=$DataDir})){
     $key=Join-Path $base $setting.Key
     $keyExisted=Test-Path -LiteralPath $key
-    if(-not $keyExisted){New-Item -Path $key|Out-Null}
+    if(-not $keyExisted){
+      $created=[Microsoft.Win32.Registry]::LocalMachine.CreateSubKey($key.Substring('HKLM:\'.Length))
+      $created.Dispose()
+    }
     $registry=Get-Item -LiteralPath $key
     $exists=$registry.GetValueNames() -contains $ExecutableName
     $previous+=@{Key=$key;KeyExisted=$keyExisted;Exists=$exists;Value=$(if($exists){$registry.GetValue($ExecutableName,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)}else{$null});Kind=$(if($exists){$registry.GetValueKind($ExecutableName).ToString()}else{$null})}
